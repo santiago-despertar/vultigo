@@ -78,28 +78,84 @@
   // hero video: load only if the file exists
   // hero: chain morph clips with two videos so the switch has no flash
   const hm = $(".hero-media");
-  if (hm && hm.dataset.clips && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (hm && hm.dataset.clips) {
     const clips = hm.dataset.clips.split(",").map(x => x.trim()).filter(Boolean);
+    const stillList = (hm.dataset.stills || "").split(",").map(x => x.trim()).filter(Boolean);
     const [va, vb] = $$("video", hm);
-    let i = 0, cur = va, nxt = vb, dead = false;
-    const load = (v, k) => { v.src = clips[k % clips.length]; v.load(); };
-    const fail = () => { dead = true; va.remove(); vb.remove(); };
-    load(cur, 0); if (clips.length > 1) load(nxt, 1);
-    const hold = +(hm.dataset.hold || 0), group = +(hm.dataset.group || 0);
-    const onEnd = () => {
+    let i = 0, cur = va, nxt = vb, dead = false, started = false, watch = 0;
+
+    // Photo sequence: used when the browser will not autoplay video
+    // (iOS Low Power Mode, data saver, reduced motion, blocked or slow video).
+    const stills = () => {
       if (dead) return;
-      if (clips.length === 1) { cur.currentTime = 0; cur.play(); return; }
-      if (hold && group && i % group === group - 1 && !onEnd.held) { onEnd.held = true; setTimeout(onEnd, hold); return; }
-      onEnd.held = false;
-      nxt.currentTime = 0;
-      nxt.classList.add("front"); cur.classList.remove("front");
-      nxt.play().catch(() => {});
-      i++; const old = cur; cur = nxt; nxt = old;
-      setTimeout(() => { if (!dead) load(nxt, i + 1); }, 1400);
+      dead = true; clearInterval(watch);
+      va.remove(); vb.remove();
+      if (stillList.length < 2) return;
+      const per = +(hm.dataset.stillGroup || stillList.length);
+      const mk = () => { const im = new Image(); im.className = "hero-still"; im.alt = ""; im.decoding = "async"; hm.appendChild(im); return im; };
+      let top = mk(), bot = mk(), k = 1;
+      const step = () => {
+        const src = stillList[k % stillList.length];
+        const pre = new Image();
+        pre.onload = () => {
+          bot.src = src;
+          const go = () => {
+            bot.classList.add("top", "front"); top.classList.remove("top");
+            const old = top; top = bot; bot = old;
+            setTimeout(() => old.classList.remove("front"), 1000);
+            k++;
+            setTimeout(step, k % per === 0 ? 2800 : 1500);
+          };
+          (bot.decode ? bot.decode().catch(() => {}) : Promise.resolve()).then(go);
+        };
+        pre.onerror = () => setTimeout(step, 3000);
+        pre.src = src;
+      };
+      setTimeout(step, 1100);
     };
-    [va, vb].forEach(v => { v.addEventListener("ended", onEnd); v.addEventListener("error", fail); });
-    cur.addEventListener("playing", () => cur.classList.add("front"), { once: true });
-    cur.play().catch(() => {});
+
+    const conn = navigator.connection || {};
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || conn.saveData) {
+      stills();
+    } else {
+      [va, vb].forEach(v => {
+        v.muted = true; v.defaultMuted = true; v.playsInline = true;
+        v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", "");
+      });
+      const load = (v, k) => { v.src = clips[k % clips.length]; v.load(); };
+      const hold = +(hm.dataset.hold || 0), group = +(hm.dataset.group || 0);
+      const onEnd = () => {
+        if (dead) return;
+        if (clips.length === 1) { cur.currentTime = 0; cur.play().catch(stills); return; }
+        if (hold && group && i % group === group - 1 && !onEnd.held) { onEnd.held = true; setTimeout(onEnd, hold); return; }
+        onEnd.held = false;
+        try { nxt.currentTime = 0; } catch (e) {}
+        nxt.classList.add("front"); cur.classList.remove("front");
+        nxt.play().catch(stills);
+        i++; const old = cur; cur = nxt; nxt = old;
+        setTimeout(() => { if (!dead) load(nxt, i + 1); }, 1400);
+      };
+      [va, vb].forEach(v => { v.addEventListener("ended", onEnd); v.addEventListener("error", stills); });
+      cur.addEventListener("playing", () => {
+        started = true; cur.classList.add("front");
+        if (clips.length > 1) load(nxt, 1);   // second clip only once the first is running
+      }, { once: true });
+      load(cur, 0);
+      const p = cur.play();
+      if (p && p.catch) p.catch(stills);
+      setTimeout(() => { if (!started) stills(); }, 6000);
+      // watchdog: a clip that stops advancing means the browser paused it
+      let last = -1, stuck = 0;
+      watch = setInterval(() => {
+        if (dead || document.hidden || onEnd.held || !started) { stuck = 0; return; }
+        const t = cur.currentTime;
+        if (t === last && !cur.ended) { if (++stuck >= 3) stills(); } else stuck = 0;
+        last = t;
+      }, 2000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && !dead && started && cur.paused && !cur.ended) cur.play().catch(stills);
+      });
+    }
   }
 
   // header state
