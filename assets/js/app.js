@@ -81,20 +81,23 @@
   if (hm && hm.dataset.clips && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     const clips = hm.dataset.clips.split(",").map(x => x.trim()).filter(Boolean);
     const [va, vb] = $$("video", hm);
-    let i = 0, cur = va, nxt = vb;
+    let i = 0, cur = va, nxt = vb, dead = false;
     const load = (v, k) => { v.src = clips[k % clips.length]; v.load(); };
+    const fail = () => { dead = true; va.remove(); vb.remove(); };
     load(cur, 0); if (clips.length > 1) load(nxt, 1);
-    cur.addEventListener("playing", () => hm.classList.add("on"), { once: true });
     const onEnd = () => {
+      if (dead) return;
       if (clips.length === 1) { cur.currentTime = 0; cur.play(); return; }
+      nxt.currentTime = 0;
       nxt.classList.add("front"); cur.classList.remove("front");
       nxt.play().catch(() => {});
       i++; const old = cur; cur = nxt; nxt = old;
-      setTimeout(() => load(nxt, i + 1), 300);
+      setTimeout(() => { if (!dead) load(nxt, i + 1); }, 1400);
     };
-    [va, vb].forEach(v => { v.addEventListener("ended", onEnd); v.addEventListener("error", () => hm.remove()); });
-    cur.classList.add("front"); cur.play().catch(() => {});
-  } else if (hm) hm.remove();
+    [va, vb].forEach(v => { v.addEventListener("ended", onEnd); v.addEventListener("error", fail); });
+    cur.addEventListener("playing", () => cur.classList.add("front"), { once: true });
+    cur.play().catch(() => {});
+  }
 
   // header state
   (async () => {
