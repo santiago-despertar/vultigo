@@ -1,0 +1,61 @@
+<main class="app-main">
+  <div class="wrap">
+    <div class="panel wide">
+      <div class="progress"><i class="on"></i><i></i><i></i></div>
+
+      <!-- Paso 1 -->
+      <section class="wstep active" data-step="1" style="padding:0">
+        <span class="label">Paso 1 de 3</span>
+        <h2 style="font-size:34px;margin:10px 0 8px">Cuéntanos de ti</h2>
+        <p class="hint" style="margin-bottom:24px">Ajustamos las referencias a tu edad y a lo que buscas.</p>
+        <form id="aboutForm">
+          <div class="grid-2" style="gap:16px">
+            <div class="field"><label for="q-age">Edad</label><input id="q-age" name="edad" type="number" min="18" max="80" required></div>
+            <div class="field"><label for="q-country">País</label>
+              <select id="q-country" name="pais" required><option>México</option><option>Colombia</option><option>Argentina</option><option>Chile</option><option>Perú</option><option>España</option><option>Estados Unidos</option><option>Otro</option></select></div>
+            <div class="field"><label for="q-height">Estatura (cm)</label><input id="q-height" name="estatura" type="number" min="140" max="220"></div>
+            <div class="field"><label for="q-weight">Peso (kg)</label><input id="q-weight" name="peso" type="number" min="40" max="200"></div>
+          </div>
+          <div class="field"><label for="q-goal">¿Qué te gustaría mejorar?</label>
+            <select id="q-goal" name="objetivo"><option>Verme mejor en general</option><option>Mandíbula y perfil</option><option>Piel</option><option>Cabello y barba</option><option>Ojos y mirada</option><option>Salir mejor en fotos</option></select></div>
+          <div class="field"><label for="q-notes">Algo más que debamos saber (opcional)</label><textarea id="q-notes" name="notas" maxlength="600" placeholder="Ej. uso lentes, tengo acné, me rapé hace poco..."></textarea></div>
+          <label class="check"><input type="checkbox" name="mayor" required> <span>Confirmo que tengo 18 años o más.</span></label>
+          <button class="btn btn-primary" type="submit">Continuar</button>
+        </form>
+      </section>
+
+      <!-- Paso 2 -->
+      <section class="wstep" data-step="2" style="padding:0">
+        <span class="label">Paso 2 de 3</span>
+        <h2 style="font-size:34px;margin:10px 0 8px">Sube tus 6 fotos</h2>
+        <p class="hint">Luz natural de frente, sin lentes ni filtros, cara despejada, a la altura de tus ojos. Mejor si alguien más te las toma.</p>
+        <div class="photo-grid" id="photoGrid"></div>
+        <label class="check"><input type="checkbox" id="consent"> <span>Autorizo a Vultigo a tratar mis fotos, que pueden contener datos biométricos, únicamente para generar mi análisis, conforme al <a href="/privacidad.html" target="_blank">aviso de privacidad</a>. Puedo pedir que se borren en cualquier momento.</span></label>
+        <div class="msg" id="photoMsg"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost" data-back="1">Atrás</button>
+          <button class="btn btn-primary" id="toPay" disabled>Continuar al pago</button>
+        </div>
+      </section>
+
+      <!-- Paso 3 -->
+      <section class="wstep" data-step="3" style="padding:0">
+        <span class="label">Paso 3 de 3</span>
+        <h2 style="font-size:34px;margin:10px 0 8px">Confirma y paga</h2>
+        <p class="hint">Tus fotos ya están guardadas. Al pagar empezamos tu análisis.</p>
+        <div class="summary"><span>Análisis Vultigo completo</span><b class="mono"><span data-price>$1,499</span> MXN</b></div>
+        <ul class="checklist" style="margin-top:0">
+          <li>Reporte con más de 120 medidas</li>
+          <li>Plan personalizado sin cirugía</li>
+          <li>Listo en menos de 48 horas</li>
+        </ul>
+        <div class="msg" id="payMsg"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost" data-back="2">Atrás</button>
+          <button class="btn btn-primary" id="payBtn">Pagar con tarjeta u OXXO</button>
+        </div>
+        <p class="hint" style="margin-top:14px">Pago seguro con Stripe. Nunca vemos los datos de tu tarjeta.</p>
+      </section>
+    </div>
+  </div>
+</main>

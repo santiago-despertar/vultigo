@@ -1,0 +1,27 @@
+<main class="app-main">
+  <div class="wrap" style="max-width:880px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:32px">
+      <div><span class="label">Mi cuenta</span><h1 style="font-size:44px;margin-top:8px">Hola, <span id="who">…</span></h1></div>
+      <div style="display:flex;gap:10px"><a class="btn btn-primary" href="/analisis.html">Nuevo análisis</a><button class="btn btn-ghost" id="logout">Salir</button></div>
+    </div>
+
+    <div class="card" id="ordersCard">
+      <p class="label" style="margin-bottom:6px">Tus análisis</p>
+      <div id="orders"><p class="hint" style="padding:18px 0">Cargando…</p></div>
+    </div>
+
+    <div class="card" id="reportCard" hidden style="margin-top:20px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+        <h2 style="font-size:32px">Tu reporte</h2><span class="status ready">Listo</span>
+      </div>
+      <div id="report"></div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <p class="label" style="margin-bottom:10px">Privacidad</p>
+      <p class="hint" style="margin-bottom:16px">Puedes borrar tus fotos en cualquier momento. Tu reporte se queda en tu cuenta.</p>
+      <button class="btn btn-ghost" id="deletePhotos">Borrar mis fotos</button>
+      <div class="msg" id="privMsg"></div>
+    </div>
+  </div>
+</main>

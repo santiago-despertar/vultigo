@@ -1,0 +1,31 @@
+<main class="app-main">
+  <div class="wrap">
+    <div class="panel">
+      <div class="tabs" role="tablist">
+        <button class="active" data-tab="signup" role="tab">Crear cuenta</button>
+        <button data-tab="login" role="tab">Entrar</button>
+      </div>
+
+      <form id="signupForm" data-pane="signup" novalidate>
+        <h2 style="font-size:32px;margin-bottom:8px">Crea tu cuenta</h2>
+        <p class="hint" style="margin-bottom:24px">Con tu cuenta subes tus fotos y ves tu reporte.</p>
+        <div class="field"><label for="su-user">Nombre de usuario</label><input id="su-user" name="username" autocomplete="username" placeholder="ej. carlos.mx" required><span class="hint" id="userHint">3 a 20 caracteres: letras, números, punto o guion bajo.</span></div>
+        <div class="field"><label for="su-email">Correo</label><input id="su-email" name="email" type="email" autocomplete="email" required></div>
+        <div class="field"><label for="su-pass">Contraseña</label><input id="su-pass" name="password" type="password" autocomplete="new-password" minlength="8" required><span class="hint">Mínimo 8 caracteres.</span></div>
+        <label class="check"><input type="checkbox" name="terms" required> <span>Acepto los <a href="/terminos.html">términos</a> y el <a href="/privacidad.html">aviso de privacidad</a>.</span></label>
+        <div class="msg" id="signupMsg"></div>
+        <button class="btn btn-primary btn-block" type="submit">Crear cuenta</button>
+      </form>
+
+      <form id="loginForm" data-pane="login" hidden novalidate>
+        <h2 style="font-size:32px;margin-bottom:8px">Bienvenido de vuelta</h2>
+        <p class="hint" style="margin-bottom:24px">Entra con tu correo o tu nombre de usuario.</p>
+        <div class="field"><label for="li-id">Correo o usuario</label><input id="li-id" name="identifier" autocomplete="username" required></div>
+        <div class="field"><label for="li-pass">Contraseña</label><input id="li-pass" name="password" type="password" autocomplete="current-password" required></div>
+        <div class="msg" id="loginMsg"></div>
+        <button class="btn btn-primary btn-block" type="submit">Entrar</button>
+        <p class="hint" style="text-align:center;margin-top:16px"><a href="#" id="forgot">¿Olvidaste tu contraseña?</a></p>
+      </form>
+    </div>
+  </div>
+</main>
