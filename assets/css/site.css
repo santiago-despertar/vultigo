@@ -822,3 +822,8 @@ body[data-page=index] .frame>section.notes{padding:24px 40px 40px}
 @media (max-width:900px){.final-cta .hero-actions .btn{padding:0 14px;font-size:14px;white-space:nowrap}}
 
 .hero-media video{transition:opacity .7s ease}
+
+/* v6 hero photo sequence (fallback when video cannot autoplay) */
+.hero-media img.hero-still{opacity:0;z-index:1;transition:opacity .9s ease}
+.hero-media img.hero-still.front{opacity:1}
+.hero-media img.hero-still.top{z-index:2}
