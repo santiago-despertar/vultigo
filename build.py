@@ -56,7 +56,7 @@ FOOTER = """<footer class="site-footer">
     <div class="footer-grid">
       <div style="max-width:320px">
         <a class="brand" href="/"><img src="/assets/img/mark-ink.svg" alt=""><span>vultigo</span></a>
-        <p class="hint" style="margin-top:14px">Análisis facial con método. Un plan claro para mejorar tu apariencia, sin cirugía.</p>
+        <p class="hint" style="margin-top:14px">Análisis facial con método. Un plan claro para mejorar tu apariencia.</p>
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Vultigo</p>
@@ -94,7 +94,7 @@ SCRIPTS = """<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.4
 
 PAGES = [
     # file, title, description, extra scripts
-    ("index.html", "Vultigo · Análisis facial con método", "Medimos tu rostro con más de 120 puntos de referencia y te damos un plan personalizado para mejorar tu apariencia, sin cirugía.", ""),
+    ("index.html", "Vultigo · Análisis facial con método", "Medimos tu rostro con más de 120 puntos de referencia y te damos un plan personalizado para mejorar tu apariencia.", ""),
     ("cuenta.html", "Entrar · Vultigo", "Crea tu cuenta o entra a Vultigo.", ""),
     ("analisis.html", "Tu análisis · Vultigo", "Sube tus fotos y recibe tu análisis facial completo.", ""),
     ("panel.html", "Mi cuenta · Vultigo", "Tus análisis y reportes.", ""),
