@@ -37,12 +37,47 @@
   }
   const errES = (e) => {
     const m = (e && e.message) || "";
-    if (/Invalid login/i.test(m)) return "Correo, usuario o contraseña incorrectos.";
+    if (/Invalid login/i.test(m)) return "Correo o contraseña incorrectos.";
     if (/already registered|already exists/i.test(m)) return "Ya existe una cuenta con ese correo.";
     if (/Email not confirmed/i.test(m)) return "Confirma tu correo: te mandamos un enlace al registrarte.";
     if (/Password/i.test(m)) return "La contraseña debe tener al menos 8 caracteres.";
     return "Algo salió mal. Inténtalo de nuevo.";
   };
+
+
+  // ---------- v3 home interactions ----------
+  // before/projection sliders
+  $$("[data-ba]").forEach(fig => {
+    const imgs = $$("img", fig);
+    let missing = 0;
+    const gone = (im) => { im.remove(); if (++missing === imgs.length) fig.classList.add("empty"); };
+    imgs.forEach(im => { if (im.complete && !im.naturalWidth) gone(im); else im.addEventListener("error", () => gone(im)); });
+    const set = (cx) => { const r = fig.getBoundingClientRect(); fig.style.setProperty("--x", Math.min(100, Math.max(0, (cx - r.left) / r.width * 100)) + "%"); };
+    let drag = false;
+    fig.addEventListener("pointerdown", e => { drag = true; fig.setPointerCapture(e.pointerId); set(e.clientX); });
+    fig.addEventListener("pointermove", e => { if (drag) set(e.clientX); });
+    fig.addEventListener("pointerup", () => (drag = false));
+  });
+  // pill tabs
+  $$("[data-tabs]").forEach(g => {
+    const name = g.dataset.tabs;
+    $$("button", g).forEach(b => b.addEventListener("click", () => {
+      $$("button", g).forEach(x => x.classList.toggle("on", x === b));
+      $$(`[data-pane-of="${name}"]`).forEach(p => (p.hidden = p.dataset.p !== b.dataset.t));
+    }));
+  });
+  // dashboard dot grid
+  const dots = $("#dots");
+  if (dots) for (let r = 0; r < 10; r++) for (let c = 0; c < 10; c++) {
+    const d = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    const hot = Math.hypot(r - 3, c - 6) < 2.2;
+    d.setAttribute("x", 30 + c * 14); d.setAttribute("y", 28 + r * 14); d.setAttribute("width", 9); d.setAttribute("height", 9); d.setAttribute("rx", 1.5);
+    if (hot) d.setAttribute("fill-opacity", ".7");
+    dots.appendChild(d);
+  }
+  // hero video: load only if the file exists
+  const hv = $(".hero-video");
+  if (hv && hv.dataset.src) fetch(hv.dataset.src, { method: "HEAD" }).then(r => { if (r.ok) { hv.src = hv.dataset.src; hv.play().catch(() => {}); } else hv.remove(); }).catch(() => hv.remove());
 
   // header state
   (async () => {
@@ -63,35 +98,26 @@
     tabs.forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
     if (params.get("modo") === "entrar") show("login");
 
-    const userRe = /^[a-z0-9._]{3,20}$/;
-    const userInput = $("#su-user"), userHint = $("#userHint");
-    let userTimer;
-    userInput.addEventListener("input", () => {
-      userInput.value = userInput.value.toLowerCase().replace(/\s/g, "");
-      clearTimeout(userTimer);
-      const v = userInput.value;
-      if (!userRe.test(v)) { userHint.textContent = "3 a 20 caracteres: letras, números, punto o guion bajo."; return; }
-      if (!sb) return;
-      userTimer = setTimeout(async () => {
-        const { data } = await sb.rpc("username_available", { u: v });
-        userHint.textContent = data ? `@${v} está disponible.` : `@${v} ya está en uso.`;
-      }, 350);
-    });
+    $$("[data-google]").forEach(btn => btn.addEventListener("click", async () => {
+      const m = $("#googleMsg"); clearMsg(m);
+      if (!sb) return notReady(m);
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: location.origin + next, queryParams: { prompt: "select_account" } }
+      });
+      if (error) msg(m, errES(error));
+    }));
 
     $("#signupForm").addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const f = ev.target, m = $("#signupMsg"); clearMsg(m);
-      const username = f.username.value.trim().toLowerCase();
-      if (!userRe.test(username)) return msg(m, "Elige un nombre de usuario válido.");
       if (!f.email.value.includes("@")) return msg(m, "Escribe un correo válido.");
       if (f.password.value.length < 8) return msg(m, "La contraseña debe tener al menos 8 caracteres.");
       if (!f.terms.checked) return msg(m, "Necesitas aceptar los términos y el aviso de privacidad.");
       if (!sb) return notReady(m);
-      const { data: free } = await sb.rpc("username_available", { u: username });
-      if (!free) return msg(m, "Ese nombre de usuario ya está en uso.");
       const { data, error } = await sb.auth.signUp({
         email: f.email.value.trim(), password: f.password.value,
-        options: { data: { username }, emailRedirectTo: location.origin + "/panel.html" }
+        options: { emailRedirectTo: location.origin + next }
       });
       if (error) return msg(m, errES(error));
       if (data.session) location.href = next;
@@ -102,23 +128,14 @@
       ev.preventDefault();
       const f = ev.target, m = $("#loginMsg"); clearMsg(m);
       if (!sb) return notReady(m);
-      const id = f.identifier.value.trim(), password = f.password.value;
-      try {
-        if (id.includes("@")) {
-          const { error } = await sb.auth.signInWithPassword({ email: id, password });
-          if (error) throw error;
-        } else {
-          const t = await fnCall("username-login", { username: id.toLowerCase(), password });
-          const { error } = await sb.auth.setSession(t);
-          if (error) throw error;
-        }
-        location.href = next;
-      } catch (e) { msg(m, errES(e)); }
+      const { error } = await sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.password.value });
+      if (error) return msg(m, errES(error));
+      location.href = next;
     });
 
     $("#forgot").addEventListener("click", async (ev) => {
       ev.preventDefault();
-      const m = $("#loginMsg"), id = $("#li-id").value.trim();
+      const m = $("#loginMsg"), id = $("#li-email").value.trim();
       if (!id.includes("@")) return msg(m, "Escribe tu correo arriba y vuelve a dar clic.");
       if (!sb) return notReady(m);
       await sb.auth.resetPasswordForEmail(id, { redirectTo: location.origin + "/cuenta.html" });
@@ -242,8 +259,7 @@
       if (!sb) { $("#orders").innerHTML = '<p class="hint" style="padding:18px 0">Estamos terminando de preparar tu cuenta.</p>'; return; }
       const user = await getUser();
       if (!user) { location.href = "/cuenta.html?modo=entrar&next=/panel.html"; return; }
-      const { data: prof } = await sb.from("profiles").select("username").eq("id", user.id).single();
-      $("#who").textContent = prof ? "@" + prof.username : user.email;
+      $("#who").textContent = (user.user_metadata && user.user_metadata.full_name) || user.email;
 
       const { data: orders } = await sb.from("orders").select("id,status,created_at,paid_at").order("created_at", { ascending: false });
       const box = $("#orders");
