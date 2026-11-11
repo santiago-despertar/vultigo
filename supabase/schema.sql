@@ -75,3 +75,14 @@ create policy "own photos read" on storage.objects for select to authenticated
   using (bucket_id = 'fotos' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "own photos delete" on storage.objects for delete to authenticated
   using (bucket_id = 'fotos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Free rating leads (email + score only, never the photo)
+create table if not exists public.leads (
+  id bigint generated always as identity primary key,
+  email text not null check (position('@' in email) > 1),
+  score integer,
+  source text,
+  created_at timestamptz not null default now()
+);
+alter table public.leads enable row level security;
+create policy "anyone can leave their email" on public.leads for insert to anon, authenticated with check (true);
