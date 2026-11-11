@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pago recibido · Vultigo</title>
+<meta name="description" content="Recibimos tu pago.">
+<meta property="og:title" content="Pago recibido · Vultigo">
+<meta property="og:description" content="Recibimos tu pago.">
+<meta property="og:image" content="https://vultigo.com/assets/img/og.png">
+<meta property="og:url" content="https://vultigo.com/gracias.html">
+<meta name="theme-color" content="#6E7E8E">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/site.css">
+
+</head>
+<body data-page="gracias">
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Vultigo, inicio"><img src="/assets/img/mark-ink.svg" alt=""><span>vultigo</span></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="/#como-funciona">Cómo funciona</a>
+      <a href="/#que-medimos">Qué medimos</a>
+      <a href="/#precio">Precio</a>
+      <a href="/#preguntas">Preguntas</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="/cuenta.html" data-auth="out">Entrar</a>
+      <a class="btn btn-ghost" href="/panel.html" data-auth="in" hidden>Mi cuenta</a>
+      <a class="btn btn-primary" href="/analisis.html">Empieza tu análisis</a>
+      <button class="menu-btn" aria-label="Abrir menú" onclick="document.getElementById('navLinks').classList.toggle('open')">
+        <svg width="22" height="22" viewBox="0 0 22 22" stroke="currentColor" stroke-width="1.6"><path d="M3 7h16M3 15h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="app-main">
+  <div class="wrap">
+    <div class="panel" style="text-align:center">
+      <img src="/assets/img/mark-ink.svg" alt="" style="height:56px;margin:0 auto 20px">
+      <h1 style="font-size:40px;margin-bottom:12px">Recibimos tu pago</h1>
+      <p class="lead" style="margin-bottom:28px">Ya estamos trabajando en tu análisis. Te avisamos por correo en menos de 48 horas, y también lo vas a ver en tu cuenta.</p>
+      <p class="hint" style="margin-bottom:24px">¿Pagaste en OXXO? Tu análisis empieza en cuanto OXXO confirme el pago, normalmente en unas horas.</p>
+      <a class="btn btn-primary" href="/panel.html">Ir a mi cuenta</a>
+    </div>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div style="max-width:320px">
+        <a class="brand" href="/"><img src="/assets/img/mark-ink.svg" alt=""><span>vultigo</span></a>
+        <p class="hint" style="margin-top:14px">Análisis facial con método. Un plan claro para mejorar tu apariencia, sin cirugía.</p>
+      </div>
+      <div>
+        <p class="label" style="margin-bottom:10px">Vultigo</p>
+        <a href="/#como-funciona">Cómo funciona</a>
+        <a href="/#precio">Precio</a>
+        <a href="/#preguntas">Preguntas frecuentes</a>
+        <a href="/cuenta.html">Entrar</a>
+      </div>
+      <div>
+        <p class="label" style="margin-bottom:10px">Síguenos</p>
+        <a href="https://www.instagram.com/vultigo.oficial/" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/@vultigo" rel="noopener">TikTok</a>
+        <a href="https://www.youtube.com/@vultigo" rel="noopener">YouTube</a>
+        <a href="https://www.facebook.com/profile.php?id=61596617694439" rel="noopener">Facebook</a>
+      </div>
+      <div>
+        <p class="label" style="margin-bottom:10px">Legal</p>
+        <a href="/privacidad.html">Aviso de privacidad</a>
+        <a href="/terminos.html">Términos y condiciones</a>
+        <a href="mailto:hola@vultigo.com">hola@vultigo.com</a>
+      </div>
+    </div>
+    <p class="copy">© <span id="year"></span> Vultigo. Vultigo no ofrece diagnósticos ni tratamientos médicos.</p>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/app.js"></script>
+
+</body>
+</html>
