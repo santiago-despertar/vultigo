@@ -820,3 +820,5 @@ body[data-page=index] .frame>section.notes{padding:24px 40px 40px}
   .pills button{padding:8px 12px;font-size:13px}
 }
 @media (max-width:900px){.final-cta .hero-actions .btn{padding:0 14px;font-size:14px;white-space:nowrap}}
+
+.hero-media video{transition:opacity .7s ease}
