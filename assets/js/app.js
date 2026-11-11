@@ -76,12 +76,25 @@
     dots.appendChild(d);
   }
   // hero video: load only if the file exists
-  const hv = $(".hero-video");
-  if (hv && hv.dataset.src && innerWidth > 900 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    hv.addEventListener("playing", () => hv.classList.add("on"), { once: true });
-    hv.addEventListener("error", () => hv.remove(), true);
-    hv.src = hv.dataset.src; hv.play().catch(() => {});
-  } else if (hv) hv.remove();
+  // hero: chain morph clips with two videos so the switch has no flash
+  const hm = $(".hero-media");
+  if (hm && hm.dataset.clips && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const clips = hm.dataset.clips.split(",").map(x => x.trim()).filter(Boolean);
+    const [va, vb] = $$("video", hm);
+    let i = 0, cur = va, nxt = vb;
+    const load = (v, k) => { v.src = clips[k % clips.length]; v.load(); };
+    load(cur, 0); if (clips.length > 1) load(nxt, 1);
+    cur.addEventListener("playing", () => hm.classList.add("on"), { once: true });
+    const onEnd = () => {
+      if (clips.length === 1) { cur.currentTime = 0; cur.play(); return; }
+      nxt.classList.add("front"); cur.classList.remove("front");
+      nxt.play().catch(() => {});
+      i++; const old = cur; cur = nxt; nxt = old;
+      setTimeout(() => load(nxt, i + 1), 300);
+    };
+    [va, vb].forEach(v => { v.addEventListener("ended", onEnd); v.addEventListener("error", () => hm.remove()); });
+    cur.classList.add("front"); cur.play().catch(() => {});
+  } else if (hm) hm.remove();
 
   // header state
   (async () => {
