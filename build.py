@@ -1,3 +1,4 @@
+import time
 """Builds the static pages of vultigo.com from partials. Run: python3 build.py"""
 from pathlib import Path
 
@@ -22,7 +23,7 @@ HEAD = """<!doctype html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/site.css?v=__V__">
 {extra_head}
 </head>
 <body data-page="{page}">
@@ -32,9 +33,8 @@ HEADER = """<header class="site-header">
   <div class="wrap nav">
     <a class="brand" href="/" aria-label="Vultigo, inicio"><img src="/assets/img/mark-ink.svg" alt=""><span>vultigo</span></a>
     <nav class="nav-links" id="navLinks">
+      <a href="/#por-que">Por qué Vultigo</a>
       <a href="/#como-funciona">Cómo funciona</a>
-      <a href="/#que-medimos">Qué medimos</a>
-      <a href="/#precio">Precio</a>
       <a href="/calificacion.html">Calificación gratis</a>
       <a href="/#preguntas">Preguntas</a>
     </nav>
@@ -84,8 +84,8 @@ FOOTER = """<footer class="site-footer">
 """
 
 SCRIPTS = """<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js"></script>
-<script src="/assets/js/app.js"></script>
+<script src="/assets/js/config.js?v=__V__"></script>
+<script src="/assets/js/app.js?v=__V__"></script>
 {extra_scripts}
 </body>
 </html>
@@ -109,5 +109,6 @@ for fname, title, desc, extra in PAGES:
     page = fname.replace(".html", "")
     html = HEAD.format(title=title, desc=desc, path="" if fname == "index.html" else fname, page=page, extra_head="")
     html += HEADER + body + FOOTER + SCRIPTS.format(extra_scripts=extra)
+    html = html.replace("__V__", str(int(time.time())))
     (ROOT / fname).write_text(html, encoding="utf-8")
     print("built", fname)
