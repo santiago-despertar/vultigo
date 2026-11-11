@@ -85,9 +85,12 @@
     const load = (v, k) => { v.src = clips[k % clips.length]; v.load(); };
     const fail = () => { dead = true; va.remove(); vb.remove(); };
     load(cur, 0); if (clips.length > 1) load(nxt, 1);
+    const hold = +(hm.dataset.hold || 0), group = +(hm.dataset.group || 0);
     const onEnd = () => {
       if (dead) return;
       if (clips.length === 1) { cur.currentTime = 0; cur.play(); return; }
+      if (hold && group && i % group === group - 1 && !onEnd.held) { onEnd.held = true; setTimeout(onEnd, hold); return; }
+      onEnd.held = false;
       nxt.currentTime = 0;
       nxt.classList.add("front"); cur.classList.remove("front");
       nxt.play().catch(() => {});
