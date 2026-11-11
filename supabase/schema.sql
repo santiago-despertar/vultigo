@@ -1,33 +1,25 @@
 -- Vultigo database. Run once in Supabase > SQL Editor.
 
--- Profiles: one per user, holds the public username
+-- Profiles: one per user (email or Google sign-in, no username)
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  username text not null unique check (username ~ '^[a-z0-9._]{3,20}$'),
+  email text,
+  full_name text,
   created_at timestamptz not null default now()
 );
 alter table public.profiles enable row level security;
 create policy "own profile read" on public.profiles for select using (auth.uid() = id);
 
--- Create the profile automatically from the username given at sign-up
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, username)
-  values (new.id, lower(new.raw_user_meta_data->>'username'));
+  insert into public.profiles (id, email, full_name)
+  values (new.id, new.email, new.raw_user_meta_data->>'full_name');
   return new;
 end $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
 for each row execute function public.handle_new_user();
-
--- Username availability check (returns only true/false)
-create or replace function public.username_available(u text) returns boolean
-language sql security definer set search_path = public stable as $$
-  select lower(u) ~ '^[a-z0-9._]{3,20}$'
-     and not exists (select 1 from public.profiles where username = lower(u));
-$$;
-grant execute on function public.username_available(text) to anon, authenticated;
 
 -- Orders: borrador (draft) -> pagado (paid, set only by the Stripe webhook) -> listo (report delivered)
 create table if not exists public.orders (
