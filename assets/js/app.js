@@ -77,7 +77,11 @@
   }
   // hero video: load only if the file exists
   const hv = $(".hero-video");
-  if (hv && hv.dataset.src) fetch(hv.dataset.src, { method: "HEAD" }).then(r => { if (r.ok) { hv.src = hv.dataset.src; hv.play().catch(() => {}); } else hv.remove(); }).catch(() => hv.remove());
+  if (hv && hv.dataset.src && innerWidth > 900 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    hv.addEventListener("playing", () => hv.classList.add("on"), { once: true });
+    hv.addEventListener("error", () => hv.remove(), true);
+    hv.src = hv.dataset.src; hv.play().catch(() => {});
+  } else if (hv) hv.remove();
 
   // header state
   (async () => {
