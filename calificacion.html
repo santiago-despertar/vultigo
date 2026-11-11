@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calificación facial gratis · Vultigo</title>
+<meta name="description" content="Descubre tu puntaje de armonía facial del 0 al 100, gratis. Tu foto se analiza en tu dispositivo.">
+<meta property="og:title" content="Calificación facial gratis · Vultigo">
+<meta property="og:description" content="Descubre tu puntaje de armonía facial del 0 al 100, gratis. Tu foto se analiza en tu dispositivo.">
+<meta property="og:image" content="https://vultigo.com/assets/img/og.png">
+<meta property="og:url" content="https://vultigo.com/calificacion.html">
+<meta name="theme-color" content="#6E7E8E">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/site.css">
+
+</head>
+<body data-page="calificacion">
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Vultigo, inicio"><img src="/assets/img/mark-ink.svg" alt=""><span>vultigo</span></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="/#como-funciona">Cómo funciona</a>
+      <a href="/#que-medimos">Qué medimos</a>
+      <a href="/#precio">Precio</a>
+      <a href="/calificacion.html">Calificación gratis</a>
+      <a href="/#preguntas">Preguntas</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="/cuenta.html" data-auth="out">Entrar</a>
+      <a class="btn btn-ghost" href="/panel.html" data-auth="in" hidden>Mi cuenta</a>
+      <a class="btn btn-primary" href="/analisis.html">Empieza tu plan</a>
+      <button class="menu-btn" aria-label="Abrir menú" onclick="document.getElementById('navLinks').classList.toggle('open')">
+        <svg width="22" height="22" viewBox="0 0 22 22" stroke="currentColor" stroke-width="1.6"><path d="M3 7h16M3 15h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="app-main">
+  <div class="wrap" style="max-width:980px">
+    <div style="text-align:center;margin-bottom:36px">
+      <span class="tag">Gratis · 30 segundos</span>
+      <h1 class="h-xl" style="margin-top:18px">Calificación facial <span class="muted">gratis</span></h1>
+      <p class="lead" style="max-width:560px;margin:14px auto 0">Sube una foto de frente y recibe tu puntaje de armonía del 0 al 100. Tu foto se analiza en tu propio dispositivo y nunca se sube a internet.</p>
+    </div>
+
+    <div class="panel wide" id="rateStart">
+      <div class="grid-2" style="gap:28px;align-items:center">
+        <label class="slot" style="aspect-ratio:4/5;cursor:pointer" id="rateDrop">
+          <b>Sube tu foto de frente</b><small>o tómala con tu cámara</small>
+          <input type="file" accept="image/*" id="rateFile" aria-label="Foto de frente">
+        </label>
+        <div>
+          <p class="label" style="margin-bottom:12px">Para un resultado preciso</p>
+          <ul class="checklist" style="margin:0 0 20px">
+            <li>Mira directo a la cámara, cara relajada</li>
+            <li>Luz de frente, sin sombras fuertes</li>
+            <li>Sin lentes, gorra ni filtros</li>
+            <li>Cámara a la altura de tus ojos</li>
+          </ul>
+          <label class="check"><input type="checkbox" id="rateAdult"> <span>Tengo 18 años o más y la foto es mía.</span></label>
+          <div class="msg" id="rateMsg"></div>
+          <button class="btn btn-primary btn-block" id="rateGo" disabled>Calcular mi puntaje</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="rateResult" hidden>
+      <div class="split" style="border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-raised);overflow:hidden">
+        <div style="padding:0;position:relative;background:var(--slate)">
+          <canvas id="rateCanvas" style="width:100%;height:auto;display:block"></canvas>
+        </div>
+        <div style="padding:36px">
+          <span class="tag">Tu resultado</span>
+          <p style="margin-top:16px;color:var(--ink-muted)">Armonía facial</p>
+          <p class="mono" style="font-size:84px;line-height:1;letter-spacing:-.02em;margin:6px 0 4px"><span id="rScore">0</span><span style="font-size:24px;color:var(--ink-muted)"> / 100</span></p>
+          <p class="hint" id="rVerdict"></p>
+          <div style="margin-top:22px" id="rRows"></div>
+          <div class="card" style="margin-top:22px;background:var(--surface)">
+            <p class="label">Lo que puedes mejorar primero</p>
+            <p style="margin-top:8px" id="rWeak"></p>
+            <p class="hint" style="margin-top:6px">El plan exacto para mejorarlo está en tu análisis completo.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta" style="margin-top:28px;text-align:left;display:grid;grid-template-columns:1.3fr 1fr;gap:28px;align-items:center">
+        <div>
+          <h2 style="margin:0 0 12px;text-align:left">Desbloquea tus 120+ medidas y tu plan.</h2>
+          <p style="margin:0;color:#EEF1F3">Tu puntaje mide 6 proporciones de frente. El análisis completo usa 6 fotos, revisa cada rasgo y te dice exactamente qué hacer, en qué orden, sin cirugía.</p>
+        </div>
+        <div style="text-align:center">
+          <p class="mono" style="color:var(--sand);font-size:28px"><span data-price>$1,499</span> MXN</p>
+          <a class="btn btn-light" style="margin-top:12px" href="/analisis.html">Quiero mi análisis completo</a>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:28px;max-width:none">
+        <p class="label">Guarda tu resultado</p>
+        <p class="hint" style="margin:8px 0 16px">Te mandamos tu puntaje y una guía gratis para empezar a mejorar tu cara esta semana.</p>
+        <form id="leadForm" style="display:flex;gap:10px;flex-wrap:wrap">
+          <input type="email" name="email" required placeholder="tu@correo.com" style="flex:1;min-width:220px;height:48px;padding:0 14px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);font:16px var(--font-sans)">
+          <button class="btn btn-primary" type="submit">Enviarme mi resultado</button>
+        </form>
+        <div class="msg" id="leadMsg"></div>
+        <p class="hint" style="margin-top:10px">Solo guardamos tu correo y tu puntaje, nunca tu foto. <a href="/privacidad.html">Aviso de privacidad</a>.</p>
+      </div>
+      <p style="text-align:center;margin-top:20px"><button class="btn btn-ghost" id="rateAgain">Probar con otra foto</button></p>
+      <p class="hint" style="text-align:center;margin-top:12px">Puntaje estético y educativo basado en proporciones medidas en una foto. No es un juicio sobre tu valor ni un diagnóstico.</p>
+    </div>
+  </div>
+</main>
+<script type="module" src="/assets/js/rate.js"></script>
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div style="max-width:320px">
+        <a class="brand" href="/"><img src="/assets/img/mark-ink.svg" alt=""><span>vultigo</span></a>
+        <p class="hint" style="margin-top:14px">Análisis facial con método. Un plan claro para mejorar tu apariencia, sin cirugía.</p>
+      </div>
+      <div>
+        <p class="label" style="margin-bottom:10px">Vultigo</p>
+        <a href="/#como-funciona">Cómo funciona</a>
+        <a href="/#precio">Precio</a>
+        <a href="/#preguntas">Preguntas frecuentes</a>
+        <a href="/cuenta.html">Entrar</a>
+      </div>
+      <div>
+        <p class="label" style="margin-bottom:10px">Síguenos</p>
+        <a href="https://www.instagram.com/vultigo.oficial/" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/@vultigo" rel="noopener">TikTok</a>
+        <a href="https://www.youtube.com/@vultigo" rel="noopener">YouTube</a>
+        <a href="https://www.facebook.com/profile.php?id=61596617694439" rel="noopener">Facebook</a>
+      </div>
+      <div>
+        <p class="label" style="margin-bottom:10px">Legal</p>
+        <a href="/privacidad.html">Aviso de privacidad</a>
+        <a href="/terminos.html">Términos y condiciones</a>
+        <a href="mailto:hola@vultigo.com">hola@vultigo.com</a>
+      </div>
+    </div>
+    <p class="copy">© <span id="year"></span> Vultigo. Vultigo no ofrece diagnósticos ni tratamientos médicos.</p>
+  </div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/app.js"></script>
+
+</body>
+</html>

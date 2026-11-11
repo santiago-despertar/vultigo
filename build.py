@@ -35,12 +35,13 @@ HEADER = """<header class="site-header">
       <a href="/#como-funciona">Cómo funciona</a>
       <a href="/#que-medimos">Qué medimos</a>
       <a href="/#precio">Precio</a>
+      <a href="/calificacion.html">Calificación gratis</a>
       <a href="/#preguntas">Preguntas</a>
     </nav>
     <div class="nav-cta">
       <a class="btn btn-ghost" href="/cuenta.html" data-auth="out">Entrar</a>
       <a class="btn btn-ghost" href="/panel.html" data-auth="in" hidden>Mi cuenta</a>
-      <a class="btn btn-primary" href="/analisis.html">Empieza tu análisis</a>
+      <a class="btn btn-primary" href="/analisis.html">Empieza tu plan</a>
       <button class="menu-btn" aria-label="Abrir menú" onclick="document.getElementById('navLinks').classList.toggle('open')">
         <svg width="22" height="22" viewBox="0 0 22 22" stroke="currentColor" stroke-width="1.6"><path d="M3 7h16M3 15h16"/></svg>
       </button>
@@ -99,6 +100,7 @@ PAGES = [
     ("gracias.html", "Pago recibido · Vultigo", "Recibimos tu pago.", ""),
     ("privacidad.html", "Aviso de privacidad · Vultigo", "Aviso de privacidad integral de Vultigo.", ""),
     ("terminos.html", "Términos y condiciones · Vultigo", "Términos y condiciones de Vultigo.", ""),
+    ("calificacion.html", "Calificación facial gratis · Vultigo", "Descubre tu puntaje de armonía facial del 0 al 100, gratis. Tu foto se analiza en tu dispositivo.", ""),
     ("404.html", "Página no encontrada · Vultigo", "Esta página no existe.", ""),
 ]
 
