@@ -37,6 +37,7 @@ HEADER = """<header class="site-header">
       <a href="/#como-funciona">Cómo funciona</a>
       <a href="/calificacion.html">Calificación gratis</a>
       <a href="/#preguntas">Preguntas</a>
+      <a href="/cuenta.html" class="menu-only">Entrar / Mi cuenta</a>
     </nav>
     <div class="nav-cta">
       <a class="btn btn-ghost" href="/cuenta.html" data-auth="out">Entrar</a>

@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794431609">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794432719">
 
 </head>
 <body data-page="index">
@@ -28,6 +28,7 @@
       <a href="/#como-funciona">Cómo funciona</a>
       <a href="/calificacion.html">Calificación gratis</a>
       <a href="/#preguntas">Preguntas</a>
+      <a href="/cuenta.html" class="menu-only">Entrar / Mi cuenta</a>
     </nav>
     <div class="nav-cta">
       <a class="btn btn-ghost" href="/cuenta.html" data-auth="out">Entrar</a>
@@ -43,7 +44,7 @@
 
 <!-- 1. HERO -->
 <section class="hero2" id="inicio">
-  <video class="hero-video" poster="/assets/img/hero-w.jpg" autoplay muted loop playsinline preload="none" data-src="https://d8j0ntlcm91z4.cloudfront.net/user_3I9QtNdHrbtOUuHefeCs3sYAPrI/hf_20261111_210650_eb08458a-c5a7-4f2e-b0ff-8193ea4ffdf4.mp4"></video>
+  <div class="hero-media" data-clips="https://d8j0ntlcm91z4.cloudfront.net/user_3I9QtNdHrbtOUuHefeCs3sYAPrI/hf_20261111_212907_c3238a28-44e0-4262-8941-f7b9101acb88.mp4,https://d8j0ntlcm91z4.cloudfront.net/user_3I9QtNdHrbtOUuHefeCs3sYAPrI/hf_20261111_212907_d364d04a-d934-474f-a51f-2a7bb5d94480.mp4,https://d8j0ntlcm91z4.cloudfront.net/user_3I9QtNdHrbtOUuHefeCs3sYAPrI/hf_20261111_212907_5ee9a876-fedd-47a0-b2a9-03d0a0563bea.mp4,https://d8j0ntlcm91z4.cloudfront.net/user_3I9QtNdHrbtOUuHefeCs3sYAPrI/hf_20261111_212907_d608886f-a9b3-4eeb-9d1a-f561b7c7d9b8.mp4" aria-hidden="true"><video class="hero-video" muted playsinline preload="auto"></video><video class="hero-video" muted playsinline preload="auto"></video></div>
   <div class="inner">
     <p class="kicker">Análisis facial personalizado</p>
     <h1>Mejora tu apariencia <span class="muted">sin cirugía</span></h1>
@@ -145,11 +146,13 @@
     <p class="body-sm" style="margin:16px auto 0;max-width:560px;color:#E6EBEF">Cada cara es distinta. Medimos más de 120 marcadores para entender cómo funcionan tus rasgos juntos.</p>
   </div>
   <div class="dash">
-    <div class="w w-grid"><svg viewBox="0 0 200 200"><g fill="#fff" fill-opacity=".14" id="dots"></g><text x="100" y="14" class="t" text-anchor="middle">MARCADA</text><text x="100" y="196" class="t" text-anchor="middle">SUTIL</text><text x="4" y="104" class="t">SUAVE</text><text x="196" y="104" class="t" text-anchor="end">DEFINIDA</text></svg><p>Tus cejas están en el 20% más definido.</p></div>
-    <div class="w w-curve"><svg viewBox="0 0 220 110"><path d="M6 100 C60 100 70 12 110 12 S160 100 214 100" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.4"/><line x1="152" y1="8" x2="152" y2="102" stroke="#fff" stroke-opacity=".5" stroke-dasharray="3 3"/><circle cx="152" cy="62" r="4" fill="#C8B48E"/><text x="6" y="108" class="t">BAJA</text><text x="110" y="108" class="t" text-anchor="middle">MEDIA</text><text x="214" y="108" class="t" text-anchor="end">ALTA</text></svg><p>Densidad de cejas: percentil 68.</p></div>
     <figure class="face"><img src="/assets/img/analysis-face-w.jpg" alt="" onerror="this.style.display='none'"></figure>
-    <div class="w w-pct"><small>SIMETRÍA</small><b>91%</b><div class="bar"><i style="width:91%"></i></div><p>Arriba del 85% de las personas de tu edad.</p></div>
-    <div class="w w-thirds"><small>TERCIOS FACIALES</small><div class="thirds"><div><span>Superior</span><i style="height:58%"></i><b>0.32</b></div><div><span>Medio</span><i style="height:66%"></i><b>0.34</b></div><div><span>Inferior</span><i style="height:62%"></i><b>0.34</b></div></div><p>Tus tercios están muy equilibrados.</p></div>
+    <div class="dash-row">
+      <div class="w w-grid"><svg viewBox="0 0 200 200"><g fill="#fff" fill-opacity=".14" id="dots"></g><text x="100" y="14" class="t" text-anchor="middle">MARCADA</text><text x="100" y="196" class="t" text-anchor="middle">SUTIL</text><text x="4" y="104" class="t">SUAVE</text><text x="196" y="104" class="t" text-anchor="end">DEFINIDA</text></svg><p>Tus cejas están en el 20% más definido.</p></div>
+      <div class="w w-curve"><svg viewBox="0 0 220 110"><path d="M6 100 C60 100 70 12 110 12 S160 100 214 100" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.4"/><line x1="152" y1="8" x2="152" y2="102" stroke="#fff" stroke-opacity=".5" stroke-dasharray="3 3"/><circle cx="152" cy="62" r="4" fill="#C8B48E"/><text x="6" y="108" class="t">BAJA</text><text x="110" y="108" class="t" text-anchor="middle">MEDIA</text><text x="214" y="108" class="t" text-anchor="end">ALTA</text></svg><p>Densidad de cejas: percentil 68.</p></div>
+      <div class="w w-pct"><small>SIMETRÍA</small><b>91%</b><div class="bar"><i style="width:91%"></i></div><p>Arriba del 85% de las personas de tu edad.</p></div>
+      <div class="w w-thirds"><small>TERCIOS FACIALES</small><div class="thirds"><div><span>Superior</span><i style="height:58%"></i><b>0.32</b></div><div><span>Medio</span><i style="height:66%"></i><b>0.34</b></div><div><span>Inferior</span><i style="height:62%"></i><b>0.34</b></div></div><p>Tus tercios están muy equilibrados.</p></div>
+    </div>
   </div>
 </section>
 
@@ -157,11 +160,11 @@
 <section class="rule">
   <div class="pad center" style="padding-bottom:28px"><span class="tag">Análisis personalizado</span><h2 class="h-lg" style="margin-top:20px">Tomamos en cuenta <span class="muted">tu...</span></h2></div>
   <div class="list-cards">
-    <div><span class="ic">◍</span><div><h3>Origen</h3><p>Rasgos y características comunes de tu región y tu herencia.</p></div></div>
-    <div><span class="ic">◷</span><div><h3>Edad</h3><p>Lo que es realista y conveniente para tu etapa de vida.</p></div></div>
-    <div><span class="ic">◇</span><div><h3>Rasgos</h3><p>Tu estructura ósea, tu piel y tu cabello.</p></div></div>
-    <div><span class="ic">◎</span><div><h3>Objetivos</h3><p>Lo que tú quieres mejorar y lo que prefieres no tocar.</p></div></div>
-    <div><span class="ic">▣</span><div><h3>Estilo de vida</h3><p>Tu presupuesto, tu tiempo y tu rutina diaria.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/origen.jpg" alt="" width="120" height="80"><div><h3>Origen</h3><p>Rasgos y características comunes de tu región y tu herencia.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/edad.jpg" alt="" width="120" height="80"><div><h3>Edad</h3><p>Lo que es realista y conveniente para tu etapa de vida.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/rasgos.jpg" alt="" width="120" height="80"><div><h3>Rasgos</h3><p>Tu estructura ósea, tu piel y tu cabello.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/objetivos.jpg" alt="" width="120" height="80"><div><h3>Objetivos</h3><p>Lo que tú quieres mejorar y lo que prefieres no tocar.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/estilo.jpg" alt="" width="120" height="80"><div><h3>Estilo de vida</h3><p>Tu presupuesto, tu tiempo y tu rutina diaria.</p></div></div>
   </div>
 </section>
 
@@ -169,11 +172,11 @@
 <section class="rule">
   <div class="pad center" style="padding-bottom:28px"><span class="tag">Informativo</span><h2 class="h-lg" style="margin-top:20px">Vas a <span class="muted">aprender...</span></h2></div>
   <div class="list-cards">
-    <div><span class="ic num">78</span><div><h3>Tus biométricos Vultigo</h3><p>Tus puntajes actuales y tu potencial de mejora.</p></div></div>
-    <div><span class="ic">◐</span><div><h3>Cómo pesa cada rasgo</h3><p>Un desglose detallado de cada parte de tu cara.</p></div></div>
-    <div><span class="ic">⌒</span><div><h3>La armonía de tu cara</h3><p>Cómo trabajan juntos tus rasgos.</p></div></div>
-    <div><span class="ic">↗</span><div><h3>Tus rasgos con más potencial</h3><p>Lo que puedes mejorar sin cirugía.</p></div></div>
-    <div><span class="ic">✓</span><div><h3>El porqué de tu plan</h3><p>La razón detrás de cada recomendación.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/biometricos.jpg" alt="" width="120" height="80"><div><h3>Tus biométricos Vultigo</h3><p>Tus puntajes actuales y tu potencial de mejora.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/rasgo.jpg" alt="" width="120" height="80"><div><h3>Cómo pesa cada rasgo</h3><p>Un desglose detallado de cada parte de tu cara.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/armonia.jpg" alt="" width="120" height="80"><div><h3>La armonía de tu cara</h3><p>Cómo trabajan juntos tus rasgos.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/potencial.jpg" alt="" width="120" height="80"><div><h3>Tus rasgos con más potencial</h3><p>Lo que puedes mejorar sin cirugía.</p></div></div>
+    <div><img class="ic" src="/assets/img/thumbs/plan.jpg" alt="" width="120" height="80"><div><h3>El porqué de tu plan</h3><p>La razón detrás de cada recomendación.</p></div></div>
   </div>
 </section>
 
@@ -343,7 +346,12 @@
         <li>Soporte por correo para tus dudas</li>
       </ul>
       <a class="btn btn-primary btn-block" href="/analisis.html">Empieza tu plan</a>
-      <div class="pay"><span>Visa</span><span>Mastercard</span><span>Amex</span><span>OXXO</span></div>
+      <div class="pay" aria-label="Métodos de pago">
+        <svg viewBox="0 0 38 24" role="img" aria-label="Visa"><rect x=".5" y=".5" width="37" height="23" rx="3" fill="#fff" stroke="#D9DDE1"/><path fill="#1A1F71" d="M16 15.8h-1.9l1.2-7.5h1.9L16 15.8zm-3.5-7.5-1.8 5.1-.2-1.1-.6-3.3s-.1-.7-1-.7H6l-.1.2s.9.2 2 .8l1.6 6.5h2l3.1-7.5h-2.1zm15.9 7.5h1.8l-1.6-7.5h-1.6c-.7 0-.9.6-.9.6l-2.9 6.9h2l.4-1.1h2.5l.3 1.1zm-2.2-2.6 1-2.8.6 2.8h-1.6zm-2.9-3.1.3-1.6s-.9-.3-1.8-.3c-1 0-3.3.4-3.3 2.5 0 1.9 2.7 2 2.7 3s-2.4.8-3.2.2l-.3 1.7s.9.4 2.2.4c1.3 0 3.4-.7 3.4-2.6 0-2-2.7-2.1-2.7-3 0-.8 1.9-.7 2.7-.3z"/></svg>
+        <svg viewBox="0 0 38 24" role="img" aria-label="Mastercard"><rect x=".5" y=".5" width="37" height="23" rx="3" fill="#fff" stroke="#D9DDE1"/><circle cx="15" cy="12" r="6.5" fill="#EB001B"/><circle cx="23" cy="12" r="6.5" fill="#F79E1B"/><path d="M19 6.9a6.5 6.5 0 0 1 0 10.2 6.5 6.5 0 0 1 0-10.2z" fill="#FF5F00"/></svg>
+        <svg viewBox="0 0 38 24" role="img" aria-label="American Express"><rect x=".5" y=".5" width="37" height="23" rx="3" fill="#1F72CD" stroke="#1F72CD"/><text x="19" y="15.2" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="7.4" fill="#fff" letter-spacing=".3">AMEX</text></svg>
+        <svg viewBox="0 0 38 24" role="img" aria-label="OXXO"><rect x=".5" y=".5" width="37" height="23" rx="3" fill="#fff" stroke="#D9DDE1"/><rect x="4" y="5" width="30" height="14" rx="2" fill="#EC1D24"/><rect x="4" y="5" width="30" height="2.2" fill="#FFC20E"/><rect x="4" y="16.8" width="30" height="2.2" fill="#FFC20E"/><text x="19" y="14.6" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="6.6" fill="#fff">OXXO</text></svg>
+      </div>
       <div class="trust"><span>Pago seguro con Stripe</span><span>Fotos privadas</span><span>Puedes borrar tus datos</span></div>
     </div>
   </div>
@@ -438,8 +446,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794431609"></script>
-<script src="/assets/js/app.js?v=1794431609"></script>
+<script src="/assets/js/config.js?v=1794432719"></script>
+<script src="/assets/js/app.js?v=1794432719"></script>
 
 </body>
 </html>
