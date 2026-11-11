@@ -3,7 +3,7 @@
 Static site (GitHub Pages) + Supabase (accounts, photos, orders, reports) + Stripe (payments).
 
 ## Pages
-- `/` landing · `/cuenta.html` sign up (username) and log in · `/analisis.html` questionnaire, 6 photos, consent, payment · `/panel.html` orders, report, delete photos · `/gracias.html` after payment · `/privacidad.html` · `/terminos.html`
+- `/` landing · `/cuenta.html` sign up and log in (email or Google) · `/analisis.html` questionnaire, 6 photos, consent, payment · `/panel.html` orders, report, delete photos · `/gracias.html` after payment · `/privacidad.html` · `/terminos.html`
 - Edit content in `src/`, then run `python3 build.py` to rebuild the root HTML files.
 
 ## Setup, once
@@ -13,7 +13,6 @@ Static site (GitHub Pages) + Supabase (accounts, photos, orders, reports) + Stri
 3. **Edge functions** (Supabase CLI):
    ```
    supabase functions deploy create-checkout
-   supabase functions deploy username-login --no-verify-jwt
    supabase functions deploy delete-photos
    supabase functions deploy stripe-webhook --no-verify-jwt
    supabase secrets set STRIPE_SECRET_KEY=sk_live_... STRIPE_PRICE_ID=price_... STRIPE_WEBHOOK_SECRET=whsec_... SITE_URL=https://vultigo.com
@@ -31,3 +30,6 @@ Report JSON shape (`reports.data`):
  "medidas":[{"nombre":"Ángulo mandibular","valor":"124°","ideal":"115–125°","nota":"..."}],
  "plan":[{"titulo":"Rutina de piel","prioridad":"alta","detalle":"..."}]}
 ```
+
+## Google sign-in
+Supabase > Authentication > Providers > Google: paste a Google Cloud OAuth client ID and secret (Web application, authorized redirect URI = https://<project>.supabase.co/auth/v1/callback). Authentication > URL Configuration: Site URL https://vultigo.com, redirect URLs https://vultigo.com/**.
