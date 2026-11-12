@@ -69,6 +69,7 @@ FOOTER = """<footer class="site-footer">
         <p class="label" style="margin-bottom:10px">Síguenos</p>
         <a href="https://www.instagram.com/resalta.co/" rel="noopener">Instagram</a>
         <a href="https://www.tiktok.com/@resalta.co" rel="noopener">TikTok</a>
+        <a href="https://www.youtube.com/@resalta_co" rel="noopener">YouTube</a>
         <a href="https://www.facebook.com/profile.php?id=61596617694439" rel="noopener">Facebook</a>
       </div>
       <div>
