@@ -3,5 +3,7 @@
 window.RESALTA = {
   SUPABASE_URL: "https://jxluabbugwdonqchbaxm.supabase.co",        // e.g. https://xxxxxxxx.supabase.co
   SUPABASE_ANON_KEY: "sb_publishable_WPce-iugGd2zyglAsGfnLQ_nR-JUXYI",   // Supabase "anon public" key
-  PRICE_LABEL: "$1,499"    // Shown on the site. The real charge comes from the Stripe price.
+  // Shown on the site. The real charge comes from the Stripe prices.
+  PRICES: { soft: "$1,499", hard: "$2,999" },
+  PLAN_NAMES: { soft: "Plan Esencial", hard: "Plan Completo" }
 };

@@ -9,7 +9,16 @@
 
   // ---------- shared ----------
   const y = $("#year"); if (y) y.textContent = new Date().getFullYear();
-  if (C.PRICE_LABEL) $$("[data-price]").forEach(e => (e.textContent = C.PRICE_LABEL));
+  const qsPlan = new URLSearchParams(location.search).get("plan");
+  let plan = qsPlan === "hard" || qsPlan === "soft" ? qsPlan : null;
+  try { if (plan) sessionStorage.setItem("plan", plan); else plan = sessionStorage.getItem("plan"); } catch (e) {}
+  if (plan !== "hard") plan = "soft";
+  const PRICES = C.PRICES || {};
+  $$("[data-price]").forEach(e => {
+    const k = e.dataset.price === "plan" ? plan : (e.dataset.price || "soft");
+    if (PRICES[k]) e.textContent = PRICES[k];
+  });
+  $$("[data-plan-name]").forEach(e => { if (C.PLAN_NAMES && C.PLAN_NAMES[plan]) e.textContent = C.PLAN_NAMES[plan]; });
   const header = $(".site-header");
   if (header) addEventListener("scroll", () => header.classList.toggle("scrolled", scrollY > 8), { passive: true });
 
@@ -265,7 +274,7 @@
       if (order) {
         await sb.from("orders").update({ answers }).eq("id", order.id);
       } else {
-        const { data, error } = await sb.from("orders").insert({ user_id: user.id, answers }).select().single();
+        const { data, error } = await sb.from("orders").insert({ user_id: user.id, answers, tier: plan }).select().single();
         if (error) { alertInline(f, "No pudimos guardar tus datos. Inténtalo de nuevo."); return; }
         order = data;
       }
@@ -322,7 +331,7 @@
       if (!sb || !order) return notReady(m);
       b.disabled = true; b.textContent = "Abriendo el pago…";
       try {
-        const { url } = await fnCall("create-checkout", { order_id: order.id });
+        const { url } = await fnCall("create-checkout", { order_id: order.id, tier: plan });
         location.href = url;
       } catch (e) {
         b.disabled = false; b.textContent = "Pagar con tarjeta u OXXO";
