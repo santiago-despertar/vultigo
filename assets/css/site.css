@@ -835,3 +835,10 @@ body[data-page=index] .frame>section.notes{padding:24px 40px 40px}
 .price-grid .price-card.featured{border-color:var(--ink)}
 @media (max-width:820px){.price-grid{grid-template-columns:1fr;max-width:560px}}
 .price-grid .price-card>.hint{min-height:40px}
+
+/* v8: upgrade offer on the payment step */
+.bump{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;margin:0 0 20px;border:1px dashed var(--slate);border-radius:var(--r-md);background:var(--surface);cursor:pointer;transition:border-color .2s,background .2s}
+.bump:has(input:checked){border-style:solid;border-color:var(--ink);background:var(--surface-raised)}
+.bump input{width:18px;height:18px;flex:0 0 18px;margin-top:3px;accent-color:var(--slate-deep)}
+.bump>span{display:flex;flex-direction:column;gap:6px}
+.bump small{font-size:14px;color:var(--ink-muted)}
