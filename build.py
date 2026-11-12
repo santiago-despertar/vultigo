@@ -70,13 +70,13 @@ FOOTER = """<footer class="site-footer">
         <a href="https://www.instagram.com/resalta.co/" rel="noopener">Instagram</a>
         <a href="https://www.tiktok.com/@resalta.co" rel="noopener">TikTok</a>
         <a href="https://www.youtube.com/@resalta_co" rel="noopener">YouTube</a>
-        <a href="https://www.facebook.com/profile.php?id=61596617694439" rel="noopener">Facebook</a>
+        <a href="https://www.facebook.com/resalta.co" rel="noopener">Facebook</a>
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Legal</p>
         <a href="/privacidad.html">Aviso de privacidad</a>
         <a href="/terminos.html">Términos y condiciones</a>
-        <a href="mailto:hola@resalta.co">hola@resalta.co</a>
+        <a href="mailto:contacto@resalta.co">contacto@resalta.co</a>
       </div>
     </div>
     <p class="copy">© <span id="year"></span> Resalta. Resalta no ofrece diagnósticos ni tratamientos médicos.</p>
