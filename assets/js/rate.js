@@ -137,7 +137,7 @@ function show(m) {
   }).join("") + `<p class="hint" style="margin-top:8px">Tu rasgo más fuerte: <b>${sorted[0].k.toLowerCase()}</b>.</p>`;
   const weak = sorted[sorted.length - 1];
   $("#rWeak").innerHTML = `<b>${weak.k}.</b> ${weak.tip}`;
-  window.__vultigoScore = m;
+  window.__resaltaScore = m;
   scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -146,13 +146,13 @@ $("#rateAgain").addEventListener("click", () => { $("#rateResult").hidden = true
 $("#leadForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const m2 = $("#leadMsg"), email = ev.target.email.value.trim();
-  const C = window.VULTIGO || {};
+  const C = window.RESALTA || {};
   if (!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY && window.supabase)) {
     m2.textContent = "Estamos activando los envíos por correo. Vuelve a intentarlo en unos días."; m2.className = "msg show err";
     return;
   }
   const sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY);
-  const m = window.__vultigoScore || {};
+  const m = window.__resaltaScore || {};
   const { error } = await sb.from("leads").insert({ email, score: m.score ?? null, source: "calificacion" });
   m2.textContent = error ? "No pudimos guardar tu correo. Inténtalo de nuevo." : "Listo. Revisa tu correo en unos minutos.";
   m2.className = "msg show " + (error ? "err" : "ok");

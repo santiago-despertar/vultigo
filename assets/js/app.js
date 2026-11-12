@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  const C = window.VULTIGO || {};
+  const C = window.RESALTA || {};
   const configured = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY && window.supabase);
   const sb = configured ? window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY) : null;
   const page = document.body.dataset.page;
@@ -351,7 +351,7 @@
         const [txt, cls] = LABEL[o.status] || [o.status, ""];
         const d = new Date(o.created_at).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
         const row = document.createElement("div"); row.className = "order";
-        row.innerHTML = `<div><b>Análisis Vultigo</b><div class="hint">${d}</div></div><div style="display:flex;gap:10px;align-items:center"><span class="status ${cls}">${txt}</span></div>`;
+        row.innerHTML = `<div><b>Análisis Resalta</b><div class="hint">${d}</div></div><div style="display:flex;gap:10px;align-items:center"><span class="status ${cls}">${txt}</span></div>`;
         const act = row.lastElementChild;
         if (o.status === "borrador") act.insertAdjacentHTML("beforeend", '<a class="btn btn-ghost" style="height:40px" href="/analisis.html">Continuar</a>');
         if (o.status === "listo") {
@@ -389,7 +389,7 @@
       if (!sb) return notReady(m);
       if (!confirm("¿Borrar todas tus fotos? Esto no se puede deshacer.")) return;
       try { const r = await fnCall("delete-photos", {}); msg(m, `Listo. Borramos ${r.deleted} fotos.`, "ok"); }
-      catch (e) { msg(m, "No pudimos borrar tus fotos. Escríbenos a privacidad@vultigo.com."); }
+      catch (e) { msg(m, "No pudimos borrar tus fotos. Escríbenos a privacidad@resalta.co."); }
     });
   }
 })();
