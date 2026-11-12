@@ -1,5 +1,5 @@
 import time
-"""Builds the static pages of vultigo.com from partials. Run: python3 build.py"""
+"""Builds the static pages of resalta.co from partials. Run: python3 build.py"""
 from pathlib import Path
 
 ROOT = Path(__file__).parent
@@ -14,8 +14,8 @@ HEAD = """<!doctype html>
 <meta name="description" content="{desc}">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{desc}">
-<meta property="og:image" content="https://vultigo.com/assets/img/og.png">
-<meta property="og:url" content="https://vultigo.com/{path}">
+<meta property="og:image" content="https://resalta.co/assets/img/og.png">
+<meta property="og:url" content="https://resalta.co/{path}">
 <meta name="theme-color" content="#6E7E8E">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
@@ -31,9 +31,9 @@ HEAD = """<!doctype html>
 
 HEADER = """<header class="site-header">
   <div class="wrap nav">
-    <a class="brand" href="/" aria-label="Vultigo, inicio"><img src="/assets/img/mark-ink.svg" alt=""><span>vultigo</span></a>
+    <a class="brand" href="/" aria-label="Resalta, inicio"><img src="/assets/img/mark-ink.svg" alt=""><span>resalta</span></a>
     <nav class="nav-links" id="navLinks">
-      <a href="/#por-que">Por qué Vultigo</a>
+      <a href="/#por-que">Por qué Resalta</a>
       <a href="/#como-funciona">Cómo funciona</a>
       <a href="/calificacion.html">Calificación gratis</a>
       <a href="/#preguntas">Preguntas</a>
@@ -55,11 +55,11 @@ FOOTER = """<footer class="site-footer">
   <div class="wrap">
     <div class="footer-grid">
       <div style="max-width:320px">
-        <a class="brand" href="/"><img src="/assets/img/mark-ink.svg" alt=""><span>vultigo</span></a>
+        <a class="brand" href="/"><img src="/assets/img/mark-ink.svg" alt=""><span>resalta</span></a>
         <p class="hint" style="margin-top:14px">Análisis facial con método. Un plan claro para mejorar tu apariencia.</p>
       </div>
       <div>
-        <p class="label" style="margin-bottom:10px">Vultigo</p>
+        <p class="label" style="margin-bottom:10px">Resalta</p>
         <a href="/#como-funciona">Cómo funciona</a>
         <a href="/#precio">Precio</a>
         <a href="/#preguntas">Preguntas frecuentes</a>
@@ -67,19 +67,18 @@ FOOTER = """<footer class="site-footer">
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Síguenos</p>
-        <a href="https://www.instagram.com/vultigo.oficial/" rel="noopener">Instagram</a>
-        <a href="https://www.tiktok.com/@vultigo" rel="noopener">TikTok</a>
-        <a href="https://www.youtube.com/@vultigo" rel="noopener">YouTube</a>
+        <a href="https://www.instagram.com/resalta.co/" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/@resalta.co" rel="noopener">TikTok</a>
         <a href="https://www.facebook.com/profile.php?id=61596617694439" rel="noopener">Facebook</a>
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Legal</p>
         <a href="/privacidad.html">Aviso de privacidad</a>
         <a href="/terminos.html">Términos y condiciones</a>
-        <a href="mailto:hola@vultigo.com">hola@vultigo.com</a>
+        <a href="mailto:hola@resalta.co">hola@resalta.co</a>
       </div>
     </div>
-    <p class="copy">© <span id="year"></span> Vultigo. Vultigo no ofrece diagnósticos ni tratamientos médicos.</p>
+    <p class="copy">© <span id="year"></span> Resalta. Resalta no ofrece diagnósticos ni tratamientos médicos.</p>
   </div>
 </footer>
 """
@@ -94,15 +93,15 @@ SCRIPTS = """<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.4
 
 PAGES = [
     # file, title, description, extra scripts
-    ("index.html", "Vultigo · Análisis facial con método", "Medimos tu rostro con más de 120 puntos de referencia y te damos un plan personalizado para mejorar tu apariencia.", ""),
-    ("cuenta.html", "Entrar · Vultigo", "Crea tu cuenta o entra a Vultigo.", ""),
-    ("analisis.html", "Tu análisis · Vultigo", "Sube tus fotos y recibe tu análisis facial completo.", ""),
-    ("panel.html", "Mi cuenta · Vultigo", "Tus análisis y reportes.", ""),
-    ("gracias.html", "Pago recibido · Vultigo", "Recibimos tu pago.", ""),
-    ("privacidad.html", "Aviso de privacidad · Vultigo", "Aviso de privacidad integral de Vultigo.", ""),
-    ("terminos.html", "Términos y condiciones · Vultigo", "Términos y condiciones de Vultigo.", ""),
-    ("calificacion.html", "Calificación facial gratis · Vultigo", "Descubre tu puntaje de armonía facial del 0 al 100, gratis. Tu foto se analiza en tu dispositivo.", ""),
-    ("404.html", "Página no encontrada · Vultigo", "Esta página no existe.", ""),
+    ("index.html", "Resalta · Análisis facial con método", "Medimos tu rostro con más de 120 puntos de referencia y te damos un plan personalizado para mejorar tu apariencia.", ""),
+    ("cuenta.html", "Entrar · Resalta", "Crea tu cuenta o entra a Resalta.", ""),
+    ("analisis.html", "Tu análisis · Resalta", "Sube tus fotos y recibe tu análisis facial completo.", ""),
+    ("panel.html", "Mi cuenta · Resalta", "Tus análisis y reportes.", ""),
+    ("gracias.html", "Pago recibido · Resalta", "Recibimos tu pago.", ""),
+    ("privacidad.html", "Aviso de privacidad · Resalta", "Aviso de privacidad integral de Resalta.", ""),
+    ("terminos.html", "Términos y condiciones · Resalta", "Términos y condiciones de Resalta.", ""),
+    ("calificacion.html", "Calificación facial gratis · Resalta", "Descubre tu puntaje de armonía facial del 0 al 100, gratis. Tu foto se analiza en tu dispositivo.", ""),
+    ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
 ]
 
 for fname, title, desc, extra in PAGES:
