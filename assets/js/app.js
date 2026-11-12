@@ -336,11 +336,10 @@
       const diff = num(PRICES.hard) - num(PRICES.soft);
       if (diff > 0) $$("[data-bump-diff]").forEach(e => { e.textContent = "$" + diff.toLocaleString("en-US"); });
       bump.checked = plan === "hard";
-      bump.addEventListener("change", async () => {
+      bump.addEventListener("change", () => {
         plan = bump.checked ? "hard" : "soft";
         try { sessionStorage.setItem("plan", plan); } catch (e) {}
         paintPlan();
-        if (sb && order) await sb.from("orders").update({ tier: plan }).eq("id", order.id);
       });
     }
 
@@ -359,6 +358,41 @@
   }
 
   // ---------- panel ----------
+  if (page === "gracias") {
+    (async () => {
+      const q = new URLSearchParams(location.search), id = q.get("pedido"), box = $("#upsell"), done = $("#upsellDone");
+      const U = C.UPSELL || {};
+      if (U.was) $$("[data-upsell-was]").forEach(e => { e.textContent = U.was; });
+      if (U.now) $$("[data-upsell-now]").forEach(e => { e.textContent = U.now; });
+      if (q.get("mejora") === "1") { msg(done, "Listo. Tu análisis ahora incluye la parte avanzada.", "ok"); return; }
+      if (!sb || !id || !box || !(await getUser())) return;
+      // The payment confirmation can take a few seconds to arrive, so check a few times.
+      let o = null;
+      for (let i = 0; i < 6; i++) {
+        const { data } = await sb.from("orders").select("id,status,tier").eq("id", id).maybeSingle();
+        o = data;
+        if (!o || o.status !== "borrador") break;
+        await new Promise(r => setTimeout(r, 2000));
+      }
+      if (!o || o.status !== "pagado" || o.tier !== "soft") return;
+      box.hidden = false;
+      $("#upsellNo").addEventListener("click", () => { box.hidden = true; });
+      $("#upsellYes").addEventListener("click", async () => {
+        const b = $("#upsellYes"), m = $("#upsellMsg"), label = b.innerHTML; clearMsg(m);
+        b.disabled = true; b.textContent = "Procesando…";
+        try {
+          const r = await fnCall("upgrade-order", { order_id: id });
+          if (r.url) { location.href = r.url; return; }
+          box.hidden = true;
+          msg(done, "Listo. Tu análisis ahora incluye la parte avanzada.", "ok");
+        } catch (e) {
+          b.disabled = false; b.innerHTML = label;
+          msg(m, "No pudimos agregarlo. Inténtalo de nuevo en un momento.");
+        }
+      });
+    })();
+  }
+
   if (page === "panel") {
     const LABEL = { borrador: ["Sin pagar", ""], pagado: ["En análisis", "paid"], listo: ["Listo", "ready"] };
     (async () => {
