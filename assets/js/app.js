@@ -326,6 +326,24 @@
       go(3);
     });
 
+    const bump = $("#bumpHard");
+    if (bump) {
+      const num = v => +String(v || "").replace(/[^0-9.]/g, "");
+      const paintPlan = () => {
+        $$('[data-price="plan"]').forEach(e => { if (PRICES[plan]) e.textContent = PRICES[plan]; });
+        $$("[data-plan-name]").forEach(e => { if (C.PLAN_NAMES && C.PLAN_NAMES[plan]) e.textContent = C.PLAN_NAMES[plan]; });
+      };
+      const diff = num(PRICES.hard) - num(PRICES.soft);
+      if (diff > 0) $$("[data-bump-diff]").forEach(e => { e.textContent = "$" + diff.toLocaleString("en-US"); });
+      bump.checked = plan === "hard";
+      bump.addEventListener("change", async () => {
+        plan = bump.checked ? "hard" : "soft";
+        try { sessionStorage.setItem("plan", plan); } catch (e) {}
+        paintPlan();
+        if (sb && order) await sb.from("orders").update({ tier: plan }).eq("id", order.id);
+      });
+    }
+
     $("#payBtn").addEventListener("click", async () => {
       const m = $("#payMsg"), b = $("#payBtn"); clearMsg(m);
       if (!sb || !order) return notReady(m);
@@ -334,7 +352,7 @@
         const { url } = await fnCall("create-checkout", { order_id: order.id, tier: plan });
         location.href = url;
       } catch (e) {
-        b.disabled = false; b.textContent = "Pagar con tarjeta u OXXO";
+        b.disabled = false; b.textContent = "Pagar";
         msg(m, "No pudimos abrir el pago. Inténtalo de nuevo en un momento.");
       }
     });
@@ -398,7 +416,7 @@
       if (!sb) return notReady(m);
       if (!confirm("¿Borrar todas tus fotos? Esto no se puede deshacer.")) return;
       try { const r = await fnCall("delete-photos", {}); msg(m, `Listo. Borramos ${r.deleted} fotos.`, "ok"); }
-      catch (e) { msg(m, "No pudimos borrar tus fotos. Escríbenos a privacidad@resalta.co."); }
+      catch (e) { msg(m, "No pudimos borrar tus fotos. Escríbenos a contacto@resalta.co."); }
     });
   }
 })();
