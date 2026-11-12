@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794523428">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794526260">
 
 </head>
 <body data-page="analisis">
@@ -85,7 +85,10 @@
         <span class="label">Paso 3 de 3</span>
         <h2 style="font-size:34px;margin:10px 0 8px">Confirma y paga</h2>
         <p class="hint">Tus fotos ya están guardadas. Al pagar empezamos tu análisis.</p>
-        <div class="summary"><span data-plan-name>Plan Esencial</span><b class="mono"><span data-price="plan">$1,499</span> MXN</b></div>
+        <div class="plan-pick" role="radiogroup" aria-label="Elige tu plan">
+          <label class="plan-opt"><input type="radio" name="plan" value="soft"><span><b>Plan Esencial</b><small>Softmaxxing: todo lo que puedes mejorar sin procedimientos.</small></span><b class="mono"><span data-price="soft">$1,499</span> MXN</b></label>
+          <label class="plan-opt"><input type="radio" name="plan" value="hard"><span><b>Plan Completo</b><small>Softmaxxing y hardmaxxing: suma las opciones de procedimientos y cirugía.</small></span><b class="mono"><span data-price="hard">$2,999</span> MXN</b></label>
+        </div>
         <ul class="checklist" style="margin-top:0">
           <li>Reporte con más de 120 medidas</li>
           <li>Plan personalizado por fases</li>
@@ -94,7 +97,7 @@
         <div class="msg" id="payMsg"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-ghost" data-back="2">Atrás</button>
-          <button class="btn btn-primary" id="payBtn">Pagar con tarjeta u OXXO</button>
+          <button class="btn btn-primary" id="payBtn">Pagar</button>
         </div>
         <p class="hint" style="margin-top:14px">Pago seguro con Stripe. Nunca vemos los datos de tu tarjeta.</p>
       </section>
@@ -133,8 +136,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794523428"></script>
-<script src="/assets/js/app.js?v=1794523428"></script>
+<script src="/assets/js/config.js?v=1794526260"></script>
+<script src="/assets/js/app.js?v=1794526260"></script>
 
 </body>
 </html>
