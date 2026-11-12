@@ -842,3 +842,9 @@ body[data-page=index] .frame>section.notes{padding:24px 40px 40px}
 .bump input{width:18px;height:18px;flex:0 0 18px;margin-top:3px;accent-color:var(--slate-deep)}
 .bump>span{display:flex;flex-direction:column;gap:6px}
 .bump small{font-size:14px;color:var(--ink-muted)}
+
+/* v9: one-click upgrade on the thank-you page */
+.upsell{text-align:left;margin:0 0 24px;padding:24px;border:1px solid var(--ink);border-radius:var(--r-md);background:var(--surface)}
+.upsell .btn{width:100%;justify-content:center;margin-top:16px}
+.upsell-no{display:block;margin:14px auto 0;background:none;border:0;padding:6px 10px;font:inherit;font-size:14px;color:var(--ink-muted);text-decoration:underline;cursor:pointer}
+.upsell-price{margin:0 0 10px;font-size:20px}.upsell-price s{color:var(--ink-muted);margin-right:8px}
