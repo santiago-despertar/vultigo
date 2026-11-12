@@ -1,4 +1,4 @@
-/* Vultigo — tokens from the Vultigo design system */
+/* Resalta — tokens from the Resalta design system */
 :root{
   --surface:#F3F1EC; --surface-raised:#FFFFFF; --mist:#E3E7EA;
   --ink:#16191D; --ink-muted:#5B6470;
@@ -827,3 +827,11 @@ body[data-page=index] .frame>section.notes{padding:24px 40px 40px}
 .hero-media img.hero-still{opacity:0;z-index:1;transition:opacity .9s ease}
 .hero-media img.hero-still.front{opacity:1}
 .hero-media img.hero-still.top{z-index:2}
+
+/* v7 two-plan pricing */
+.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:980px;margin:36px auto 0;align-items:stretch}
+.price-grid .price-card{max-width:none;margin:0;display:flex;flex-direction:column}
+.price-grid .price-card .checks{flex:1}
+.price-grid .price-card.featured{border-color:var(--ink)}
+@media (max-width:820px){.price-grid{grid-template-columns:1fr;max-width:560px}}
+.price-grid .price-card>.hint{min-height:40px}
