@@ -44,6 +44,22 @@
     if (!r.ok) throw new Error(j.error || "Error " + r.status);
     return j;
   }
+  // Only allow redirects to pages of this site.
+  const safePath = (p, fallback) => (typeof p === "string" && /^\/(?!\/)/.test(p) ? p : fallback);
+  // A saved session that no longer works would bounce between pages, so clear it before sending to sign-in.
+  async function toLogin(url) { try { await sb.auth.signOut({ scope: "local" }); } catch (e) {} location.replace(url); }
+  // Load the next page in the background as soon as someone points at or touches a link.
+  const warmed = new Set();
+  function warmLink(a) {
+    const h = a.getAttribute("href");
+    if (!h || h[0] !== "/" || warmed.has(h) || a.target === "_blank") return;
+    warmed.add(h);
+    const l = document.createElement("link"); l.rel = "prefetch"; l.href = h; document.head.appendChild(l);
+  }
+  ["pointerenter", "touchstart", "focusin"].forEach(ev => document.addEventListener(ev, e => {
+    const a = e.target && e.target.closest && e.target.closest("a[href]"); if (a) warmLink(a);
+  }, { capture: true, passive: true }));
+
   const errES = (e) => {
     const m = (e && e.message) || "";
     if (/Invalid login/i.test(m)) return "Correo o contraseña incorrectos.";
@@ -177,7 +193,7 @@
   // ---------- cuenta ----------
   if (page === "cuenta") {
     const params = new URLSearchParams(location.search);
-    const next = params.get("next") || "/panel.html";
+    const next = safePath(params.get("next"), "/panel.html");
     const tabs = $$(".tabs button");
     function show(t) {
       tabs.forEach(b => b.classList.toggle("active", b.dataset.tab === t));
@@ -254,7 +270,7 @@
     (async () => {
       if (!sb) return;
       user = await getUser();
-      if (!user) { location.href = "/cuenta.html?next=/analisis.html"; return; }
+      if (!user) { await toLogin("/cuenta.html?next=/analisis.html"); return; }
       // resume the latest draft order if there is one
       const { data } = await sb.from("orders").select("*").eq("status", "borrador").order("created_at", { ascending: false }).limit(1);
       if (data && data[0]) {
@@ -321,9 +337,19 @@
     consent.addEventListener("change", check);
     function check() { $("#toPay").disabled = !(uploaded.size === SLOTS.length && consent.checked); }
 
+    // The Stripe page is prepared as soon as the payment step opens, so clicking Pagar goes straight to it.
+    const payReady = {};
+    function warmPay() {
+      if (!sb || !order) return null;
+      const p = plan;
+      if (!payReady[p]) payReady[p] = fnCall("create-checkout", { order_id: order.id, tier: p }).catch(e => { delete payReady[p]; throw e; });
+      return payReady[p];
+    }
+
     $("#toPay").addEventListener("click", async () => {
       if (sb && order) await sb.from("orders").update({ photos_consent_at: new Date().toISOString() }).eq("id", order.id);
       go(3);
+      const w = warmPay(); if (w) w.catch(() => {});
     });
 
     const bump = $("#bumpHard");
@@ -340,6 +366,7 @@
         plan = bump.checked ? "hard" : "soft";
         try { sessionStorage.setItem("plan", plan); } catch (e) {}
         paintPlan();
+        const w = warmPay(); if (w) w.catch(() => {});
       });
     }
 
@@ -348,7 +375,7 @@
       if (!sb || !order) return notReady(m);
       b.disabled = true; b.textContent = "Abriendo el pago…";
       try {
-        const { url } = await fnCall("create-checkout", { order_id: order.id, tier: plan });
+        const { url } = await warmPay();
         location.href = url;
       } catch (e) {
         b.disabled = false; b.textContent = "Pagar";
@@ -398,7 +425,7 @@
     (async () => {
       if (!sb) { $("#orders").innerHTML = '<p class="hint" style="padding:18px 0">Estamos terminando de preparar tu cuenta.</p>'; return; }
       const user = await getUser();
-      if (!user) { location.href = "/cuenta.html?modo=entrar&next=/panel.html"; return; }
+      if (!user) { await toLogin("/cuenta.html?modo=entrar&next=/panel.html"); return; }
       $("#who").textContent = (user.user_metadata && user.user_metadata.full_name) || user.email;
 
       const { data: orders } = await sb.from("orders").select("id,status,created_at,paid_at").order("created_at", { ascending: false });
