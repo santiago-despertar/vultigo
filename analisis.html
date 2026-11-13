@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794567990">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794569109">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 <script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(!t&&!back)location.replace("/cuenta.html?next=/analisis.html");}catch(e){}})()</script>
 </head>
@@ -54,6 +54,8 @@
         <form id="aboutForm">
           <div class="grid-2" style="gap:16px">
             <div class="field"><label for="q-age">Edad</label><input id="q-age" name="edad" type="number" min="18" max="80" required></div>
+            <div class="field"><label for="q-sex">Sexo</label>
+              <select id="q-sex" name="sexo" required><option value="" disabled selected>Elige</option><option value="hombre">Hombre</option><option value="mujer">Mujer</option></select></div>
             <div class="field"><label for="q-country">País</label>
               <select id="q-country" name="pais" required><option>México</option><option>Colombia</option><option>Argentina</option><option>Chile</option><option>Perú</option><option>España</option><option>Estados Unidos</option><option>Otro</option></select></div>
             <div class="field"><label for="q-height">Estatura (cm)</label><input id="q-height" name="estatura" type="number" min="140" max="220"></div>
@@ -135,8 +137,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794567990"></script>
-<script src="/assets/js/app.js?v=1794567990"></script>
+<script src="/assets/js/config.js?v=1794569109"></script>
+<script src="/assets/js/app.js?v=1794569109"></script>
 
 </body>
 </html>
