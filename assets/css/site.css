@@ -1686,3 +1686,13 @@ g.esc3d-marcas{opacity:0;transition:opacity .3s}
 @media (max-width:900px){.blog-grid{grid-template-columns:1fr 1fr}}
 @media (max-width:640px){.post-main{padding-top:88px}.post{padding:0 18px}.post-lead{font-size:17px}.post-body{font-size:16px}.post-body h2{font-size:24px}.post-cta{flex-direction:column;align-items:flex-start;padding:22px}.post-cta .btn{width:100%}.blog-grid{grid-template-columns:1fr}}
 .post-main{padding-bottom:0}.post-main + .site-footer,.post-final + *{margin-top:0}
+/* text-heavy pages wait for the font so lines don't jump when it arrives */
+.post-main{transition:opacity .18s ease}
+html.fload .post-main{opacity:0}
+
+/* v40 home poses: real pose guides */
+.poses{gap:10px}
+.poses figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.poses figure span{display:block;width:62px;height:78px;border-radius:8px;background:var(--mist) center/auto 86% no-repeat}
+.poses figcaption{font:10px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted)}
+@media (max-width:640px){.poses figure span{width:56px;height:70px}}
