@@ -286,6 +286,11 @@
       if (inp) setTimeout(() => inp.focus({ preventScroll: true }), 60);
     }
     suF.querySelector('[data-su="atras"]').addEventListener("click", () => suIr(suPaso - 1));
+    // coming from the free rating: name and email are already known
+    try {
+      const ld = JSON.parse(sessionStorage.getItem("resalta_lead") || "null");
+      if (ld && ld.nombre && ld.email) { suF.nombre.value = ld.nombre; suF.email.value = ld.email; suIr(2); }
+    } catch (e) {}
     // a lead is kept as soon as we have the email, even if they stop right after
     function guardarLead(email, nombre) {
       if (!sb) return;

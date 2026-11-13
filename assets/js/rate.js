@@ -17,6 +17,7 @@ file.addEventListener("change", async () => {
   const slot = $("#rateDrop");
   let p = slot.querySelector("img"); if (!p) { p = document.createElement("img"); slot.prepend(p); }
   p.src = URL.createObjectURL(f); slot.classList.add("done");
+  getLandmarker().catch(() => {}); // start loading the face model while they tick the box
   ready();
 });
 
@@ -103,9 +104,37 @@ function draw(L) {
   [33, 133, 362, 263, 234, 454, 172, 397, 152, 2, 9, 61, 291, 13].forEach(i => { const [x, y] = p(i); g.beginPath(); g.arc(x, y, Math.max(3, W / 250), 0, 7); g.fill(); });
 }
 
+// ---- the flow: photo, processing, locked result, email, thanks
+const pasos = [...document.querySelectorAll(".cal-paso")];
+function ir(p) {
+  pasos.forEach(x => x.classList.toggle("on", x.dataset.p === p));
+  scrollTo({ top: 0, behavior: "smooth" });
+}
+const espera = ms => new Promise(r => setTimeout(r, ms));
+
+// a short, visible scan: the steps tick one by one while the face is measured
+async function procesar(L) {
+  ir("proceso");
+  const c = $("#scanCanvas"), W = Math.min(720, img.width), H = Math.round(img.height * W / img.width);
+  c.width = W; c.height = H;
+  const g = c.getContext("2d");
+  g.drawImage(img, 0, 0, W, H);
+  const items = [...document.querySelectorAll("#calPasos li")];
+  items.forEach(li => li.className = "");
+  for (let i = 0; i < items.length; i++) {
+    items[i].className = "act";
+    if (i === 0 && L) { // points appear while the first step runs
+      g.fillStyle = "rgba(255,255,255,.85)";
+      for (let k = 0; k < L.length; k += 3) { g.beginPath(); g.arc(L[k].x * W, L[k].y * H, Math.max(1, W / 420), 0, 7); g.fill(); if (k % 45 === 0) await espera(16); }
+    } else await espera(950 + Math.random() * 400);
+    items[i].className = "ok";
+  }
+  await espera(350);
+}
+
 go.addEventListener("click", async () => {
   if (!img || !adult.checked) return;
-  go.disabled = true; go.textContent = "Midiendo tu rostro…"; msg.className = "msg";
+  go.disabled = true; go.textContent = "Preparando…"; msg.className = "msg";
   try {
     const lm = await getLandmarker();
     const res = lm.detect(img);
@@ -115,45 +144,52 @@ go.addEventListener("click", async () => {
     const L = faces[0];
     const m = measure(L);
     if (m.yaw > 0.18) throw new Error("turned");
+    await procesar(L);
     draw(L);
-    show(m);
+    bloquear(m);
   } catch (e) {
+    ir("foto");
     const t = { noface: "No encontramos una cara en la foto. Prueba con una foto de frente y buena luz.", many: "Hay más de una cara en la foto. Usa una foto donde solo salgas tú.", turned: "Tu cara está muy girada. Mira directo a la cámara y vuelve a intentar." }[e.message];
     say(t || "No pudimos analizar la foto. Revisa tu conexión e inténtalo de nuevo.");
   } finally { go.disabled = false; go.textContent = "Calcular mi puntaje"; }
 });
 
-function show(m) {
-  $("#rateStart").hidden = true; $("#rateResult").hidden = false;
-  const sc = $("#rScore"); let n = 0;
-  const step = () => { n = Math.min(m.score, n + 2); sc.textContent = n; if (n < m.score) requestAnimationFrame(step); };
-  step();
-  $("#rVerdict").textContent = m.score >= 80 ? "Rostro muy armónico. Tu plan se enfocaría en detalles finos." : m.score >= 65 ? "Buena base. Hay varias mejoras claras al alcance." : "Mucho potencial. Los cambios correctos se van a notar bastante.";
-  const sorted = [...m.parts].sort((a, b) => b.v - a.v);
-  const free = ["Simetría", "Tercios faciales"];
-  $("#rRows").innerHTML = m.parts.map(p => {
-    const open = free.includes(p.k);
-    return `<div class="report-row"><span>${p.k}</span><b class="mono ${open ? "" : "lock"}" style="${open ? "" : "filter:blur(5px)"}">${Math.round(p.v)}</b></div>`;
-  }).join("") + `<p class="hint" style="margin-top:8px">Tu rasgo más fuerte: <b>${sorted[0].k.toLowerCase()}</b>.</p>`;
-  const weak = sorted[sorted.length - 1];
-  $("#rWeak").innerHTML = `<b>${weak.k}.</b> ${weak.tip}`;
-  window.__resaltaScore = m;
-  scrollTo({ top: 0, behavior: "smooth" });
+// the result is shown blurred: the numbers are real but unreadable until they leave their email
+let resultado = null;
+function bloquear(m) {
+  resultado = m;
+  $("#rScore").textContent = String(Math.max(10, m.score)).replace(/\d/g, "8");
+  $("#rRows").innerHTML = m.parts.map(p => `<div class="report-row"><span>${p.k}</span><b class="mono">88</b></div>`).join("");
+  ir("bloqueado");
 }
-
-$("#rateAgain").addEventListener("click", () => { $("#rateResult").hidden = true; $("#rateStart").hidden = false; });
 
 $("#leadForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  const m2 = $("#leadMsg"), email = ev.target.email.value.trim();
+  const f = ev.target, m2 = $("#leadMsg"), b = f.querySelector("button");
+  const nombre = f.nombre.value.trim().slice(0, 60), email = f.email.value.trim().toLowerCase();
+  m2.className = "msg";
+  if (!nombre) { m2.textContent = "Escribe tu nombre."; m2.className = "msg show err"; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { m2.textContent = "Escribe un correo válido."; m2.className = "msg show err"; return; }
   const C = window.RESALTA || {};
-  if (!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY && window.supabase)) {
-    m2.textContent = "Estamos activando los envíos por correo. Vuelve a intentarlo en unos días."; m2.className = "msg show err";
-    return;
-  }
-  const sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY);
-  const m = window.__resaltaScore || {};
-  const { error } = await sb.from("leads").insert({ email, score: m.score ?? null, source: "calificacion" });
-  m2.textContent = error ? "No pudimos guardar tu correo. Inténtalo de nuevo." : "Listo. Revisa tu correo en unos minutos.";
-  m2.className = "msg show " + (error ? "err" : "ok");
+  b.disabled = true; b.textContent = "Enviando…";
+  try {
+    const m = resultado || {};
+    const sorted = [...(m.parts || [])].sort((a, c) => c.v - a.v);
+    const r = await fetch(`${C.SUPABASE_URL}/functions/v1/resultado-gratis`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: C.SUPABASE_ANON_KEY, Authorization: `Bearer ${C.SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({
+        nombre, email, score: m.score,
+        partes: (m.parts || []).map(p => ({ k: p.k, v: Math.round(p.v), tip: p.tip })),
+        fuerte: sorted[0] && sorted[0].k, debil: sorted.length ? { k: sorted[sorted.length - 1].k, tip: sorted[sorted.length - 1].tip } : null,
+      }),
+    });
+    if (!r.ok) throw new Error(String(r.status));
+    try { sessionStorage.setItem("resalta_lead", JSON.stringify({ nombre, email })); } catch (e) {}
+    document.querySelectorAll("[data-cal-nombre]").forEach(e => { e.textContent = nombre.split(/\s+/)[0]; });
+    document.querySelectorAll("[data-cal-email]").forEach(e => { e.textContent = email; });
+    ir("gracias");
+  } catch (e) {
+    m2.textContent = "No pudimos enviarlo. Revisa tu correo e inténtalo de nuevo."; m2.className = "msg show err";
+  } finally { b.disabled = false; b.textContent = "Enviarme mi resultado"; }
 });
