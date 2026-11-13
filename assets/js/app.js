@@ -84,6 +84,9 @@
     if (/already registered|already exists/i.test(m)) return "Ya existe una cuenta con ese correo.";
     if (/Email not confirmed/i.test(m)) return "Confirma tu correo: te mandamos un enlace al registrarte.";
     if (/Password/i.test(m)) return "La contraseña debe tener al menos 8 caracteres.";
+    if (/rate limit|too many/i.test(m)) return "Demasiados intentos. Espera un minuto e inténtalo de nuevo.";
+    if (/Manual linking|linking is disabled/i.test(m)) return "No pudimos conectar Google. Crea una contraseña.";
+    if (/identity.*already|already linked/i.test(m)) return "Esa cuenta de Google ya está ligada a otra cuenta.";
     return "Algo salió mal. Inténtalo de nuevo.";
   };
 
@@ -207,6 +210,41 @@
     document.documentElement.classList.toggle("authed", !!u);
   })();
 
+  // ---------- save access ----------
+  // People start without a password. After paying (and in their account until they do it) they are asked to
+  // create one or connect Google, so they can come back from any device.
+  async function tarjetaAcceso(box) {
+    if (!sb || !box) return;
+    const u = await getUser(); if (!u) return;
+    const md = u.user_metadata || {};
+    if (!md.sin_clave) return;
+    // came back from connecting Google: done
+    if ((u.identities || []).some(i => i.provider === "google")) { sb.auth.updateUser({ data: { sin_clave: false } }).catch(() => {}); return; }
+    box.hidden = false;
+    box.innerHTML = `<span class="label">Guarda tu acceso</span>
+      <h2>Crea tu contraseña</h2>
+      <p class="hint">Así entras a tu reporte desde cualquier celular o computadora con <b>${String(u.email || "tu correo").replace(/[<>&"]/g, "")}</b>.</p>
+      <form class="acceso-f" novalidate><input type="password" name="clave" autocomplete="new-password" minlength="8" placeholder="Contraseña (mínimo 8 caracteres)" required><button class="btn btn-primary" type="submit">Guardar</button></form>
+      <div class="msg"></div>
+      <button class="btn btn-google btn-block" type="button"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.9 6.2C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.9-6.2A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l8-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.9l-8 6.2C6.6 42.6 14.6 48 24 48z"/></svg> O conecta tu Google</button>`;
+    const f = box.querySelector("form"), m = box.querySelector(".msg");
+    f.addEventListener("submit", async e => {
+      e.preventDefault(); clearMsg(m);
+      const clave = f.clave.value;
+      if (clave.length < 8) return msg(m, "La contraseña debe tener al menos 8 caracteres.");
+      const b = f.querySelector("button"); b.disabled = true; b.textContent = "Guardando…";
+      const { error } = await sb.auth.updateUser({ password: clave, data: { sin_clave: false } });
+      b.disabled = false; b.textContent = "Guardar";
+      if (error) return msg(m, errES(error));
+      box.innerHTML = '<p class="msg ok show" style="margin:0">Listo. Ya puedes entrar con tu correo y tu contraseña.</p>';
+    });
+    box.querySelector(".btn-google").addEventListener("click", async () => {
+      clearMsg(m);
+      const { error } = await sb.auth.linkIdentity({ provider: "google", options: { redirectTo: location.href } });
+      if (error) msg(m, errES(error));
+    });
+  }
+
   // ---------- cuenta ----------
   if (page === "cuenta") {
     const params = new URLSearchParams(location.search);
@@ -232,7 +270,8 @@
       if (error) msg(m, errES(error));
     }));
 
-    // Sign-up goes one thing at a time: name, then email, then password.
+    // Sign-up asks only for the name and the email. The account starts without a password (an anonymous
+    // session that takes the email right away), so everything they do is saved; the password comes after paying.
     let suPaso = 1;
     const suF = $("#signupForm");
     function suIr(n) {
@@ -240,14 +279,14 @@
       $$(".su-step", suF).forEach(st => st.classList.toggle("on", +st.dataset.s === n));
       $$("[data-su-name]").forEach(e => { e.textContent = suF.nombre.value.trim().split(/\s+/)[0] || ""; });
       suF.querySelector('[data-su="atras"]').hidden = n === 1;
-      suF.querySelector('[data-su="sig"]').textContent = n === 3 ? "Crear cuenta" : "Continuar";
+      suF.querySelector('[data-su="sig"]').textContent = n === 2 ? "Empezar mi análisis" : "Continuar";
       const gb = $("#googleBox"); if (gb) gb.hidden = n !== 1;
       clearMsg($("#signupMsg"));
       const inp = suF.querySelector(`.su-step[data-s="${n}"] input`);
       if (inp) setTimeout(() => inp.focus({ preventScroll: true }), 60);
     }
     suF.querySelector('[data-su="atras"]').addEventListener("click", () => suIr(suPaso - 1));
-    // a lead is kept as soon as we have the email, even if they stop before the password
+    // a lead is kept as soon as we have the email, even if they stop right after
     function guardarLead(email, nombre) {
       if (!sb) return;
       try { sb.from("leads").insert({ email, nombre, source: "registro" }).then(() => {}, () => {}); } catch (e) {}
@@ -256,23 +295,28 @@
       ev.preventDefault();
       const f = ev.target, m = $("#signupMsg"); clearMsg(m);
       if (suPaso === 1) { if (!f.nombre.value.trim()) return msg(m, "Escribe tu nombre."); return suIr(2); }
-      if (suPaso === 2) {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.value.trim())) return msg(m, "Escribe un correo válido.");
-        guardarLead(f.email.value.trim().toLowerCase(), f.nombre.value.trim().slice(0, 60));
-        return suIr(3);
-      }
-      if (f.password.value.length < 8) return msg(m, "La contraseña debe tener al menos 8 caracteres.");
-      if (!f.terms.checked) return msg(m, "Necesitas aceptar los términos y el aviso de privacidad.");
+      const email = f.email.value.trim().toLowerCase(), nombre = f.nombre.value.trim().slice(0, 60);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return msg(m, "Escribe un correo válido.");
       if (!sb) return notReady(m);
-      const b = f.querySelector('[data-su="sig"]'); b.disabled = true; b.textContent = "Creando tu cuenta…";
-      const { data, error } = await sb.auth.signUp({
-        email: f.email.value.trim(), password: f.password.value,
-        options: { emailRedirectTo: location.origin + next, data: { full_name: f.nombre.value.trim().slice(0, 60) } }
-      });
-      b.disabled = false; b.textContent = "Crear cuenta";
-      if (error) return msg(m, errES(error));
-      if (data.session) location.href = next;
-      else msg(m, "Listo. Te mandamos un correo para confirmar tu cuenta.", "ok");
+      guardarLead(email, nombre);
+      const b = f.querySelector('[data-su="sig"]'); b.disabled = true; b.textContent = "Un momento…";
+      const listo = () => { b.disabled = false; b.textContent = "Empezar mi análisis"; };
+      try {
+        const { error } = await sb.auth.signInAnonymously({ options: { data: { full_name: nombre, sin_clave: true } } });
+        if (error) throw error;
+        const { error: e2 } = await sb.auth.updateUser({ email });
+        if (e2) {
+          // the email already has an account: drop the temporary session and send them to sign in
+          await sb.auth.signOut().catch(() => {});
+          listo();
+          if (/registered|already|exists/i.test(e2.message || "") || e2.code === "email_exists") {
+            show("login"); $("#li-email").value = email;
+            return msg($("#loginMsg"), "Ya tienes una cuenta con este correo. Entra con tu contraseña o con Google.", "info");
+          }
+          throw e2;
+        }
+        location.href = next;
+      } catch (e) { listo(); msg(m, errES(e)); }
     });
 
     $("#loginForm").addEventListener("submit", async (ev) => {
@@ -637,6 +681,7 @@
       if (U.was) $$("[data-upsell-was]").forEach(e => { e.textContent = U.was; });
       if (U.now) $$("[data-upsell-now]").forEach(e => { e.textContent = U.now; });
       if (C.SUB_PRICE) $$("[data-sub-price]").forEach(e => { e.textContent = C.SUB_PRICE; });
+      tarjetaAcceso($("#acceso"));
       if (!sb || !id || !(await getUser())) return;
 
       // Second offer: the monthly follow-up, only for people who do not have it yet.
@@ -687,6 +732,7 @@
   }
 
   if (page === "panel") {
+    tarjetaAcceso($("#acceso"));
     const LABEL = { borrador: ["Sin pagar", ""], pagado: ["En análisis", "paid"], listo: ["Listo", "ready"] };
     const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     const fecha = d => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
@@ -1182,7 +1228,18 @@
       } else av.innerHTML = "";
     }
 
-    $("#logout").addEventListener("click", async () => { if (sb) await sb.auth.signOut(); location.href = "/"; });
+    // someone without a password who logs out could not get back in, so warn them once
+    let avisoSalir = false;
+    $("#logout").addEventListener("click", async () => {
+      const u = await getUser(), ac = $("#acceso");
+      if (u && (u.user_metadata || {}).sin_clave && !avisoSalir && ac && !ac.hidden) {
+        avisoSalir = true; ac.scrollIntoView({ behavior: "smooth", block: "center" });
+        const m = ac.querySelector(".msg"); if (m) msg(m, "Antes de salir, crea tu contraseña. Si no, no vas a poder volver a entrar a tu reporte.");
+        $("#logout").textContent = "Salir de todos modos";
+        return;
+      }
+      if (sb) await sb.auth.signOut(); location.href = "/";
+    });
 
     $("#deletePhotos").addEventListener("click", async () => {
       const m = $("#privMsg"); clearMsg(m);
