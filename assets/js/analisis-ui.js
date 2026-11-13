@@ -18,6 +18,27 @@ const CHEV = '<svg class="fq-chev" viewBox="0 0 16 16" aria-hidden="true"><path 
 
 let S = null; // state for the mounted explorer
 
+// Harmony from the measurement scores, the same curve the report uses: 10 * (mean/100)^2.2
+const armoniaDe = (ps) => ps.length ? 10 * Math.pow(ps.reduce((t, x) => t + x, 0) / ps.length / 100, 2.2) : 0;
+// how much each measurement adds to or takes from the harmony score, and what it would add at its ideal
+function impactos(todas) {
+  const ps = todas.map(m => m.puntaje), base = armoniaDe(ps);
+  todas.forEach((m, i) => {
+    const sin = ps.filter((_, j) => j !== i);
+    m.aporte = base - armoniaDe(sin);
+    m.gana = armoniaDe(ps.map((x, j) => j === i ? 100 : x)) - base;
+  });
+}
+// 5 is the average; the curve is steep at the top (about 7 is the top 6%, 8 the top 0.5%)
+function percentil(v) {
+  const z = (v - 5) / 1.2, t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z * z / 2), p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  const c = z > 0 ? 1 - p : p;
+  return Math.max(1, Math.min(99.9, c * 100));
+}
+const pctTxt = (v) => { const p = percentil(v); return p >= 99 ? p.toFixed(1) : Math.round(p); };
+const sgn = (x) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(2);
+
 // where the value sits on a track: the reference range is the middle third
 function pos(m) {
   const [lo, hi] = m.rango, span = (hi - lo) || Math.abs(hi) || 1;
@@ -38,6 +59,7 @@ export function montarAnalisis(root, opts) {
     v.data.medidas.forEach(m => todas.push({ ...m, vista, grupo: vista === "perfil" ? (DE_PERFIL[m.zona] || "proporciones") : m.zona }));
   };
   meter("frente", frente); meter("perfil", perfil);
+  impactos(todas);
   S = { root, frente, perfil, todas, filtro: "todas", lista: [], abierta: null, abiertos: new Set(GRUPOS.map(g => g[0])) };
 
   const gF = frente ? s10(frente.data.resumen.general) : null, gP = perfil ? s10(perfil.data.resumen.general) : null;
@@ -51,6 +73,7 @@ export function montarAnalisis(root, opts) {
           <p class="fq-k">Armonía</p>
           <p class="fq-big">${f1(total)}</p>
           ${nivel ? `<p class="fq-nivel">${esc(nivel(total))}</p>` : ""}
+          <p class="fq-pct">Mejor que el ${pctTxt(total)}% de las personas</p>
           <div class="fq-chips">
             ${gF != null ? `<span>Frente <b class="${tono(gF)}">${f1(gF)}</b></span>` : ""}
             ${gP != null ? `<span>Perfil <b class="${tono(gP)}">${f1(gP)}</b></span>` : ""}
@@ -58,6 +81,7 @@ export function montarAnalisis(root, opts) {
           </div>
         </div>
       </div>
+      ${balance(todas)}
       <div class="fq-seg" role="tablist">
         <button type="button" data-f="todas" class="on">Todas</button>
         ${frente ? '<button type="button" data-f="frente">Frente</button>' : ""}
@@ -66,6 +90,7 @@ export function montarAnalisis(root, opts) {
       <div class="fq-grupos"></div>
     </div>`;
   root.querySelectorAll(".fq-seg button").forEach(b => b.onclick = () => filtrar(b.dataset.f));
+  root.querySelectorAll(".fq-bal [data-k]").forEach(b => b.onclick = () => { if (S.filtro !== "todas") filtrar("todas"); abrir(b.dataset.k); });
   root.querySelectorAll(".fq-foto").forEach(b => b.onclick = () => filtrar(b.dataset.v));
   filtrar("todas");
 }
@@ -97,6 +122,17 @@ function filtrar(f) {
 }
 
 const clave = (m) => m.vista + ":" + m.id;
+// strengths and flaws, ranked by how much they move the score
+function balance(todas) {
+  const suma = todas.filter(m => m.aporte > 0).sort((a, b) => b.aporte - a.aporte).slice(0, 5);
+  const resta = todas.filter(m => m.aporte < 0).sort((a, b) => a.aporte - b.aporte).slice(0, 5);
+  const item = (m, cls) => `<button type="button" class="fq-bal-i" data-k="${clave(m)}"><span>${esc(m.nombre)}<em class="mono">${esc(fmt(m))}</em></span><b class="${cls}">${sgn(m.aporte)}</b></button>`;
+  if (!suma.length && !resta.length) return "";
+  return `<div class="fq-bal">
+    <div><p class="fq-k">Lo que más te suma</p>${suma.map(m => item(m, "fq-ok")).join("") || '<p class="fq-vacio">Nada por ahora</p>'}</div>
+    <div><p class="fq-k">Lo que más te resta</p>${resta.map(m => item(m, "fq-bad")).join("") || '<p class="fq-vacio">Nada importante</p>'}</div>
+  </div>`;
+}
 function fila(m) {
   const v = s10(m.puntaje);
   return `<button type="button" class="fq-row" data-k="${clave(m)}">
@@ -246,6 +282,7 @@ function pintarDetalle() {
       <div class="fq-range-l"><span style="left:0">${mn}${u}</span><span style="left:33.33%">${lo}${u}</span><span style="left:66.67%">${hi}${u}</span><span style="left:100%">${mx}${u}</span></div>
       <p class="fq-ref">Rango de referencia: ${lo}${u} a ${hi}${u}</p>
     </div>
+    <div class="fq-imp"><div><p class="fq-k">Efecto en tu armonía</p><b class="${m.aporte >= 0 ? "fq-ok" : "fq-bad"}">${sgn(m.aporte)}</b></div>${m.gana > 0.005 ? `<div><p class="fq-k">Si llega a su ideal</p><b class="fq-ok">+${m.gana.toFixed(2)}</b></div>` : `<div><p class="fq-k">Estado</p><b class="fq-ok">En su ideal</b></div>`}</div>
     <div class="fq-txt"><p><b>Qué mide.</b> ${esc(m.que)}</p><p><b>Qué significa.</b> ${esc(m.significa)}</p></div>
     <div class="fq-nav"><button type="button" class="fq-prev" aria-label="Medida anterior">${CHEV}</button><span class="mono">${S.abierta + 1} / ${S.lista.length}</span><button type="button" class="fq-next" aria-label="Medida siguiente">${CHEV}</button></div>`;
   box.querySelector(".fq-x").onclick = cerrar;

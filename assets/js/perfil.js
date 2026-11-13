@@ -196,6 +196,21 @@ export function medirPuntos(P0, d, sexo) {
       que: "Qué tanto se inclina la frente hacia atrás, de la ceja a donde empieza el cabello.",
       significa: "Una frente más vertical se percibe más suave; una más inclinada, con arco de ceja marcado, más angulosa." });
   }
+  add({ id: "punta_angulo", zona: "nariz", nombre: "Ángulo de la punta de la nariz", unidad: "°",
+    valor: angleAt(Prn, N, Sn), rango: [90, 108],
+    lineas: [[N, Prn], [Prn, Sn]],
+    que: "El ángulo en la punta de la nariz entre el dorso y la parte de abajo.",
+    significa: "Dentro del rango la punta se ve definida. Muy cerrado, la punta se ve afilada o caída; muy abierto, redonda o gruesa." });
+  add({ id: "proyeccion_nasal", zona: "nariz", nombre: "Proyección de la punta (Goode)", unidad: "",
+    valor: fwd(Prn, Sn) / dist(N, Prn), rango: [0.28, 0.42],
+    lineas: [[Sn, { x: Prn.x, y: Sn.y }], [N, Prn]],
+    que: "Cuánto sale la punta por delante de la base de la nariz, contra el largo del dorso.",
+    significa: "Poca proyección se ve como nariz plana de lado; mucha, como nariz que sobresale." });
+  add({ id: "convexidad_nasion", zona: "menton", nombre: "Convexidad desde el entrecejo", unidad: "°",
+    valor: angleAt(Sn, N, Pog), rango: [160, 170],
+    lineas: [[N, Sn], [Sn, Pog]],
+    que: "El ángulo entre el entrecejo, la base de la nariz y el mentón.",
+    significa: "Complementa la convexidad del perfil. Bajo, el mentón queda atrás; alto, el perfil es muy plano." });
   return out;
 }
 

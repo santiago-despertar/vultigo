@@ -1,7 +1,7 @@
 // Simulator: warps a photo with sliders and measures the result again, front or profile.
 // The same displacement that moves the pixels moves the landmarks, so the numbers follow what you see.
-import { analizar, medir, resumen } from "/assets/js/medidas.js?v=18";
-import { analizarPerfil, medirPuntos, ZONAS_PERFIL } from "/assets/js/perfil.js?v=19";
+import { analizar, medir, resumen } from "/assets/js/medidas.js?v=19";
+import { analizarPerfil, medirPuntos, ZONAS_PERFIL } from "/assets/js/perfil.js?v=20";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -26,11 +26,22 @@ const CTL_FRENTE = [
 ];
 // each preset says which controls it may touch and in which direction; the values are searched per face
 const PRE_FRENTE = [
-  ["Mandíbula marcada", { mandibula: [0, 4], menton_largo: [-1.5, 2], menton_ancho: [-1, 2] }],
-  ["Rinoplastia (alas)", { nariz_ancho: [-3, 0], nariz_punta: [-2, 1] }],
-  ["Relleno de labios", { labios: [0, 2.5], boca_altura: [-1.5, 0] }],
-  ["Levantar cejas", { cejas_altura: [0, 2.5], cejas_cola: [0, 2.5] }],
   ["Mejor versión", { mandibula: [-2, 4], menton_largo: [-2, 2.5], menton_ancho: [-1.5, 2], pomulos: [-1, 2.5], nariz_ancho: [-3, 1], nariz_punta: [-2, 1], labios: [-1, 2.5], boca_ancho: [-2, 2], boca_altura: [-2, 1.5], cejas_altura: [-1.5, 2.5], cejas_cola: [-1.5, 2.5] }],
+  ["Mandíbula marcada", { mandibula: [0, 4], menton_largo: [-1.5, 2], menton_ancho: [-1, 2] }],
+  ["Relleno de mandíbula", { mandibula: [0, 4] }],
+  ["Botox de maseteros", { mandibula: [-4, 0] }],
+  ["Implante de mentón", { menton_largo: [0, 3], menton_ancho: [0, 2] }],
+  ["Reducción de mentón", { menton_largo: [-3, 0], menton_ancho: [-2, 0] }],
+  ["Pómulos (relleno o implante)", { pomulos: [0, 3] }],
+  ["Rinoplastia: alas más angostas", { nariz_ancho: [-3, 0] }],
+  ["Rinoplastia: punta más arriba", { nariz_punta: [-2.5, 0] }],
+  ["Rinoplastia completa", { nariz_ancho: [-3, 0], nariz_punta: [-2, 1] }],
+  ["Relleno de labios", { labios: [0, 2.5] }],
+  ["Lip lift", { boca_altura: [-2.5, 0] }],
+  ["Labios completos", { labios: [0, 2.5], boca_altura: [-1.5, 0] }],
+  ["Levantar cejas", { cejas_altura: [0, 2.5], cejas_cola: [0, 2.5] }],
+  ["Botox en cola de ceja", { cejas_cola: [0, 2.5] }],
+  ["Cantoplastia (ojos rasgados)", { ojos: [0, 2.5] }],
 ];
 
 // How each control is described to the image model: what it changes, and what minus / plus mean.
@@ -110,11 +121,19 @@ const CTL_PERFIL = [
   ["ceja", "Arco de la ceja", "Labios y frente", 4, "Menos marcado", "Más marcado"],
 ];
 const PRE_PERFIL = [
-  ["Mentón", { menton_proy: [-3, 6], menton_vert: [-2, 3] }],
-  ["Rinoplastia (dorso y punta)", { nariz_dorso: [-3, 0], nariz_proy: [-3, 2], nariz_rot: [-1, 3] }],
-  ["Cuello definido", { cuello: [0, 7] }],
-  ["Labios", { labios_proy: [-3, 3] }],
   ["Mejor versión", { menton_proy: [-3, 6], menton_vert: [-2, 3], cuello: [0, 7], nariz_dorso: [-3, 0], nariz_proy: [-3, 2], nariz_rot: [-1, 3], labios_proy: [-3, 3], ceja: [-2, 3] }],
+  ["Implante de mentón", { menton_proy: [0, 6] }],
+  ["Genioplastia de avance", { menton_proy: [0, 6], menton_vert: [0, 3] }],
+  ["Reducción de mentón", { menton_proy: [-4, 0], menton_vert: [-2, 0] }],
+  ["Lipo de papada", { cuello: [0, 7] }],
+  ["Rinoplastia: quitar giba", { nariz_dorso: [-3, 0] }],
+  ["Rinoplastia: rotar la punta", { nariz_rot: [0, 3] }],
+  ["Rinoplastia: menos proyección", { nariz_proy: [-3, 0] }],
+  ["Rinoplastia completa", { nariz_dorso: [-3, 0], nariz_proy: [-3, 2], nariz_rot: [-1, 3] }],
+  ["Relleno de labios de perfil", { labios_proy: [0, 3] }],
+  ["Retraer labios", { labios_proy: [-3, 0] }],
+  ["Arco de ceja más marcado", { ceja: [0, 3] }],
+  ["Suavizar arco de ceja", { ceja: [-3, 0] }],
 ];
 async function perfil(url, sexo) {
   const img = await cargar(url);
@@ -273,9 +292,16 @@ function controles() {
     const o = S.optimos[i] ||= optimizar(rangos);
     S.controles.forEach(([k]) => poner(k, 0));
     $("#simPre").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
-    if (o.gana < 0.05) { decir(`En tu cara, ${nombre.toLowerCase()} no subiría tu armonía: esa zona ya está bien proporcionada.`); refrescar(); return; }
-    for (const k in o.v) poner(k, o.v[k]);
-    decir("Valores calculados para tu cara. Puedes ajustarlos a mano.");
+    const mejor = /^Mejor/.test(nombre);
+    if (o.gana < 0.05 && mejor) { decir("Tu cara ya está muy bien proporcionada: no encontramos cambios que suban tu armonía."); refrescar(); return; }
+    if (o.gana < 0.05) {
+      // the treatment would not raise the score here, but the customer still wants to see it: a moderate amount
+      for (const k in rangos) { const [lo, hi] = rangos[k]; poner(k, Math.round((Math.abs(hi) >= Math.abs(lo) ? hi : lo) * 0.6 * 2) / 2); }
+      decir(`En tu cara, ${nombre.toLowerCase()} no subiría tu armonía, pero así se vería. Puedes ajustarlo a mano.`);
+    } else {
+      for (const k in o.v) poner(k, o.v[k]);
+      decir("Valores calculados para tu cara. Puedes ajustarlos a mano.");
+    }
     refrescar();
     if (/^Mejor/.test(nombre)) setTimeout(() => realista(), 50);
   }));
@@ -289,16 +315,19 @@ async function realista() {
   if (!actuales || !actuales.ia) return;
   const cambios = cambiosIA();
   const magro = !!($("#simMagro") || {}).checked;
-  if (!cambios.length && !magro) { m.textContent = "Mueve al menos un control, elige un tratamiento de ejemplo o marca menos grasa en la cara."; m.className = "msg show info"; return; }
+  const extras = [...document.querySelectorAll("#simBox [data-extra]")].filter(x => x.checked).map(x => x.dataset.extra);
+  if (!cambios.length && !magro && !extras.length) { m.textContent = "Mueve al menos un control, elige un tratamiento de ejemplo o marca menos grasa en la cara."; m.className = "msg show info"; return; }
   m.className = "msg"; b.disabled = true; b.textContent = "Generando…";
   box.hidden = false; box.classList.add("cargando");
   $("#simIAAntes").src = modoActual === "perfil" ? actuales.urlPerfil : actuales.url;
   $("#simIADesp").removeAttribute("src");
-  $("#simIALista").innerHTML = cambios.map(c => `<li>${esc((S.controles.find(x => EN[x[0]] && EN[x[0]][0] === c.que) || [, c.que])[1])} <span class="mono">${c.mm > 0 ? "+" : ""}${c.mm} mm</span></li>`).join("") + (magro ? '<li>Menos grasa en la cara</li>' : "");
+  $("#simIALista").innerHTML = cambios.map(c => `<li>${esc((S.controles.find(x => EN[x[0]] && EN[x[0]][0] === c.que) || [, c.que])[1])} <span class="mono">${c.mm > 0 ? "+" : ""}${c.mm} mm</span></li>`).join("") + (magro ? '<li>Menos grasa en la cara</li>' : "") + extras.map(x => `<li>${x === "piel" ? "Piel más limpia" : "Ojeras corregidas"}</li>`).join("");
+  const etiquetas = [...$("#simIALista").querySelectorAll("li")].map(li => li.textContent);
   try {
-    const r = await actuales.ia({ tipo: "sim", order_id: actuales.id, vista: modoActual, foto: actuales.fotoPerfil, cambios, magro });
+    const r = await actuales.ia({ tipo: "sim", order_id: actuales.id, vista: modoActual, foto: actuales.fotoPerfil, cambios, magro, extras, etiquetas });
     $("#simIADesp").src = r.imagen;
     box.classList.remove("cargando");
+    galeria();
     setTimeout(() => box.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80);
   } catch (e) {
     box.hidden = true;
@@ -306,6 +335,17 @@ async function realista() {
     m.className = "msg show err";
   }
   b.disabled = false; b.textContent = "Ver resultado realista";
+}
+
+// saved simulations, newest first
+async function galeria() {
+  const g = $("#simGal"); if (!g || !actuales || !actuales.ia) return;
+  try {
+    const { sims } = await actuales.ia({ tipo: "sims", order_id: actuales.id });
+    if (!sims || !sims.length) { g.hidden = true; return; }
+    g.hidden = false;
+    g.querySelector(".sim-gal-l").innerHTML = sims.map(x => `<a class="sim-gal-i" href="${esc(x.url)}" target="_blank" rel="noopener"><img src="${esc(x.url)}" alt="Simulación guardada" loading="lazy"><span>${esc((x.cambios || []).join(" · "))}</span><time>${new Date(x.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "short" })} · ${x.vista === "perfil" ? "Perfil" : "Frente"}</time></a>`).join("");
+  } catch (e) { g.hidden = true; }
 }
 
 const sesiones = {};
@@ -328,6 +368,7 @@ export async function iniciar(datos) {
   if (listo) return;
   listo = true;
   const bIA = $("#simIABtn"); if (bIA) bIA.addEventListener("click", () => realista());
+  galeria();
   const orig = $("#simOrig"), ver = (si) => { mezcla = si ? 0 : 1; pintar(); orig.classList.toggle("on", si); };
   orig.addEventListener("pointerdown", (ev) => { ev.preventDefault(); ver(true); });
   ["pointerup", "pointerleave", "pointercancel"].forEach(e => orig.addEventListener(e, () => ver(false)));

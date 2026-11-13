@@ -275,6 +275,33 @@ export function medir(L, sexo) {
     significa: "Dice qué tanto se afina la cara de la mandíbula al mentón." });
 
   // ---------- simetría
+  // ---------- more detail: lips, nose bridge, cheekbones
+  const peakL = P(37), peakR = P(267), peakMid = mid(peakL, peakR);
+  add({ id: "arco_cupido", zona: "boca", nombre: "Profundidad del arco de cupido",
+    valor: down(peakMid, lipTop) / Math.max(1, down(peakMid, stom)), unidad: "", rango: [0.15, 0.3],
+    lineas: [[peakL, lipTop], [lipTop, peakR], [peakMid, stom]],
+    que: "Qué tanto baja el centro del labio superior entre los dos picos, contra la altura del labio superior.",
+    significa: "Un arco de cupido marcado da un labio superior definido. Muy plano se ve sin forma; muy profundo, un labio en forma de corazón." });
+  const stomMid = mid(P(13), P(14));
+  const comis = (along(stomMid, mid(mouthL, mouthR), vx, vy)) / mouthW * 100;
+  add({ id: "comisuras", zona: "boca", nombre: "Posición de las comisuras", unidad: "%",
+    valor: comis, rango: [0, 5],
+    lineas: [[mouthL, stomMid], [stomMid, mouthR]],
+    que: "Qué tan arriba o abajo quedan las esquinas de la boca respecto al centro de los labios, con la cara relajada.",
+    significa: "Comisuras un poco hacia arriba dan una expresión amable aunque no sonrías. Hacia abajo, la cara se ve seria o cansada." });
+  const puente = dist(P(193), P(417));
+  add({ id: "puente_nariz", zona: "nariz", nombre: "Ancho del puente contra ancho de la nariz", unidad: "",
+    valor: puente / noseW, rango: [0.3, 0.45],
+    lineas: [[P(193), P(417)], [alaL, alaR]],
+    que: "Ancho del dorso de la nariz a la altura de los ojos, dividido entre el ancho de las alas.",
+    significa: "Un puente angosto con alas proporcionadas se ve fino. Un puente ancho hace que la nariz se vea más grande de frente." });
+  const eyeY = mid(pupL, pupR), pom = mid(P(116), P(345));
+  add({ id: "pomulos_altura", zona: "proporciones", nombre: "Altura de los pómulos", unidad: "",
+    valor: down(pom, stomMid) / Math.max(1, down(eyeY, stomMid)), rango: [0.7, 0.85],
+    lineas: [[P(116), P(345)], [eyeY, stomMid]],
+    que: "Dónde quedan los pómulos entre los ojos y la boca. 1 sería a la altura de los ojos y 0 a la altura de la boca.",
+    significa: "Pómulos altos dan un rostro medio con más estructura. Bajos, la cara se ve más plana en la zona media." });
+
   const a = P(168), b = ment;
   const pairs = [[33, 263], [133, 362], [61, 291], [234, 454], [172, 397], [70, 300], [105, 334], [50, 280], [58, 288], [129, 358]];
   const devs = pairs.map(([l, r]) => dist(P(l), reflect(P(r), a, b)) / bizy);
