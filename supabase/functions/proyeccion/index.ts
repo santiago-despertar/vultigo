@@ -58,6 +58,26 @@ async function editar(bytes: Uint8Array, prompt: string, aspecto: string | null 
   return { data: img.data as string, mime: (img.mimeType || img.mime_type || "image/png") as string };
 }
 
+
+// Simulator controls as the image model should read them: what changes, and what minus / plus mean.
+const EN: Record<string, [string, string, string]> = {
+  menton_largo: ["Chin vertical length", "shorter chin", "longer chin"], menton_ancho: ["Chin width", "narrower chin", "wider, squarer chin"],
+  mandibula: ["Jaw width at the jaw angles", "narrower jaw", "wider, more angular jaw"], pomulos: ["Cheekbone width", "narrower cheekbones", "wider, more prominent cheekbones"],
+  nariz_ancho: ["Nostril (alar) width", "narrower nose base", "wider nose base"], nariz_punta: ["Nose tip height", "nose tip lifted", "nose tip lowered"],
+  labios: ["Lip fullness", "thinner lips", "fuller lips"], boca_ancho: ["Mouth width", "narrower mouth", "wider mouth"],
+  boca_altura: ["Distance from nose base to upper lip", "shorter upper lip", "longer upper lip"], cejas_altura: ["Eyebrow height", "lower eyebrows", "higher eyebrows"],
+  cejas_cola: ["Height of the outer end of the eyebrows", "lower brow tails", "lifted brow tails"], ojos: ["Canthal tilt (outer eye corners)", "outer corners lower", "outer corners lifted"],
+  menton_proy: ["Chin projection forward", "chin further back", "chin projected further forward"], menton_vert: ["Chin vertical length", "shorter chin", "longer chin"],
+  cuello: ["Definition of the line under the chin (jaw-neck angle)", "softer jaw-neck line", "sharper, more defined jaw-neck line"],
+  nariz_proy: ["Nose tip projection", "less projected nose tip", "more projected nose tip"], nariz_rot: ["Nose tip rotation", "nose tip rotated down", "nose tip rotated up"],
+  nariz_dorso: ["Nasal bridge (dorsal hump)", "straighter bridge, hump reduced", "bigger dorsal hump"], labios_proy: ["Lip projection", "lips further back", "lips further forward"],
+  ceja: ["Brow ridge prominence", "softer brow ridge", "more prominent brow ridge"],
+};
+const EXTRAS: Record<string, string> = {
+  piel: "Clearer skin: as after a few months of a good skincare routine. Fewer spots, marks and redness, more even tone, natural texture with visible pores (not airbrushed).",
+  ojeras: "Under-eyes: less dark color and less hollowness under the eyes, as after good sleep and treatment. Natural, not filtered.",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -87,11 +107,14 @@ Deno.serve(async (req) => {
     if (body.tipo === "sim") {
       if (!Deno.env.get("GEMINI_API_KEY")) return json({ error: "no_configurado" }, 503);
       const vista = body.vista === "perfil" ? "perfil" : "frente";
-      const cambios = (Array.isArray(body.cambios) ? body.cambios : []).slice(0, 14)
+      // the chat sends control keys; the simulator sends the descriptions already
+      const desdeClaves = body.claves && typeof body.claves === "object" ? Object.entries(body.claves).filter(([k]) => EN[k]).map(([k, v]) => ({ que: EN[k][0], mm: Number(v), menos: EN[k][1], mas: EN[k][2] })) : [];
+      const extras = (Array.isArray(body.extras) ? body.extras : []).filter((x: string) => EXTRAS[x]).slice(0, 4);
+      const cambios = [...(Array.isArray(body.cambios) ? body.cambios : []), ...desdeClaves].slice(0, 14)
         .map((c: Obj) => ({ que: String(c.que || "").slice(0, 60), mm: Math.max(-8, Math.min(8, Number(c.mm) || 0)), menos: String(c.menos || "").slice(0, 30), mas: String(c.mas || "").slice(0, 30) }))
         .filter((c: Obj) => c.que && c.mm);
       const magro = body.magro === true;
-      if (!cambios.length && !magro) return json({ error: "sin_cambios" }, 400);
+      if (!cambios.length && !magro && !extras.length) return json({ error: "sin_cambios" }, 400);
       // a daily cap per order keeps the cost bounded
       const { data: cur } = await admin.from("reports").select("data").eq("order_id", order.id).maybeSingle();
       const d: Obj = cur?.data || {};
@@ -104,14 +127,38 @@ Deno.serve(async (req) => {
       const { data: foto } = await admin.storage.from("fotos").download(`${order.user_id}/${order.id}/${archivo}.jpg`);
       if (!foto) return json({ error: "sin_foto" }, 400);
       const lista = [...cambios.map((c: Obj) => `- ${c.que}: ${Math.abs(c.mm)} mm ${c.mm > 0 ? `(${c.mas})` : `(${c.menos})`}`),
-        ...(magro ? ["- Less facial fat: as if this person had gradually lost their excess weight and reached a lean, healthy body fat level. Less fat in the cheeks and under the chin, a sharper jawline, more visible cheekbones and a cleaner jaw-to-neck line. Natural and healthy, not gaunt or hollow."] : [])].join("\n");
+        ...(magro ? ["- Less facial fat: as if this person had gradually lost their excess weight and reached a lean, healthy body fat level. Less fat in the cheeks and under the chin, a sharper jawline, more visible cheekbones and a cleaner jaw-to-neck line. Natural and healthy, not gaunt or hollow."] : []), ...extras.map((x: string) => "- " + EXTRAS[x])].join("\n");
       const prompt = `Edit this ${vista === "perfil" ? "side profile" : "front"} photo of a real person to show exactly these facial changes, as a top aesthetic surgeon would achieve them (or, for fat loss, as weight loss would), with a natural, healed result (no swelling, no marks):
 ${lista}
 
 The millimetres are real-world sizes on this face (an adult's pupils are about 63 mm apart): make each change exactly that big, visible side by side, no more and no less. Change nothing else: same identity, same skin, hair, beard, eyes, expression, head angle, lighting, clothing and background. Keep every other feature exactly where it is. Photorealistic, like the same photo taken after the procedure. No text, no watermark, no borders.`;
       const out = await editar(new Uint8Array(await foto.arrayBuffer()), prompt, null); // keeps the photo's own proportions
       if (!out) return json({ error: "No pudimos generar la imagen ahorita" }, 502);
-      return json({ imagen: `data:${out.mime};base64,${out.data}`, quedan: 15 - (uso + 1) });
+      // keep it, so the customer can come back to their simulations
+      let ruta: string | null = null;
+      try {
+        const ext = out.mime.includes("png") ? "png" : "jpg";
+        ruta = `${order.user_id}/${order.id}/sim/${Date.now()}.${ext}`;
+        const bytes = Uint8Array.from(atob(out.data), (c) => c.charCodeAt(0));
+        const { error: eUp } = await admin.storage.from("fotos").upload(ruta, bytes, { contentType: out.mime, upsert: false });
+        if (eUp) { console.error("sim upload", eUp.message); ruta = null; }
+        else {
+          const { data: cur2 } = await admin.from("reports").select("data").eq("order_id", order.id).maybeSingle();
+          const d2: Obj = cur2?.data || {};
+          const resumenTxt = [...cambios.map((c: Obj) => `${c.mm > 0 ? c.mas : c.menos} ${Math.abs(c.mm)} mm`), ...(magro ? ["less facial fat"] : []), ...extras].join(", ");
+          d2.sims = [{ ruta, vista, fecha: new Date().toISOString(), cambios: body.etiquetas && Array.isArray(body.etiquetas) ? body.etiquetas.slice(0, 16).map((x: unknown) => String(x).slice(0, 60)) : [resumenTxt.slice(0, 200)] }, ...(d2.sims || [])].slice(0, 30);
+          await admin.from("reports").update({ data: d2 }).eq("order_id", order.id);
+        }
+      } catch (e) { console.error("sim save", e); }
+      return json({ imagen: `data:${out.mime};base64,${out.data}`, ruta, quedan: 15 - (uso + 1) });
+    }
+
+    // the customer's saved simulations, newest first
+    if (body.tipo === "sims") {
+      const { data: cur } = await admin.from("reports").select("data").eq("order_id", order.id).maybeSingle();
+      const sims = (cur?.data?.sims || []) as Obj[];
+      const firmadas = await Promise.all(sims.map(async (x) => ({ ...x, url: (await admin.storage.from("fotos").createSignedUrl(x.ruta, 3600)).data?.signedUrl ?? null })));
+      return json({ sims: firmadas.filter((x) => x.url) });
     }
 
     if (tipo === "hard" && order.tier !== "hard") return json({ error: "Solo en el plan completo" }, 403);
