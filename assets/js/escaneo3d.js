@@ -114,7 +114,7 @@ export async function escanear3d({ alTerminar }) {
   function ajustarMarco() {
     const st = $(".esc-stage"), sw = st.clientWidth, sh = st.clientHeight, vw = video.videoWidth || 16, vh = video.videoHeight || 9;
     const esc = Math.min(sw / vw, sh / vh), w = vw * esc, h = vh * esc;
-    const oh = h * 0.62, ow = oh * 0.75;
+    const oh = h * 0.72, ow = oh * 0.74;
     Object.assign(marco.style, { width: ow + "px", height: oh + "px", left: (sw - ow) / 2 + "px", top: (sh - oh) / 2 + "px" });
   }
   ajustarMarco(); addEventListener("resize", ajustarMarco);
@@ -168,8 +168,8 @@ export async function escanear3d({ alTerminar }) {
     const girando = !!P.yaws, holgura = girando ? 0.2 : 0.12;
     // is the face in position? one clear correction at a time
     let aviso = "";
-    if (p.alto < 0.24) aviso = "Acércate un poco a la cámara";
-    else if (p.alto > 0.7) aviso = "Aléjate un poco de la cámara";
+    if (p.alto < 0.26) aviso = "Acércate un poco a la cámara";
+    else if (p.alto > 0.6) aviso = "Aléjate un poco de la cámara";
     else if (Math.abs(p.cx - 0.5) > holgura) aviso = "Mueve tu cara al centro del óvalo";
     else if (Math.abs(p.cy - 0.5) > 0.16) aviso = p.cy < 0.5 ? "Baja un poco el celular o tu cara al centro" : "Sube un poco el celular o tu cara al centro";
     else if (p.roll > (girando ? 14 : 9)) aviso = "Endereza la cabeza, sin inclinarla de lado";
