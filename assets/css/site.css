@@ -1512,3 +1512,6 @@ g.esc3d-marcas{opacity:0;transition:opacity .3s}
 .acceso-f{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .acceso-f input{flex:1;min-width:200px;height:48px;padding:0 14px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);font:16px var(--font-sans)}
 .acceso .btn-google{margin-top:4px}
+.fotos-t{margin:22px 0 -6px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.fotos-sub{text-transform:none;letter-spacing:0;font-size:13px;opacity:.85}
+@media (max-width:640px){.photo-grid:not(.opc){grid-template-columns:repeat(3,1fr);gap:8px}.photo-grid:not(.opc) .slot small{display:none}}
