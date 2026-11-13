@@ -26,6 +26,7 @@ HEAD = r"""<!doctype html>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/site.css?v=__V__">
 <script>try{{var _p=location.pathname;if(/\.html$/.test(_p))history.replaceState(null,"",((/\/index\.html$/.test(_p)?_p.slice(0,-10):_p.slice(0,-5))||"/")+location.search+location.hash)}}catch(e){{}}</script>
+<script>try{{var _d=document.documentElement;if(document.fonts&&document.fonts.load){{_d.classList.add("fload");var _ok=function(){{_d.classList.remove("fload")}};Promise.all([document.fonts.load("300 40px Inter"),document.fonts.load("400 16px Inter"),document.fonts.load("600 16px Inter")]).then(_ok,_ok);setTimeout(_ok,900)}}}}catch(e){{}}</script>
 <script>try{{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}}catch(e){{}}</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-F5L2THEVH0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag("js",new Date());gtag("config","G-F5L2THEVH0");</script>
