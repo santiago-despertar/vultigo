@@ -3,7 +3,9 @@
 Resalta (resalta.co) hace análisis facial estético para hispanohablantes de todo el mundo. El blog atrae tráfico de Google y lo lleva a la calificación gratis (/calificacion) y al análisis completo.
 
 ## De dónde sale el tema
-`contenido/calendario.json`: una lista ordenada de lo más fácil a lo más difícil de posicionar. Se publica el primer artículo con `"estado": "pendiente"` cuya `fecha` sea hoy o anterior (hora de México). Al publicarlo, cambia su `estado` a `"publicado"`.
+`contenido/calendario.json`: una lista ordenada de lo más fácil a lo más difícil de posicionar, con una `fecha` por artículo (uno al día).
+Los artículos se escriben por adelantado. Toma los siguientes con `"estado": "pendiente"` en orden, escríbelos y cambia su `estado` a `"escrito"`.
+La `fecha` del artículo es la del calendario, no la de hoy. Cada mañana un proceso automático de GitHub (`.github/workflows/publicar-blog.yml`) vuelve a construir el sitio y publica los artículos cuya fecha ya llegó. Un artículo con fecha futura no aparece en el sitio hasta su día.
 
 ## Archivo
 - Un archivo nuevo: `src/blog/<slug>.html`, con el `slug` del calendario.
@@ -14,7 +16,7 @@ Resalta (resalta.co) hace análisis facial estético para hispanohablantes de to
   - descripcion: meta description de 140 a 160 caracteres con la palabra clave.
   - pilar: el del calendario.
   - resumen: 1 o 2 frases para la tarjeta del blog.
-  - fecha: la de hoy.
+  - fecha: la del calendario para ese artículo (formato YYYY-MM-DD).
   - imagen: una imagen que ya exista en /assets/img (analysis-face.jpg, analysis-face-w.jpg, hero/m1.jpg, hero/w1.jpg, thumbs/perfil.jpg, thumbs/angulos.jpg, etc.).
 - `build.py` lo convierte en página, lo agrega a /blog y a sitemap.xml solo. No toques build.py.
 
@@ -27,11 +29,11 @@ Resalta (resalta.co) hace análisis facial estético para hispanohablantes de to
 - Cuando hables de medidas (ángulos, proporciones, tercios), conéctalo con lo que mide Resalta.
 - Un `post-cta` a mitad del artículo hacia `/calificacion?utm_source=blog&utm_medium=articulo&utm_campaign=<slug>` y el bloque `final-cta post-final` al final con `utm_medium=final`. Ajusta el texto del CTA al tema.
 - 3 a 5 preguntas frecuentes reales en `<details>`.
-- 2 o 3 enlaces internos a otros artículos ya publicados del mismo pilar (revisa el calendario: solo los que tienen estado "publicado").
+- 2 o 3 enlaces internos a otros artículos del mismo pilar que ya estén escritos o publicados y cuya fecha sea ANTERIOR a la de este artículo (así el enlace ya existe cuando este se publique).
 - Temas médicos o de procedimientos: informativo, sin prometer resultados, y termina con el `post-nota` que dice que no sustituye la valoración de un médico.
 - Opcional: una figura SVG sencilla como en el artículo de simetría (líneas y puntos sobre /assets/img/analysis-face.jpg) cuando ayude a explicar una medida.
 
 ## Antes de publicar
-- `python3 build.py` corre sin errores y genera `blog/<slug>.html`.
+- `python3 build.py` corre sin errores. Para revisar cómo se ve un artículo con fecha futura, cambia su fecha temporalmente a hoy, construye, revisa y regrésala.
 - Revisa que no haya rayas largas: `grep -c "—" src/blog/<slug>.html` debe dar 0.
 - Abre la página generada en móvil y escritorio y revisa que se vea bien.
