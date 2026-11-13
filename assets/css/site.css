@@ -898,8 +898,21 @@ html.authed [data-auth="out"]{display:none!important}
 .visor-row-r{display:flex;align-items:center;gap:12px;flex:0 0 auto}
 .msg.info{background:var(--surface);color:var(--ink-muted)}
 @media (max-width:900px){
-  .visor{grid-template-columns:1fr;gap:16px}
-  .visor-face{position:sticky;top:64px;z-index:5;max-width:320px;margin:0 auto;width:100%}
-  .visor-score{grid-template-columns:1fr;gap:14px}
-  .visor-row{flex-direction:column;align-items:flex-start;gap:6px}
+  /* On a phone the photo stays pinned under the header while the list scrolls under it. */
+  .visor{display:block}
+  .visor-face{position:sticky;top:76px;z-index:6;background:var(--surface);margin:0 -24px;padding:0 24px 10px;box-shadow:0 12px 12px -12px rgba(26,30,35,.18)}
+  .visor-stage{max-width:min(240px,30vh);margin:0 auto}
+  .visor-now{display:flex;justify-content:space-between;align-items:baseline;gap:12px;max-width:min(240px,30vh);margin:8px auto 0}
+  .visor-now b{font-size:13px;font-weight:500;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .visor-now i{font-style:normal;font-size:14px;flex:0 0 auto}
+  .visor-side{margin-top:14px}
+  .visor-score{grid-template-columns:1fr;gap:16px;padding:22px}
+  .visor-big{font-size:52px}
+  .visor-detail{padding:22px}
+  .visor-detail-h{font-size:21px}
+  .visor-row{padding:14px 10px;gap:10px}
+  #vList .visor-detail{margin:0 0 10px;border-radius:12px;background:var(--surface)}
 }
+}
+
+.visor-now{display:none}
