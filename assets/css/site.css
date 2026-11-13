@@ -897,6 +897,7 @@ html.authed [data-auth="out"]{display:none!important}
 .visor-row.active{background:var(--surface)}
 .visor-row-r{display:flex;align-items:center;gap:12px;flex:0 0 auto}
 .msg.info{background:var(--surface);color:var(--ink-muted)}
+.visor-now{display:none}
 @media (max-width:900px){
   /* On a phone the photo stays pinned under the header while the list scrolls under it. */
   .visor{display:block}
@@ -913,6 +914,70 @@ html.authed [data-auth="out"]{display:none!important}
   .visor-row{padding:14px 10px;gap:10px}
   #vList .visor-detail{margin:0 0 10px;border-radius:12px;background:var(--surface)}
 }
-}
 
-.visor-now{display:none}
+/* v15: report in the customer panel */
+.rep{margin-top:40px;padding:0}
+.rep-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.rep-title{font-size:clamp(30px,4vw,40px);margin:6px 0 4px}
+.rep-wait{display:flex;gap:18px;align-items:center;margin-bottom:16px}
+.rep-wait b{font-weight:500}
+.rep-wait .hint{margin-top:4px}
+.rep-spin{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--slate-deep);animation:repSpin .9s linear infinite}
+@keyframes repSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.rep-spin{animation-duration:3s}}
+.rep-lead{font-size:clamp(19px,2vw,22px);line-height:1.5;max-width:760px;margin:4px 0 8px;color:var(--ink)}
+.rep-h{font-size:clamp(24px,2.6vw,30px);margin:48px 0 6px}
+.rep-sub{margin-bottom:20px}
+.rep-two,.rep-three,.rep-zonas,.rep-plan{display:grid;gap:16px}
+.rep-two{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:40px}
+.rep-three{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
+.rep-zonas{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:16px}
+.rep-plan{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
+.rep .card{padding:24px}
+.rep-items{margin-top:8px}
+.rep-item{padding:14px 0;border-bottom:1px solid var(--line)}
+.rep-item:last-child{border-bottom:0;padding-bottom:0}
+.rep-item b{display:flex;gap:10px;align-items:baseline;font-weight:500}
+.rep-item .hint{margin-top:6px}
+.rep-n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--mist);display:inline-grid;place-items:center;font-size:12px}
+.rep-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.rep-tag{font-size:12px;padding:4px 10px;border-radius:var(--r-pill);background:var(--mist);color:var(--ink-muted)}
+.rep-tag.rep-alto{background:#DCE8E1;color:#2F5E45}
+.rep-tag.rep-medio{background:#EFE7D6;color:#6B5A36}
+.rep-zona-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+.rep-zona-top b{font-weight:500;font-size:17px}
+.rep-zona-top .mono{color:var(--ink-muted)}
+.rep-list{margin:12px 0 0;padding-left:18px;color:var(--ink);font-size:15px;line-height:1.55}
+.rep-list li+li{margin-top:6px}
+.rep-mini{margin:18px 0 4px}
+.rep-sub-t{margin:10px 0 6px}
+.rep-three .card>.label+div>.hint:first-child{margin-top:10px}
+.rep-sub-t b{font-weight:500;text-transform:capitalize}
+.rep-sws{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.rep-sw{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:4px 10px 4px 4px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface)}
+.rep-sw i{width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,.08)}
+.rep-fase .label{margin-bottom:4px}
+.rep-paso{padding:14px 0;border-bottom:1px solid var(--line)}
+.rep-paso:last-child{border-bottom:0;padding-bottom:0}
+.rep-paso b{font-weight:500}
+.rep-paso .hint{margin-top:4px}
+.rep-lock{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-top:48px;background:var(--surface);border-style:dashed}
+.rep-lock-h{font-size:24px;margin:8px 0}
+.rep-lock-r{flex:none;text-align:right}
+.rep-lock-p{font-size:20px;margin-bottom:12px}
+.rep-lock-p s{color:var(--ink-muted);font-size:16px;margin-right:6px}
+.rep-note{margin-top:40px;max-width:760px}
+@media (max-width:900px){
+  .rep-two,.rep-three,.rep-zonas,.rep-plan{grid-template-columns:minmax(0,1fr)}
+  .rep-lock{flex-direction:column;align-items:stretch}
+  .rep-lock-r{text-align:left}
+  .rep-lock-r .btn{width:100%}
+  .rep .card{padding:20px}
+  .rep-h{margin-top:40px}
+}
+@media (max-width:600px){
+  .order{flex-wrap:wrap;gap:12px}
+  .order>div:first-child{flex:1 1 100%}
+  .order>div:last-child{width:100%;justify-content:space-between}
+  .rep-head .status{display:none}
+}
