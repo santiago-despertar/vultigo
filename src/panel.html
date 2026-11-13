@@ -1,5 +1,5 @@
 <main class="app-main">
-  <div class="wrap" style="max-width:880px">
+  <div class="wrap" style="max-width:1080px">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:32px">
       <div><span class="label">Mi cuenta</span><h1 style="font-size:44px;margin-top:8px">Hola, <span id="who">…</span></h1></div>
       <div style="display:flex;gap:10px"><a class="btn btn-primary" href="/analisis.html">Nuevo análisis</a><button class="btn btn-ghost" id="logout">Salir</button></div>
@@ -10,12 +10,63 @@
       <div id="orders"><p class="hint" style="padding:18px 0">Cargando…</p></div>
     </div>
 
-    <div class="card" id="reportCard" hidden style="margin-top:20px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
-        <h2 style="font-size:32px">Tu reporte</h2><span class="status ready">Listo</span>
+    <section id="reportArea" class="rep" hidden>
+      <div class="rep-head">
+        <div><p class="label" id="repPlan">Tu reporte</p><h2 class="rep-title">Tu análisis facial</h2><p class="hint" id="repDate"></p></div>
+        <span class="status ready" id="repStatus">Listo</span>
       </div>
-      <div id="report"></div>
-    </div>
+
+      <div class="card rep-wait" id="repWait" hidden>
+        <div class="rep-spin" aria-hidden="true"></div>
+        <div><b id="repWaitT">Estamos preparando tu reporte</b><p class="hint" id="repWaitS">Suele tardar alrededor de un minuto. Puedes quedarte aquí o volver más tarde, se guarda en tu cuenta.</p></div>
+      </div>
+      <div class="msg" id="repMsg"></div>
+
+      <div id="repBody" hidden>
+        <p class="rep-lead" id="repResumen"></p>
+
+        <h3 class="rep-h">Tus medidas</h3>
+        <p class="hint rep-sub">Toca una zona o una medida para verla marcada en tu foto.</p>
+        <div class="visor">
+          <div class="visor-face">
+            <div class="visor-stage" id="vStage"><svg id="vSvg" role="img" aria-label="Tu foto con las medidas" preserveAspectRatio="xMidYMid slice"></svg></div>
+            <div class="visor-now" id="vNow" aria-live="polite"></div>
+          </div>
+          <div class="visor-side">
+            <div class="msg" id="vWarn"></div>
+            <div class="card visor-score">
+              <div><p class="label">Puntaje general</p><p class="mono visor-big"><span id="vScore">0</span><span class="visor-of"> / 100</span></p></div>
+              <div class="visor-zones" id="vZones"></div>
+            </div>
+            <div class="visor-detail card" id="vDetail" hidden></div>
+            <div class="tabs visor-tabs" id="vTabs"></div>
+            <div id="vList"></div>
+          </div>
+        </div>
+
+        <div class="rep-two">
+          <div class="card"><p class="label">Lo que tienes a favor</p><div id="repFortalezas" class="rep-items"></div></div>
+          <div class="card"><p class="label">Lo que más te conviene trabajar</p><div id="repPrioridades" class="rep-items"></div></div>
+        </div>
+
+        <h3 class="rep-h">Zona por zona</h3>
+        <div class="rep-zonas" id="repZonas"></div>
+
+        <h3 class="rep-h">Piel, color y estilo</h3>
+        <div class="rep-three">
+          <div class="card"><p class="label">Piel</p><div id="repPiel"></div></div>
+          <div class="card"><p class="label">Tu color</p><div id="repColor"></div></div>
+          <div class="card"><p class="label">Cabello, barba y cejas</p><div id="repCabello"></div></div>
+        </div>
+
+        <h3 class="rep-h">Tu plan</h3>
+        <div class="rep-plan" id="repPlanFases"></div>
+
+        <div id="repAvanzado"></div>
+
+        <p class="hint rep-note">Este reporte es información general sobre estética. Las medidas salen de fotos de celular y son estimaciones. Antes de cualquier tratamiento o procedimiento, consúltalo con un médico certificado.</p>
+      </div>
+    </section>
 
     <div class="card" style="margin-top:20px">
       <p class="label" style="margin-bottom:10px">Privacidad</p>
