@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794603662">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794607227">
 <script>try{var _p=location.pathname;if(/\.html$/.test(_p))history.replaceState(null,"",((/\/index\.html$/.test(_p)?_p.slice(0,-10):_p.slice(0,-5))||"/")+location.search+location.hash)}catch(e){}</script>
 <script>try{var _d=document.documentElement;if(document.fonts&&document.fonts.load){_d.classList.add("fload");var _ok=function(){_d.classList.remove("fload")};Promise.all([document.fonts.load("300 40px Inter"),document.fonts.load("400 16px Inter"),document.fonts.load("600 16px Inter")]).then(_ok,_ok);setTimeout(_ok,900)}}catch(e){}</script>
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
@@ -110,24 +110,8 @@
 
           <div class="dash-tab" data-tab="medidas">
             <h3 class="rep-h rep-h0">Tus medidas</h3>
-            <p class="hint rep-sub">Toca una zona o una medida para verla marcada en tu foto.</p>
-            <div class="tabs rep-vistas" id="vVistas" hidden><button type="button" data-v="frente" class="active">Frente</button><button type="button" data-v="perfil">Perfil</button></div>
-            <div class="visor">
-              <div class="visor-face">
-                <div class="visor-stage" id="vStage"><svg id="vSvg" role="img" aria-label="Tu foto con las medidas" preserveAspectRatio="xMidYMid slice"></svg></div>
-                <div class="visor-now" id="vNow" aria-live="polite"></div>
-              </div>
-              <div class="visor-side">
-                <div class="msg" id="vWarn"></div>
-                <div class="card visor-score">
-                  <div><p class="label">Armonía de esta vista</p><p class="mono visor-big"><span id="vScore">0</span><span class="visor-of"> / 10</span></p></div>
-                  <div class="visor-zones" id="vZones"></div>
-                </div>
-                <div class="visor-detail card" id="vDetail" hidden></div>
-                <div class="tabs visor-tabs" id="vTabs"></div>
-                <div id="vList"></div>
-              </div>
-            </div>
+            <p class="hint rep-sub">Cada medida con su rango de referencia. Toca una para verla marcada en tu cara.</p>
+            <div id="fqRoot"></div>
           </div>
 
           <div class="dash-tab" data-tab="rasgos">
@@ -281,8 +265,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794603662"></script>
-<script src="/assets/js/app.js?v=1794603662"></script>
+<script src="/assets/js/config.js?v=1794607227"></script>
+<script src="/assets/js/app.js?v=1794607227"></script>
 
 </body>
 </html>
