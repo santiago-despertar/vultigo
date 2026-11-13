@@ -1502,3 +1502,6 @@ html:has(main.onb){background:#56636E}
 .esc3d-marcas line.ok{stroke:#34e07a;filter:drop-shadow(0 0 4px rgba(52,224,122,.9))}
 .esc3d.bien .esc3d-anillo .base{stroke:#34e07a}
 .esc3d.circulo.bien .esc3d-anillo .base{stroke:rgba(52,224,122,.45)}
+.esc3d-anillo{overflow:visible}
+g.esc3d-marcas{opacity:0;transition:opacity .3s}
+.esc3d.circulo g.esc3d-marcas{opacity:1}
