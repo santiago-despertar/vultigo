@@ -1470,15 +1470,13 @@
       if (o.medidas && o.medidas.medidas) {
         const firmar = k => sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/${k}.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "");
         const pf = o.medidas.perfil;
-        const [{ montar }, foto, fotoP] = await Promise.all([import("/assets/js/visor-ui.js?v=17"), firmar("frente"), pf ? firmar(pf.foto || "perfil_izq") : ""]);
-        const vistas = $("#vVistas");
-        const ver = (v) => {
-          $$("#vVistas button").forEach(b => b.classList.toggle("active", b.dataset.v === v));
-          if (v === "perfil") montar(pf, fotoP, { scroll: false }); else montar(o.medidas, foto, { scroll: false });
-        };
-        vistas.hidden = !pf;
-        $$("#vVistas button").forEach(b => { b.onclick = () => ver(b.dataset.v); });
-        ver("frente");
+        const [{ montarAnalisis }, foto, fotoP] = await Promise.all([import("/assets/js/analisis-ui.js?v=1"), firmar("frente"), pf ? firmar(pf.foto || "perfil_izq") : ""]);
+        const pun = (r.puntajes || {}).armonia;
+        montarAnalisis($("#fqRoot"), {
+          frente: { data: o.medidas, src: foto }, perfil: pf ? { data: pf, src: fotoP } : null,
+          armonia: typeof pun === "number" ? pun : null,
+          nivel: v => v < 4.5 ? "Por debajo del promedio" : v < 5.5 ? "En el promedio" : v < 6.5 ? "Arriba del promedio" : v < 7.5 ? "Muy buena armonía" : v < 8.5 ? "Excelente armonía" : "Excepcional"
+        });
         const n = o.medidas.medidas.length + (pf ? pf.medidas.length : 0);
         $("#repCuenta").textContent = n + " medidas en " + (pf ? "frente y perfil" : "tu foto de frente");
         if (foto) $("#dFoto").style.backgroundImage = `url("${foto}")`;
