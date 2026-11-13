@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794585017">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794585913">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 <script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(!t&&!back)location.replace("/cuenta.html?next=/analisis.html");}catch(e){}})()</script>
 </head>
@@ -41,9 +41,12 @@
     </div>
   </div>
 </header>
-<main class="app-main">
+<main class="app-main onb">
+  <div class="onb-bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <a class="onb-back" id="onbBack" href="/"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg>Atrás</a>
   <div class="wrap">
     <div class="panel wide">
+      <img class="onb-mark" src="/assets/img/mark-white.svg" alt="Resalta">
       <div class="progress"><i class="on"></i><i></i><i></i></div>
 
       <!-- Paso 1 -->
@@ -79,7 +82,7 @@
             <textarea id="q-notes" name="notas" maxlength="600" placeholder="Escribe aquí"></textarea>
             <label class="check" style="margin-top:14px"><input type="checkbox" name="mayor" required> <span>Confirmo que tengo 18 años o más.</span></label></div>
           <div class="msg" id="quizMsg"></div>
-          <div class="quiz-nav"><button class="btn btn-ghost" type="button" data-q="atras">Atrás</button><button class="btn btn-primary" type="button" data-q="sig">Continuar</button><button class="btn btn-primary" type="submit" data-q="fin">Continuar a tus fotos</button></div>
+          <div class="quiz-nav"><button class="btn btn-ghost" type="button" data-q="atras">Atrás</button><button class="btn btn-primary" type="button" data-q="sig">Continuar</button><button class="btn btn-primary" type="submit" data-q="fin">Ir a mis fotos</button></div>
         </form>
       </section>
 
@@ -156,8 +159,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794585017"></script>
-<script src="/assets/js/app.js?v=1794585017"></script>
+<script src="/assets/js/config.js?v=1794585913"></script>
+<script src="/assets/js/app.js?v=1794585913"></script>
 
 </body>
 </html>

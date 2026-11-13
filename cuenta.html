@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794585017">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794585913">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 <script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(t&&!back){var n=new URLSearchParams(location.search).get("next")||"/panel.html";if(!/^\/(?!\/)/.test(n))n="/panel.html";location.replace(n);}}catch(e){}})()</script>
 </head>
@@ -41,34 +41,31 @@
     </div>
   </div>
 </header>
-<main class="app-main">
+<main class="app-main onb">
+  <div class="onb-bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <a class="onb-back" id="onbBack" href="/"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg>Atrás</a>
   <div class="wrap">
     <div class="panel">
+      <img class="onb-mark" src="/assets/img/mark-white.svg" alt="Resalta">
       <div class="tabs" role="tablist">
         <button class="active" data-tab="signup" role="tab">Crear cuenta</button>
         <button data-tab="login" role="tab">Entrar</button>
       </div>
 
-      <div id="googleBox">
-      <button class="btn btn-google btn-block" type="button" data-google>
-        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.9 6.2C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.9-6.2A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l8-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.9l-8 6.2C6.6 42.6 14.6 48 24 48z"/></svg>
-        Continuar con Google
-      </button>
-      <div class="or"><span>o con tu correo</span></div>
-      </div>
 
       <form id="signupForm" data-pane="signup" class="su" novalidate>
         <div class="su-step on" data-s="1">
-          <h2 class="su-h">Empecemos. ¿Cómo te llamas?</h2>
-          <div class="field"><label for="su-name">Tu nombre</label><input id="su-name" name="nombre" type="text" autocomplete="given-name" maxlength="60" required></div>
+          <h1 class="onb-title">Empieza tu<br><span>protocolo</span></h1>
+          <p class="onb-sub">Un análisis de tu cara y un plan hecho para ti. Primero, ¿cómo te llamas?</p>
+          <div class="field"><label for="su-name">Tu nombre</label><input id="su-name" name="nombre" type="text" autocomplete="given-name" maxlength="60" required placeholder="Tu nombre"></div>
         </div>
         <div class="su-step" data-s="2">
           <h2 class="su-h">Mucho gusto, <span data-su-name></span>. ¿Cuál es tu correo?</h2>
-          <div class="field"><label for="su-email">Correo</label><input id="su-email" name="email" type="email" autocomplete="email" inputmode="email" required><span class="hint">Ahí te llega el acceso a tu reporte.</span></div>
+          <div class="field"><label for="su-email">Correo</label><input id="su-email" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="tu@correo.com"><span class="hint">Ahí te llega el acceso a tu reporte.</span></div>
         </div>
         <div class="su-step" data-s="3">
           <h2 class="su-h">Crea una contraseña</h2>
-          <div class="field"><label for="su-pass">Contraseña</label><input id="su-pass" name="password" type="password" autocomplete="new-password" minlength="8" required><span class="hint">Mínimo 8 caracteres.</span></div>
+          <div class="field"><label for="su-pass">Contraseña</label><input id="su-pass" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Contraseña"><span class="hint">Mínimo 8 caracteres.</span></div>
           <label class="check"><input type="checkbox" name="terms" required> <span>Acepto los <a href="/terminos.html">términos</a> y el <a href="/privacidad.html">aviso de privacidad</a>.</span></label>
         </div>
         <div class="msg" id="signupMsg"></div>
@@ -79,13 +76,24 @@
       </form>
 
       <form id="loginForm" data-pane="login" hidden novalidate>
-        <div class="field"><label for="li-email">Correo</label><input id="li-email" name="email" type="email" autocomplete="email" required></div>
-        <div class="field"><label for="li-pass">Contraseña</label><input id="li-pass" name="password" type="password" autocomplete="current-password" required></div>
+        <h1 class="onb-title">Qué gusto<br><span>verte de nuevo</span></h1>
+        <p class="onb-sub">Entra para ver tu reporte y tu plan.</p>
+        <div class="field"><label for="li-email">Correo</label><input id="li-email" name="email" type="email" autocomplete="email" required placeholder="tu@correo.com"></div>
+        <div class="field"><label for="li-pass">Contraseña</label><input id="li-pass" name="password" type="password" autocomplete="current-password" required placeholder="Contraseña"></div>
         <div class="msg" id="loginMsg"></div>
         <button class="btn btn-primary btn-block" type="submit">Entrar</button>
         <p class="hint" style="text-align:center;margin-top:16px"><a href="#" id="forgot">¿Olvidaste tu contraseña?</a></p>
       </form>
+      <div id="googleBox">
+      <div class="or"><span>o</span></div>
+      <button class="btn btn-google btn-block" type="button" data-google>
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.9 6.2C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.9-6.2A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l8-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.9l-8 6.2C6.6 42.6 14.6 48 24 48z"/></svg>
+        Continuar con Google
+      </button>
+      </div>
       <div class="msg" id="googleMsg"></div>
+      <p class="onb-switch" data-pane="signup">¿Ya tienes cuenta? <a href="?modo=entrar" data-go="login">Entra aquí</a></p>
+      <p class="onb-switch" data-pane="login" hidden>¿Todavía no tienes cuenta? <a href="?" data-go="signup">Créala aquí</a></p>
     </div>
   </div>
 </main>
@@ -121,8 +129,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794585017"></script>
-<script src="/assets/js/app.js?v=1794585017"></script>
+<script src="/assets/js/config.js?v=1794585913"></script>
+<script src="/assets/js/app.js?v=1794585913"></script>
 
 </body>
 </html>
