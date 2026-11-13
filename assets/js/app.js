@@ -232,13 +232,14 @@
     $("#signupForm").addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const f = ev.target, m = $("#signupMsg"); clearMsg(m);
+      if (!f.nombre.value.trim()) return msg(m, "Escribe tu nombre.");
       if (!f.email.value.includes("@")) return msg(m, "Escribe un correo válido.");
       if (f.password.value.length < 8) return msg(m, "La contraseña debe tener al menos 8 caracteres.");
       if (!f.terms.checked) return msg(m, "Necesitas aceptar los términos y el aviso de privacidad.");
       if (!sb) return notReady(m);
       const { data, error } = await sb.auth.signUp({
         email: f.email.value.trim(), password: f.password.value,
-        options: { emailRedirectTo: location.origin + next }
+        options: { emailRedirectTo: location.origin + next, data: { full_name: f.nombre.value.trim().slice(0, 60) } }
       });
       if (error) return msg(m, errES(error));
       if (data.session) location.href = next;
@@ -296,13 +297,19 @@
         const f = $("#aboutForm");
         Object.keys(a).forEach(k => { if (f[k] && f[k].type !== "checkbox") f[k].value = a[k]; });
       }
+      const fn = $("#aboutForm").nombre;
+      if (fn && !fn.value && user.user_metadata && user.user_metadata.full_name) fn.value = user.user_metadata.full_name;
     })();
 
     $("#aboutForm").addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const f = ev.target;
       if (!f.mayor.checked || !f.edad.value || +f.edad.value < 18) { alertInline(f, "Este servicio es solo para mayores de 18 años."); return; }
-      const answers = { edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: f.objetivo.value, piel: f.piel.value, lentes: f.lentes.value, procedimientos: f.procedimientos.value, presupuesto: f.presupuesto.value, tiempo: f.tiempo.value, rutina: f.rutina.value, notas: f.notas.value.trim() };
+      const nombre = f.nombre.value.trim().slice(0, 60);
+      if (!nombre) { alertInline(f, "Escribe tu nombre."); return; }
+      // the account keeps the name too, so the panel and the protocol greet them by it
+      if (sb && nombre !== ((user && user.user_metadata) || {}).full_name) sb.auth.updateUser({ data: { full_name: nombre } }).catch(() => {});
+      const answers = { nombre, edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: f.objetivo.value, piel: f.piel.value, lentes: f.lentes.value, procedimientos: f.procedimientos.value, presupuesto: f.presupuesto.value, tiempo: f.tiempo.value, rutina: f.rutina.value, notas: f.notas.value.trim() };
       if (!sb) { go(2); return; }
       if (order) {
         await sb.from("orders").update({ answers }).eq("id", order.id); order.answers = answers;
@@ -861,6 +868,65 @@
     const NIVEL = { alto: "Impacto alto", medio: "Impacto medio", bajo: "Impacto bajo" };
     const ESF = { bajo: "poco esfuerzo", medio: "esfuerzo medio", alto: "mucho esfuerzo" };
 
+    // ---- the customer's protocol card, same look as the sample on the home page
+    const radar = (ejes, W = 240, H = 200) => {
+      const cx = W / 2, cy = H / 2 + 4, R = 70, n = ejes.length;
+      const pt = (i, v) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return [cx + Math.cos(a) * R * v / 10, cy + Math.sin(a) * R * v / 10]; };
+      const poly = (f) => ejes.map((e, i) => pt(i, f(e)).map(x => x.toFixed(1)).join(",")).join(" ");
+      let g = '<g fill="none" stroke="#DDE2E6">' + [10, 7, 4].map(v => `<polygon points="${poly(() => v)}"/>`).join("") + "</g>";
+      g += `<polygon points="${poly(e => e.pot)}" fill="#B9C9C2" fill-opacity=".45" stroke="#9FB3AB"/><polygon points="${poly(e => e.hoy)}" fill="#6E7E8E" fill-opacity=".4" stroke="#6E7E8E"/>`;
+      g += '<g class="t2">' + ejes.map((e, i) => { const [x, y] = pt(i, 11.8); return `<text x="${x.toFixed(1)}" y="${(y + 2).toFixed(1)}" text-anchor="${Math.abs(x - cx) < 8 ? "middle" : x > cx ? "start" : "end"}">${esc(e.n.toUpperCase())}</text>`; }).join("") + "</g>";
+      return `<svg viewBox="-40 -6 ${W + 80} ${H + 8}" class="radar" role="img" aria-label="Tus valores actuales y tu potencial">${g}</svg>`;
+    };
+    function protocolo(r, o) {
+      const box = $("#protoCard"); if (!box) return;
+      const a = o.answers || {}, P = r.puntajes || {}, pot = r.potencial || {}, lon = r.longevidad || {};
+      const nombre = (a.nombre || (user.user_metadata || {}).full_name || "").split(" ")[0];
+      const pid = "RS-" + String(o.id).replace(/[^0-9a-f]/gi, "").slice(0, 4).toUpperCase();
+      const g = Object.fromEntries((r.grupos || []).map(x => [x.id, x]));
+      const ejes = (pot.grupos || []).filter(x => g[x.id] && g[x.id].puntaje != null).map(x => ({ n: (t => t.charAt(0).toUpperCase() + t.slice(1))(g[x.id].titulo.replace(/^Zona de /, "")), hoy: g[x.id].puntaje, pot: Math.max(g[x.id].puntaje, x.valor) }));
+      const foto = (actual && actual.url) || "", proy = null;
+      const dd = (k, v) => v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : "";
+      const f1 = v => (typeof v === "number" ? v.toFixed(1) : "–");
+      box.innerHTML = `<div class="rp rp-live">
+        <div class="rp-main">
+          <div class="rp-top"><img src="/assets/img/mark-ink.svg" alt=""><span>PROTOCOLO / #${pid}</span></div>
+          <h3>Protocolo de <span>${esc(nombre || "tu cara")}</span></h3>
+          <div class="rp-photos">
+            <figure>${foto ? `<img src="${foto}" alt="Hoy">` : ""}<figcaption>HOY</figcaption></figure>
+            <figure class="${proy ? "" : "rp-pend"}">${proy ? `<img src="${proy}" alt="Tu proyección">` : `<div><b>Tu proyección</b><span>Se está preparando. Aparece aquí en cuanto esté lista.</span></div>`}<figcaption>PROYECCIÓN</figcaption></figure>
+          </div>
+          <div class="rp-cols">
+            <div><h4>Potencial proyectado</h4><p>Hoy tienes <b>${f1(P.general)}</b>. Siguiendo tu plan sin procedimientos podrías llegar a <b>${f1(pot.general_soft)}</b>${pot.general_hard ? `, y a <b>${f1(pot.general_hard)}</b> sumando procedimientos` : ""}.</p>
+              <ul>${ejes.map(e => `<li>${esc(e.n)}</li>`).join("")}</ul></div>
+            <div>${ejes.length >= 3 ? radar(ejes) : ""}<div class="rp-legend"><span><i style="background:#B9C9C2"></i>POTENCIAL</span><span><i style="background:#6E7E8E"></i>HOY</span></div></div>
+          </div>
+          ${lon.edad_visual ? `<p class="rp-line">${lon.edad_visual === a.edad ? "Hoy aparentas <span>tu edad</span>" : lon.edad_visual < a.edad ? `Hoy aparentas <span>${a.edad - lon.edad_visual} años menos</span> que tu edad real` : `Hoy aparentas <span>${lon.edad_visual - a.edad} años más</span> que tu edad real`}.</p>
+          <div class="rp-ages three"><div><small>Edad real</small><b>${esc(a.edad)}</b></div><div><small>Edad visual hoy</small><b>${esc(lon.edad_visual)}</b></div><div class="dark"><small>Con tu plan</small><b>${esc(lon.edad_visual_meta)}</b></div></div>` : ""}
+        </div>
+        <div class="rp-side">
+          <div class="rp-card"><h4>Perfil</h4>
+            <div class="rp-user">${foto ? `<img src="${foto}" alt="">` : ""}<div><b>${esc(nombre || "Tú")}</b><span>Protocolo ID: #${pid}</span></div></div>
+            <dl>${dd("País", a.pais)}${dd("Edad", a.edad ? a.edad + " años" : "")}${dd("Sexo", a.sexo ? a.sexo.charAt(0).toUpperCase() + a.sexo.slice(1) : "")}${dd("Objetivo", a.objetivo)}${dd("Piel", a.piel)}${dd("Rutina", a.rutina)}${dd("Presupuesto", a.presupuesto)}${dd("Tiempo al día", a.tiempo)}</dl></div>
+          ${lon.lectura ? `<div class="rp-card"><h4>Edad visual</h4><p>${esc(lon.lectura)}</p></div>` : ""}
+        </div>
+      </div>`;
+      box.hidden = false;
+      traerProyeccion(o, "soft", box.querySelector(".rp-pend"));
+    }
+    // asks for the projection; the first time it is made (some seconds), after that it comes back at once
+    async function traerProyeccion(o, tipo, fig, intento = 0) {
+      if (!fig) return;
+      try {
+        const x = await fnCall("proyeccion", { order_id: o.id, tipo });
+        if (x.generando) { if (intento < 12) setTimeout(() => traerProyeccion(o, tipo, fig, intento + 1), 10000); return; }
+        if (!x.url) return;
+        const cap = fig.querySelector("figcaption"); fig.classList.remove("rp-pend");
+        fig.innerHTML = `<img src="${x.url}" alt="Tu proyección">`; if (cap) fig.appendChild(cap);
+        fig.querySelector("img").onclick = () => window.open(x.url, "_blank");
+      } catch (e) { /* not configured yet or failed: the card keeps saying it is being prepared */ }
+    }
+
     async function pintar(r0, o) {
       const r = {}; Object.keys(r0 || {}).forEach(k => { r[k] = parsear(r0[k]); });
       $("#repBody").hidden = false;
@@ -901,6 +967,8 @@
       if (arq && arq.nombre) { $("#dArqN").textContent = arq.nombre.charAt(0).toUpperCase() + arq.nombre.slice(1); $("#dArqT").textContent = arq.texto || ""; }
       $("#dTop").innerHTML = (r.prioridades || []).slice(0, 3).map((p, i) => `<div class="rep-item"><b><span class="mono rep-n">${i + 1}</span>${esc(p.titulo)}</b><p class="rep-tags"><span class="rep-tag rep-${esc(p.impacto)}">${esc(NIVEL[p.impacto] || p.impacto)}</span><span class="rep-tag">${esc(ESF[p.esfuerzo] || p.esfuerzo)}</span></p></div>`).join("");
 
+      protocolo(r, o);
+
       // ---- rasgos
       const TIT = { angularidad: ["Angularidad", "Qué tan definida se ve tu estructura: pómulos, mandíbula, mentón y cuello. Depende mucho de la grasa corporal, la retención de líquidos y la postura."], dimorfismo: ["Dimorfismo", "Qué tanto cada rasgo se acerca a lo que se percibe como atractivo para tu sexo."], rasgos: ["Rasgos", "La calidad de cada rasgo por separado: piel, ojos, cejas, nariz, cabello, labios y sonrisa."] };
       $("#pilaresBox").innerHTML = Object.keys(TIT).map(k => {
@@ -938,7 +1006,8 @@
 
       const av = $("#repAvanzado");
       if (o.tier === "hard" && (r.avanzado || []).length) {
-        av.innerHTML = `<h3 class="rep-h">Procedimientos a considerar</h3><p class="hint rep-sub">Información general para que llegues mejor preparado a una consulta. Cada caso lo debe evaluar un médico certificado.</p><div class="rep-zonas">${r.avanzado.map(a => `<div class="card rep-zona"><b>${esc(a.nombre)}</b><p class="hint" style="margin-top:8px">${esc(a.que_hace)}</p><p class="hint" style="margin-top:8px"><b>Antes de decidir.</b> ${esc(a.considerar)}</p></div>`).join("")}</div>`;
+        av.innerHTML = `<h3 class="rep-h">Procedimientos a considerar</h3><p class="hint rep-sub">Información general para que llegues mejor preparado a una consulta. Cada caso lo debe evaluar un médico certificado.</p><div class="rp rp-live rp-hard"><div class="rp-main"><div class="rp-photos"><figure>${actual && actual.url ? `<img src="${actual.url}" alt="Hoy">` : ""}<figcaption>HOY</figcaption></figure><figure class="rp-pend"><div><b>Tu proyección con procedimientos</b><span>Se está preparando. Aparece aquí en cuanto esté lista.</span></div><figcaption>HARDMAXING</figcaption></figure></div><p class="hint" style="margin-top:10px">Simulación ilustrativa de un resultado sutil y realista. No es una promesa de resultado.</p></div></div><div class="rep-zonas">${r.avanzado.map(a => `<div class="card rep-zona"><b>${esc(a.nombre)}</b><p class="hint" style="margin-top:8px">${esc(a.que_hace)}</p><p class="hint" style="margin-top:8px"><b>Antes de decidir.</b> ${esc(a.considerar)}</p></div>`).join("")}</div>`;
+        traerProyeccion(o, "hard", av.querySelector(".rp-hard .rp-pend"));
       } else if (o.tier === "soft") {
         const U = C.UPSELL || {};
         av.innerHTML = `<div class="card rep-lock"><div><p class="label">Plan Completo</p><h3 class="rep-lock-h">La parte de procedimientos</h3><p class="hint">Qué procedimientos se suelen considerar para un rostro con tus proporciones, qué hace cada uno y qué pensar antes de una consulta.</p></div><div class="rep-lock-r"><p class="mono rep-lock-p">${U.was ? `<s>${esc(U.was)}</s> ` : ""}${esc(U.now || "")} MXN</p><button class="btn btn-primary" id="repUp">Agregar a mi reporte</button><div class="msg" id="repUpMsg"></div></div></div>`;

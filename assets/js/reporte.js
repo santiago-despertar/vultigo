@@ -30,9 +30,12 @@
     const r = {}; Object.keys(rep.data).forEach(k => { r[k] = parsear(rep.data[k]); });
     const firmar = k => sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/${k}.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "");
     const M = o.medidas || {}, pf = M.perfil;
-    const [foto, fotoP] = await Promise.all([firmar("frente"), pf ? firmar(pf.foto || "perfil_izq") : ""]);
+    const { data: { session } } = await sb.auth.getSession();
+    const proy = (tipo) => fetch(`${C.SUPABASE_URL}/functions/v1/proyeccion`, { method: "POST", headers: { "Content-Type": "application/json", apikey: C.SUPABASE_ANON_KEY, Authorization: "Bearer " + (session ? session.access_token : "") }, body: JSON.stringify({ order_id: o.id, tipo }) })
+      .then(x => x.ok ? x.json() : {}).then(j => j.url || "").catch(() => "");
+    const [foto, fotoP, pSoft, pHard] = await Promise.all([firmar("frente"), pf ? firmar(pf.foto || "perfil_izq") : "", proy("soft"), o.tier === "hard" ? proy("hard") : ""]);
     const P = r.puntajes || {}, sexo = (o.answers || {}).sexo;
-    const nombre = ((user.user_metadata && user.user_metadata.full_name) || "").split(" ")[0];
+    const nombre = (((o.answers || {}).nombre) || (user.user_metadata && user.user_metadata.full_name) || "").split(" ")[0];
     const plan = (C.PLAN_NAMES || {})[o.tier] || "Análisis Resalta";
 
     const seccion = (titulo, cuerpo, sub, nueva) => cuerpo ? `<section class="doc-s${nueva ? " doc-nueva" : ""}"><h2>${titulo}</h2>${sub ? `<p class="doc-sub">${sub}</p>` : ""}${cuerpo}</section>` : "";
@@ -43,9 +46,9 @@
     let h = `<header class="doc-cover">
       <div class="doc-brand"><img src="/assets/img/mark-ink.svg" alt=""><span>resalta</span></div>
       <p class="label">${esc(plan)} · ${esc(fecha(o.paid_at || o.created_at))}</p>
-      <h1>${nombre ? `Análisis facial de ${esc(nombre)}` : "Tu análisis facial"}</h1>
+      <h1>${nombre ? `Protocolo de <span class="doc-muted">${esc(nombre)}</span>` : "Tu análisis facial"}</h1>
       <div class="doc-cover-g">
-        <div class="doc-fotos">${foto ? `<img src="${foto}" alt="Foto de frente">` : ""}${fotoP ? `<img src="${fotoP}" alt="Foto de perfil">` : ""}</div>
+        <div class="doc-fotos">${foto ? `<figure><img src="${foto}" alt="Foto de frente"><figcaption>HOY</figcaption></figure>` : ""}${pSoft ? `<figure><img src="${pSoft}" alt="Tu proyección"><figcaption>PROYECCIÓN</figcaption></figure>` : fotoP ? `<figure><img src="${fotoP}" alt="Foto de perfil"><figcaption>PERFIL</figcaption></figure>` : ""}</div>
         <div>
           <p class="label">Calificación general</p>
           <p class="doc-score">${f1(P.general)}<span> / 10</span></p>
@@ -54,9 +57,12 @@
           ${r.arquetipo && r.arquetipo.nombre ? `<p class="label" style="margin-top:22px">Tu tipo de cara</p><p class="doc-arq"><b>${esc(r.arquetipo.nombre.charAt(0).toUpperCase() + r.arquetipo.nombre.slice(1))}.</b> ${esc(r.arquetipo.texto)}</p>` : ""}
         </div>
       </div>
+      ${r.longevidad && r.longevidad.edad_visual ? `<div class="doc-edades"><div><span>Edad real</span><b>${esc((o.answers || {}).edad)}</b></div><div><span>Edad visual hoy</span><b>${esc(r.longevidad.edad_visual)}</b></div><div><span>Con tu plan</span><b>${esc(r.longevidad.edad_visual_meta)}</b></div></div>` : ""}
       <p class="doc-resumen">${esc(r.resumen)}</p>
     </header>`;
 
+    if (pHard) h += seccion("Tu proyección con procedimientos", `<div class="doc-fotos doc-dos">${foto ? `<figure><img src="${foto}" alt="Hoy"><figcaption>HOY</figcaption></figure>` : ""}<figure><img src="${pHard}" alt="Hardmaxing"><figcaption>HARDMAXING</figcaption></figure></div>`, "Simulación ilustrativa de un resultado sutil. No es una promesa de resultado.");
+    if (r.longevidad && r.longevidad.lectura) h += seccion("Edad visual", `<p>${esc(r.longevidad.lectura)}</p><ul>${li(r.longevidad.acciones)}</ul>`);
     h += seccion("Lo que tienes a favor", (r.fortalezas || []).map(f => `<div class="doc-item"><b>${esc(f.titulo)}</b><p>${esc(f.texto)}</p></div>`).join(""));
     h += seccion("Lo que más te conviene trabajar", (r.prioridades || []).map((p, i) => `<div class="doc-item"><b><span class="doc-n">${i + 1}</span>${esc(p.titulo)}</b><p>${esc(p.texto)}</p><p class="doc-tags">${esc(NIVEL[p.impacto] || p.impacto)} · ${esc(ESF[p.esfuerzo] || p.esfuerzo)}</p></div>`).join(""), "En orden de impacto.");
 
