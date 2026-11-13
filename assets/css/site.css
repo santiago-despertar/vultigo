@@ -981,3 +981,6 @@ html.authed [data-auth="out"]{display:none!important}
   .order>div:last-child{width:100%;justify-content:space-between}
   .rep-head .status{display:none}
 }
+
+.rep-vistas{display:inline-flex;margin-bottom:16px}
+.rep-vistas button{padding:8px 22px}
