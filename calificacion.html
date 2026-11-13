@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794592840">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794592993">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 
 </head>
@@ -54,14 +54,25 @@
         <p class="onb-sub">Sube una foto de frente y en 30 segundos medimos tus proporciones y te damos tu puntaje del 0 al 100. Es gratis.</p>
         <label class="cal-foto" id="rateDrop">
           <span class="slot-guia" style="background-image:url(https://jxluabbugwdonqchbaxm.supabase.co/storage/v1/object/public/publico/poses/frente.png)"></span>
-          <b>Sube tu foto de frente</b><small>o tómala con tu cámara</small>
+          <b>Sube tu foto de frente</b><small>Toca para elegir una foto</small>
           <input type="file" accept="image/*" id="rateFile" aria-label="Foto de frente">
+          <div class="cal-cam" id="camBox" hidden>
+            <video id="camVideo" playsinline muted></video>
+            <i class="cal-cam-ovalo"></i>
+            <p class="cal-cam-txt">Acomoda tu cara dentro del óvalo</p>
+            <div class="cal-cam-acc">
+              <button type="button" class="cal-cam-x" id="camX">Cancelar</button>
+              <button type="button" class="cal-cam-shot" id="camShot" aria-label="Tomar foto"></button>
+              <span></span>
+            </div>
+          </div>
         </label>
+        <button type="button" class="btn btn-ghost btn-block cal-cam-btn" id="camBtn">Tomar foto con mi cámara</button>
         <ul class="cal-tips"><li>Mira directo a la cámara</li><li>Luz de frente</li><li>Sin lentes ni filtros</li></ul>
         <label class="check"><input type="checkbox" id="rateAdult"> <span>Tengo 18 años o más y la foto es mía.</span></label>
         <div class="msg" id="rateMsg"></div>
         <button class="btn btn-primary btn-block" id="rateGo" disabled>Calcular mi puntaje</button>
-        <p class="hint cal-priv">Tu foto se analiza en tu celular y nunca se sube a internet.</p>
+        <p class="hint cal-priv">Tu foto se analiza en tu dispositivo y nunca se sube a internet.</p>
       </section>
 
       <!-- 2. processing -->
@@ -118,7 +129,7 @@
     </div>
   </div>
 </main>
-<script type="module" src="/assets/js/rate.js?v=1794592840"></script>
+<script type="module" src="/assets/js/rate.js?v=1794592993"></script>
 <footer class="site-footer">
   <div class="wrap">
     <div class="footer-grid">
@@ -151,8 +162,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794592840"></script>
-<script src="/assets/js/app.js?v=1794592840"></script>
+<script src="/assets/js/config.js?v=1794592993"></script>
+<script src="/assets/js/app.js?v=1794592993"></script>
 
 </body>
 </html>
