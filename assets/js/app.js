@@ -330,6 +330,23 @@
       el.querySelector("input").addEventListener("change", (e) => handleFile(el, key, e.target.files[0]));
     });
 
+    // guided scan: the photos it takes go through the same upload as a picked file
+    const escBtn = $("#escBtn");
+    if (escBtn) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) $("#escCta").hidden = true;
+      escBtn.addEventListener("click", async () => {
+        escBtn.disabled = true;
+        try {
+          const { iniciar } = await import("/assets/js/escaneo.js?v=3");
+          await iniciar({
+            hechas: [...uploaded],
+            onFoto: (key, blob) => { const el = grid.querySelector(`[data-key="${key}"]`); if (el) handleFile(el, key, blob); },
+            alTerminar: () => { escBtn.disabled = false; grid.scrollIntoView({ behavior: "smooth", block: "center" }); },
+          });
+        } catch (e) { escBtn.disabled = false; msg($("#photoMsg"), "No pudimos abrir el escaneo. Sube tus fotos una por una."); }
+      });
+    }
+
     async function resize(file) {
       const img = await createImageBitmap(file);
       const max = 1600, s = Math.min(1, max / Math.max(img.width, img.height));
