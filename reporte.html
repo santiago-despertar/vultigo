@@ -8,8 +8,8 @@
 <meta property="og:title" content="Tu reporte · Resalta">
 <meta property="og:description" content="Tu análisis facial para leer y descargar.">
 <meta property="og:image" content="https://resalta.co/assets/img/og.png">
-<meta property="og:url" content="https://resalta.co/reporte.html">
-<link rel="canonical" href="https://resalta.co/reporte.html">
+<meta property="og:url" content="https://resalta.co/reporte">
+<link rel="canonical" href="https://resalta.co/reporte">
 <meta name="theme-color" content="#6E7E8E">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
@@ -17,11 +17,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794598604">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794599523">
+<script>try{var _p=location.pathname;if(/\.html$/.test(_p))history.replaceState(null,"",((/\/index\.html$/.test(_p)?_p.slice(0,-10):_p.slice(0,-5))||"/")+location.search+location.hash)}catch(e){}</script>
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-F5L2THEVH0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","G-F5L2THEVH0");</script>
-<script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next="+encodeURIComponent(location.pathname+location.search));}catch(e){}})()</script>
+<script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(!t&&!back)location.replace("/cuenta?modo=entrar&next="+encodeURIComponent(location.pathname+location.search));}catch(e){}})()</script>
 </head>
 <body data-page="reporte">
 <header class="site-header">
@@ -30,22 +31,22 @@
     <nav class="nav-links" id="navLinks">
       <a href="/#como-funciona">Cómo funciona</a>
       <a href="/#por-que">Por qué Resalta</a>
-      <a href="/calificacion.html">Calificación gratis</a>
+      <a href="/calificacion">Calificación gratis</a>
       <a href="/#preguntas">Preguntas</a>
-      <a href="/blog.html">Blog</a>
-      <a href="/cuenta.html" class="menu-only">Entrar / Mi cuenta</a>
+      <a href="/blog">Blog</a>
+      <a href="/cuenta" class="menu-only">Entrar / Mi cuenta</a>
     </nav>
     <div class="nav-cta">
-      <a class="btn btn-ghost" href="/cuenta.html" data-auth="out">Entrar</a>
-      <a class="btn btn-ghost" href="/panel.html" data-auth="in">Mi cuenta</a>
-      <a class="btn btn-primary" href="/analisis.html">Empieza tu plan</a>
+      <a class="btn btn-ghost" href="/cuenta" data-auth="out">Entrar</a>
+      <a class="btn btn-ghost" href="/panel" data-auth="in">Mi cuenta</a>
+      <a class="btn btn-primary" href="/analisis">Empieza tu plan</a>
       <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir menú" aria-controls="navLinks" aria-expanded="false"><span class="burger" aria-hidden="true"><i></i><i></i></span></button>
     </div>
   </div>
 </header>
 <main class="doc-main">
   <div class="doc-bar no-print">
-    <a class="btn btn-ghost" href="/panel.html">Volver a mi cuenta</a>
+    <a class="btn btn-ghost" href="/panel">Volver a mi cuenta</a>
     <button class="btn btn-primary" id="docPdf" type="button" disabled>Descargar PDF</button>
   </div>
   <p class="hint doc-tip no-print" id="docTip">En la ventana que se abre, elige <b>Guardar como PDF</b>.</p>
@@ -65,8 +66,8 @@
         <a href="/#como-funciona">Cómo funciona</a>
         <a href="/#precio">Planes</a>
         <a href="/#preguntas">Preguntas frecuentes</a>
-        <a href="/blog.html">Blog</a>
-        <a href="/cuenta.html">Entrar</a>
+        <a href="/blog">Blog</a>
+        <a href="/cuenta">Entrar</a>
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Síguenos</p>
@@ -77,8 +78,8 @@
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Legal</p>
-        <a href="/privacidad.html">Aviso de privacidad</a>
-        <a href="/terminos.html">Términos y condiciones</a>
+        <a href="/privacidad">Aviso de privacidad</a>
+        <a href="/terminos">Términos y condiciones</a>
         <a href="mailto:contacto@resalta.co">contacto@resalta.co</a>
       </div>
     </div>
@@ -86,8 +87,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794598604"></script>
-<script src="/assets/js/app.js?v=1794598604"></script>
-<script src="/assets/js/reporte.js?v=1794598604"></script>
+<script src="/assets/js/config.js?v=1794599523"></script>
+<script src="/assets/js/app.js?v=1794599523"></script>
+<script src="/assets/js/reporte.js?v=1794599523"></script>
 </body>
 </html>

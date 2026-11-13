@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 SRC = ROOT / "src"
 
-HEAD = """<!doctype html>
+HEAD = r"""<!doctype html>
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
@@ -25,6 +25,7 @@ HEAD = """<!doctype html>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/site.css?v=__V__">
+<script>try{{var _p=location.pathname;if(/\.html$/.test(_p))history.replaceState(null,"",((/\/index\.html$/.test(_p)?_p.slice(0,-10):_p.slice(0,-5))||"/")+location.search+location.hash)}}catch(e){{}}</script>
 <script>try{{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}}catch(e){{}}</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-F5L2THEVH0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag("js",new Date());gtag("config","G-F5L2THEVH0");</script>
@@ -39,15 +40,15 @@ HEADER = """<header class="site-header">
     <nav class="nav-links" id="navLinks">
       <a href="/#como-funciona">Cómo funciona</a>
       <a href="/#por-que">Por qué Resalta</a>
-      <a href="/calificacion.html">Calificación gratis</a>
+      <a href="/calificacion">Calificación gratis</a>
       <a href="/#preguntas">Preguntas</a>
-      <a href="/blog.html">Blog</a>
-      <a href="/cuenta.html" class="menu-only">Entrar / Mi cuenta</a>
+      <a href="/blog">Blog</a>
+      <a href="/cuenta" class="menu-only">Entrar / Mi cuenta</a>
     </nav>
     <div class="nav-cta">
-      <a class="btn btn-ghost" href="/cuenta.html" data-auth="out">Entrar</a>
-      <a class="btn btn-ghost" href="/panel.html" data-auth="in">Mi cuenta</a>
-      <a class="btn btn-primary" href="/analisis.html">Empieza tu plan</a>
+      <a class="btn btn-ghost" href="/cuenta" data-auth="out">Entrar</a>
+      <a class="btn btn-ghost" href="/panel" data-auth="in">Mi cuenta</a>
+      <a class="btn btn-primary" href="/analisis">Empieza tu plan</a>
       <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir menú" aria-controls="navLinks" aria-expanded="false"><span class="burger" aria-hidden="true"><i></i><i></i></span></button>
     </div>
   </div>
@@ -66,8 +67,8 @@ FOOTER = """<footer class="site-footer">
         <a href="/#como-funciona">Cómo funciona</a>
         <a href="/#precio">Planes</a>
         <a href="/#preguntas">Preguntas frecuentes</a>
-        <a href="/blog.html">Blog</a>
-        <a href="/cuenta.html">Entrar</a>
+        <a href="/blog">Blog</a>
+        <a href="/cuenta">Entrar</a>
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Síguenos</p>
@@ -78,8 +79,8 @@ FOOTER = """<footer class="site-footer">
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Legal</p>
-        <a href="/privacidad.html">Aviso de privacidad</a>
-        <a href="/terminos.html">Términos y condiciones</a>
+        <a href="/privacidad">Aviso de privacidad</a>
+        <a href="/terminos">Términos y condiciones</a>
         <a href="mailto:contacto@resalta.co">contacto@resalta.co</a>
       </div>
     </div>
@@ -118,16 +119,16 @@ PAGES = [
 _KEY = "sb-jxluabbugwdonqchbaxm-auth-token"
 _GATE = '<script>(function(){{try{{var t=localStorage.getItem("' + _KEY + '"),back=/[?&#](code|access_token|error|type)=/.test(location.href);{body}}}catch(e){{}}}})()</script>'
 GATES = {
-    "analisis": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?next=/analisis.html");'),
-    "reporte": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next="+encodeURIComponent(location.pathname+location.search));'),
-    "panel": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next=/panel.html");'),
-    "cuenta": _GATE.format(body='if(t&&!back&&!/[?&]modo=nueva/.test(location.search)){var n=new URLSearchParams(location.search).get("next")||"/panel.html";if(!/^\\/(?!\\/)/.test(n))n="/panel.html";location.replace(n);}'),
+    "analisis": _GATE.format(body='if(!t&&!back)location.replace("/cuenta?next=/analisis");'),
+    "reporte": _GATE.format(body='if(!t&&!back)location.replace("/cuenta?modo=entrar&next="+encodeURIComponent(location.pathname+location.search));'),
+    "panel": _GATE.format(body='if(!t&&!back)location.replace("/cuenta?modo=entrar&next=/panel");'),
+    "cuenta": _GATE.format(body='if(t&&!back&&!/[?&]modo=nueva/.test(location.search)){var n=new URLSearchParams(location.search).get("next")||"/panel";if(!/^\\/(?!\\/)/.test(n))n="/panel";location.replace(n);}'),
 }
 
 for fname, title, desc, extra in PAGES:
     body = (SRC / fname).read_text(encoding="utf-8")
     page = fname.replace(".html", "").replace("/", "-")
-    html = HEAD.format(title=title, desc=desc, path="" if fname == "index.html" else fname, page=page, extra_head=GATES.get(page, ""))
+    html = HEAD.format(title=title, desc=desc, path="" if fname == "index.html" else fname[:-5], page=page, extra_head=GATES.get(page, ""))
     html += HEADER + body + FOOTER + SCRIPTS.format(extra_scripts=extra)
     html = html.replace("__V__", str(int(time.time())))
     (ROOT / fname).write_text(html, encoding="utf-8")
