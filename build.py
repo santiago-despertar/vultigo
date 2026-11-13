@@ -105,10 +105,20 @@ PAGES = [
     ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
 ]
 
+# Runs before the page paints, so signed-out visitors go straight to sign-in (and signed-in ones skip it)
+# instead of seeing the wrong page flash for a moment. Links coming back from Google or email are left alone.
+_KEY = "sb-jxluabbugwdonqchbaxm-auth-token"
+_GATE = '<script>(function(){{try{{var t=localStorage.getItem("' + _KEY + '"),back=/[?&#](code|access_token|error|type)=/.test(location.href);{body}}}catch(e){{}}}})()</script>'
+GATES = {
+    "analisis": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?next=/analisis.html");'),
+    "panel": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next=/panel.html");'),
+    "cuenta": _GATE.format(body='if(t&&!back){var n=new URLSearchParams(location.search).get("next")||"/panel.html";if(!/^\\/(?!\\/)/.test(n))n="/panel.html";location.replace(n);}'),
+}
+
 for fname, title, desc, extra in PAGES:
     body = (SRC / fname).read_text(encoding="utf-8")
     page = fname.replace(".html", "")
-    html = HEAD.format(title=title, desc=desc, path="" if fname == "index.html" else fname, page=page, extra_head="")
+    html = HEAD.format(title=title, desc=desc, path="" if fname == "index.html" else fname, page=page, extra_head=GATES.get(page, ""))
     html += HEADER + body + FOOTER + SCRIPTS.format(extra_scripts=extra)
     html = html.replace("__V__", str(int(time.time())))
     (ROOT / fname).write_text(html, encoding="utf-8")
