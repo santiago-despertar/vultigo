@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794571727">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794572173">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 <script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next=/panel.html");}catch(e){}})()</script>
 </head>
@@ -151,9 +151,10 @@
 
           <div class="dash-tab" data-tab="simular">
             <h3 class="rep-h rep-h0">Simular cambios</h3>
-            <p class="hint rep-sub">Mueve los controles para ver cómo cambiaría tu cara de frente y qué pasa con tus medidas. Es una simulación ilustrativa, no una promesa de resultado.</p>
+            <p class="hint rep-sub">Mueve los controles para ver cómo cambiaría tu cara, de frente y de perfil, y qué pasa con tus medidas. Es una simulación ilustrativa, no una promesa de resultado.</p>
             <div class="card rep-wait" id="simWait"><div class="rep-spin" aria-hidden="true"></div><div><b>Preparando tu simulador</b><p class="hint">Tarda unos segundos la primera vez.</p></div></div>
             <div class="msg" id="simMsg"></div>
+            <div class="tabs rep-vistas" id="simVistas" hidden><button type="button" data-v="frente" class="active">Frente</button><button type="button" data-v="perfil">Perfil</button></div>
             <div class="visor" id="simBox" hidden>
               <div class="visor-face">
                 <div class="visor-stage" id="simStage"><canvas id="simCanvas" class="sim-canvas" role="img" aria-label="Tu foto con los cambios simulados"></canvas>
@@ -162,9 +163,11 @@
               </div>
               <div class="visor-side">
                 <div class="card visor-score">
-                  <div><p class="label">Armonía de frente</p><p class="sim-score" id="simScore"></p></div>
+                  <div><p class="label" id="simScoreL">Armonía de frente</p><p class="sim-score" id="simScore"></p></div>
                   <div class="visor-zones" id="simZonas"></div>
                 </div>
+                <p class="label sim-pre-l">Tratamientos de ejemplo</p>
+                <div class="sim-pres" id="simPre"></div>
                 <div id="simCtl"></div>
                 <button type="button" class="btn btn-ghost" id="simReset" style="margin:4px 0 16px">Reiniciar</button>
                 <div class="card"><p class="label">Lo que cambia en tus medidas</p><div id="simDelta"></div></div>
@@ -217,8 +220,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794571727"></script>
-<script src="/assets/js/app.js?v=1794571727"></script>
+<script src="/assets/js/config.js?v=1794572173"></script>
+<script src="/assets/js/app.js?v=1794572173"></script>
 
 </body>
 </html>
