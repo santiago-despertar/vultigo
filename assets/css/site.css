@@ -1434,3 +1434,32 @@ body:has(main.onb) .site-header,body:has(main.onb) .site-footer{display:none}
 html:has(main.onb){background:#56636E}
 .onb textarea{font-family:var(--font-sans)}
 .onb .quiz-nav .btn,.onb .su-nav .btn{white-space:nowrap}
+
+/* v30 photo guides + 3D scan */
+.slot-guia{position:absolute;left:50%;top:10%;width:62%;aspect-ratio:3/4;transform:translateX(-50%);background:center/contain no-repeat;opacity:.9;pointer-events:none}
+.slot b,.slot small{position:relative;z-index:1}
+.slot{justify-content:flex-end;padding-bottom:14px}
+.slot img{z-index:2}
+.slot.done b,.slot.done small{display:none}
+.tips-foto{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 4px}
+.tips-foto>div{display:flex;flex-direction:column;gap:4px;padding:14px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16)}
+.tips-foto svg{width:34px;height:34px;margin-bottom:4px;color:#fff}
+.tips-foto b{font-size:14px;font-weight:500}
+.tips-foto small{font-size:13px;line-height:1.4}
+@media (max-width:640px){.tips-foto{grid-template-columns:1fr}.tips-foto>div{flex-direction:row;flex-wrap:wrap;align-items:center;column-gap:10px}.tips-foto svg{margin:0}.tips-foto small{flex-basis:100%}}
+.esc3d-cta{display:flex;gap:20px;align-items:center;margin:4px 0 18px;padding:20px}
+.esc3d-cta .label{font-size:12px}
+.esc3d-txt b{display:block;font-size:18px;font-weight:500;margin:4px 0 6px}
+.esc3d-txt p{margin:0 0 14px;font-size:14px;line-height:1.5}
+.esc3d-ico{flex:0 0 120px;height:120px;border-radius:16px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;background-image:url(https://jxluabbugwdonqchbaxm.supabase.co/storage/v1/object/public/publico/poses/tres_cuartos_izq.png);background-size:58%;background-position:center;background-repeat:no-repeat}
+.esc3d-cta.hecho .esc3d-ico{background-image:none}
+.esc3d-acc{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.link-btn{background:none;border:0;padding:0;font:inherit;font-size:14px;color:inherit;opacity:.8;text-decoration:underline;cursor:pointer}
+.esc3d-cta.hecho{border-color:rgba(127,184,149,.6)!important}
+@media (max-width:560px){.esc3d-cta{flex-direction:column;align-items:flex-start}.esc3d-ico{flex-basis:auto;width:100%;height:150px}}
+.esc3d-bins{display:flex;gap:4px}
+.esc3d-bins i{width:18px;height:4px;border-radius:2px;background:rgba(255,255,255,.22)}
+.esc3d-bins i.ok{background:#7fb895}
+.esc3d .esc-stage video{object-fit:contain}
+.esc3d-malla{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+.esc3d .esc-oval{width:min(46vw,300px,40vh)}
