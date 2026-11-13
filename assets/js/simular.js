@@ -32,6 +32,37 @@ const PRE_FRENTE = [
   ["Levantar cejas", { cejas_altura: [0, 2.5], cejas_cola: [0, 2.5] }],
   ["Mejor versión", { mandibula: [-2, 4], menton_largo: [-2, 2.5], menton_ancho: [-1.5, 2], pomulos: [-1, 2.5], nariz_ancho: [-3, 1], nariz_punta: [-2, 1], labios: [-1, 2.5], boca_ancho: [-2, 2], boca_altura: [-2, 1.5], cejas_altura: [-1.5, 2.5], cejas_cola: [-1.5, 2.5] }],
 ];
+
+// How each control is described to the image model: what it changes, and what minus / plus mean.
+const EN = {
+  menton_largo: ["Chin vertical length", "shorter chin", "longer chin"],
+  menton_ancho: ["Chin width", "narrower chin", "wider, squarer chin"],
+  mandibula: ["Jaw width at the jaw angles", "narrower jaw", "wider, more angular jaw"],
+  pomulos: ["Cheekbone width", "narrower cheekbones", "wider, more prominent cheekbones"],
+  nariz_ancho: ["Nostril (alar) width", "narrower nose base", "wider nose base"],
+  nariz_punta: ["Nose tip height", "nose tip lifted", "nose tip lowered"],
+  labios: ["Lip fullness", "thinner lips", "fuller lips"],
+  boca_ancho: ["Mouth width", "narrower mouth", "wider mouth"],
+  boca_altura: ["Distance from nose base to upper lip", "shorter upper lip", "longer upper lip"],
+  cejas_altura: ["Eyebrow height", "lower eyebrows", "higher eyebrows"],
+  cejas_cola: ["Height of the outer end of the eyebrows", "lower brow tails", "lifted brow tails"],
+  ojos: ["Canthal tilt (outer eye corners)", "outer corners lower", "outer corners lifted"],
+  menton_proy: ["Chin projection forward", "chin further back", "chin projected further forward"],
+  menton_vert: ["Chin vertical length", "shorter chin", "longer chin"],
+  cuello: ["Definition of the line under the chin (jaw-neck angle)", "softer jaw-neck line", "sharper, more defined jaw-neck line"],
+  nariz_proy: ["Nose tip projection", "less projected nose tip", "more projected nose tip"],
+  nariz_rot: ["Nose tip rotation", "nose tip rotated down", "nose tip rotated up"],
+  nariz_dorso: ["Nasal bridge (dorsal hump)", "straighter bridge, hump reduced", "bigger dorsal hump"],
+  labios_proy: ["Lip projection", "lips further back", "lips further forward"],
+  ceja: ["Brow ridge prominence", "softer brow ridge", "more prominent brow ridge"],
+};
+export function cambiosIA() {
+  return Object.entries(valores).filter(([, v]) => v).map(([k, v]) => {
+    const e = EN[k] || [k, "less", "more"];
+    return { que: e[0], mm: v, menos: e[1], mas: e[2] };
+  });
+}
+
 async function frente(url, sexo) {
   const img = await cargar(url);
   const base = await analizar(img, sexo);
@@ -246,14 +277,42 @@ function controles() {
     for (const k in o.v) poner(k, o.v[k]);
     decir("Valores calculados para tu cara. Puedes ajustarlos a mano.");
     refrescar();
+    if (/^Mejor/.test(nombre)) setTimeout(() => realista(), 50);
   }));
   $("#simReset").onclick = () => { S.controles.forEach(([k]) => poner(k, 0)); $("#simPre").querySelectorAll("button").forEach(x => x.classList.remove("active")); decir(""); refrescar(); };
+}
+
+// ---------- realistic render: the same changes, applied to the photo by the image model
+let modoActual = "frente";
+async function realista() {
+  const box = $("#simIA"), b = $("#simIABtn"), m = $("#simIAMsg");
+  if (!actuales || !actuales.ia) return;
+  const cambios = cambiosIA();
+  const magro = !!($("#simMagro") || {}).checked;
+  if (!cambios.length && !magro) { m.textContent = "Mueve al menos un control, elige un tratamiento de ejemplo o marca menos grasa en la cara."; m.className = "msg show info"; return; }
+  m.className = "msg"; b.disabled = true; b.textContent = "Generando…";
+  box.hidden = false; box.classList.add("cargando");
+  $("#simIAAntes").src = modoActual === "perfil" ? actuales.urlPerfil : actuales.url;
+  $("#simIADesp").removeAttribute("src");
+  $("#simIALista").innerHTML = cambios.map(c => `<li>${esc((S.controles.find(x => EN[x[0]] && EN[x[0]][0] === c.que) || [, c.que])[1])} <span class="mono">${c.mm > 0 ? "+" : ""}${c.mm} mm</span></li>`).join("") + (magro ? '<li>Menos grasa en la cara</li>' : "");
+  try {
+    const r = await actuales.ia({ tipo: "sim", order_id: actuales.id, vista: modoActual, foto: actuales.fotoPerfil, cambios, magro });
+    $("#simIADesp").src = r.imagen;
+    box.classList.remove("cargando");
+    setTimeout(() => box.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80);
+  } catch (e) {
+    box.hidden = true;
+    m.textContent = e.message === "limite" ? "Llegaste al límite de imágenes de hoy. Mañana puedes generar más." : "No pudimos generar la imagen ahorita. Inténtalo de nuevo en un momento.";
+    m.className = "msg show err";
+  }
+  b.disabled = false; b.textContent = "Ver resultado realista";
 }
 
 const sesiones = {};
 async function usar(modo, datos) {
   for (const k in valores) delete valores[k];
   const llave = modo + "|" + (modo === "perfil" ? datos.urlPerfil : datos.url).split("?")[0];
+  modoActual = modo;
   S = await (sesiones[llave] ||= (modo === "perfil" ? perfil(datos.urlPerfil, datos.sexo) : frente(datos.url, datos.sexo)).catch(e => { delete sesiones[llave]; throw e; }));
   $("#simScoreL").textContent = modo === "perfil" ? "Armonía de perfil" : "Armonía de frente";
   marco(); controles(); pintar(); numeros();
@@ -268,6 +327,7 @@ export async function iniciar(datos) {
   $("#simVistas").hidden = !datos.urlPerfil;
   if (listo) return;
   listo = true;
+  const bIA = $("#simIABtn"); if (bIA) bIA.addEventListener("click", () => realista());
   const orig = $("#simOrig"), ver = (si) => { mezcla = si ? 0 : 1; pintar(); orig.classList.toggle("on", si); };
   orig.addEventListener("pointerdown", (ev) => { ev.preventDefault(); ver(true); });
   ["pointerup", "pointerleave", "pointercancel"].forEach(e => orig.addEventListener(e, () => ver(false)));
