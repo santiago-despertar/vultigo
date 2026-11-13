@@ -4,6 +4,30 @@
   const configured = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY && window.supabase);
   const sb = configured ? window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY) : null;
   const page = document.body.dataset.page;
+  // ---------- homepage: animated panel demos, one at a time, only while on screen ----------
+  (function () {
+    const fx = document.querySelector(".fx"); if (!fx) return;
+    const tabs = [...fx.querySelectorAll(".fx-tab")], sc = [...fx.querySelectorAll(".fx-scene")], desc = fx.querySelector(".fx-desc");
+    const DUR = 8000; let i = 0, t = null, visible = false;
+    const ir = (n, scroll) => {
+      i = (n + tabs.length) % tabs.length;
+      tabs.forEach((b, j) => { b.classList.remove("on"); b.setAttribute("aria-selected", j === i ? "true" : "false"); });
+      sc.forEach((s, j) => { s.classList.remove("on"); s.setAttribute("aria-hidden", j === i ? "false" : "true"); });
+      void fx.offsetWidth; // restart the animations
+      tabs[i].classList.add("on"); sc[i].classList.add("on");
+      if (desc) desc.textContent = tabs[i].querySelector(".fx-d").textContent;
+      if (scroll && innerWidth <= 900) { const box = tabs[i].parentElement; box.scrollTo({ left: tabs[i].offsetLeft - 16, behavior: "smooth" }); }
+      clearTimeout(t); if (visible) t = setTimeout(() => ir(i + 1, true), DUR);
+    };
+    tabs.forEach((b, j) => b.addEventListener("click", () => ir(j, true)));
+    ir(0);
+    if ("IntersectionObserver" in window) new IntersectionObserver(es => {
+      const v = es[0].isIntersecting; if (v === visible) return; visible = v;
+      fx.classList.toggle("fx-run", v);
+      if (v) ir(i); else clearTimeout(t);
+    }, { threshold: 0.35 }).observe(fx.querySelector(".fx-screen"));
+    else { visible = true; fx.classList.add("fx-run"); ir(0); }
+  })();
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
