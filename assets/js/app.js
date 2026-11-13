@@ -186,8 +186,7 @@
   // header state
   (async () => {
     const u = await getUser();
-    $$('[data-auth="in"]').forEach(e => (e.hidden = !u));
-    $$('[data-auth="out"]').forEach(e => (e.hidden = !!u));
+    document.documentElement.classList.toggle("authed", !!u);
   })();
 
   // ---------- cuenta ----------
