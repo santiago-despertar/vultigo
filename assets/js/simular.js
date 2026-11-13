@@ -24,11 +24,13 @@ const CTL_FRENTE = [
   ["cejas_cola", "Cola de la ceja", "Ojos y cejas", 4, "Más baja", "Más alta"],
   ["ojos", "Inclinación de los ojos", "Ojos y cejas", 3, "Más caídos", "Más rasgados"],
 ];
+// each preset says which controls it may touch and in which direction; the values are searched per face
 const PRE_FRENTE = [
-  ["Mandíbula marcada", { mandibula: 3, menton_largo: 1.5, menton_ancho: 1 }],
-  ["Rinoplastia (alas)", { nariz_ancho: -2.5, nariz_punta: -1 }],
-  ["Relleno de labios", { labios: 1.5 }],
-  ["Levantar cejas", { cejas_altura: 1.5, cejas_cola: 1.5 }],
+  ["Mandíbula marcada", { mandibula: [0, 4], menton_largo: [-1.5, 2], menton_ancho: [-1, 2] }],
+  ["Rinoplastia (alas)", { nariz_ancho: [-3, 0], nariz_punta: [-2, 1] }],
+  ["Relleno de labios", { labios: [0, 2.5], boca_altura: [-1.5, 0] }],
+  ["Levantar cejas", { cejas_altura: [0, 2.5], cejas_cola: [0, 2.5] }],
+  ["Mejor versión", { mandibula: [-2, 4], menton_largo: [-2, 2.5], menton_ancho: [-1.5, 2], pomulos: [-1, 2.5], nariz_ancho: [-3, 1], nariz_punta: [-2, 1], labios: [-1, 2.5], boca_ancho: [-2, 2], boca_altura: [-2, 1.5], cejas_altura: [-1.5, 2.5], cejas_cola: [-1.5, 2.5] }],
 ];
 async function frente(url, sexo) {
   const img = await cargar(url);
@@ -77,10 +79,11 @@ const CTL_PERFIL = [
   ["ceja", "Arco de la ceja", "Labios y frente", 4, "Menos marcado", "Más marcado"],
 ];
 const PRE_PERFIL = [
-  ["Mentón adelantado", { menton_proy: 5, menton_vert: 1 }],
-  ["Rinoplastia (dorso y punta)", { nariz_dorso: -3, nariz_proy: -1.5, nariz_rot: 2 }],
-  ["Cuello definido", { cuello: 6 }],
-  ["Perfil completo", { menton_proy: 4, nariz_dorso: -2, nariz_rot: 1.5, cuello: 5 }],
+  ["Mentón", { menton_proy: [-3, 6], menton_vert: [-2, 3] }],
+  ["Rinoplastia (dorso y punta)", { nariz_dorso: [-3, 0], nariz_proy: [-3, 2], nariz_rot: [-1, 3] }],
+  ["Cuello definido", { cuello: [0, 7] }],
+  ["Labios", { labios_proy: [-3, 3] }],
+  ["Mejor versión", { menton_proy: [-3, 6], menton_vert: [-2, 3], cuello: [0, 7], nariz_dorso: [-3, 0], nariz_proy: [-3, 2], nariz_rot: [-1, 3], labios_proy: [-3, 3], ceja: [-2, 3] }],
 ];
 async function perfil(url, sexo) {
   const img = await cargar(url);
@@ -196,6 +199,31 @@ function numeros() {
     : '<p class="hint" style="padding:8px 0">Mueve un control para ver qué medidas cambian.</p>';
   $("#simZonas").innerHTML = S.zonas(ahora).map(z => `<div class="visor-zone"><span>${esc(z.nombre)}</span><i><b style="width:${z.puntaje}%"></b></i><em class="mono">${(z.puntaje / 10).toFixed(1)}</em></div>`).join("");
 }
+// best values for one preset on this face: coordinate search over half-millimetre steps
+function evaluar(vals) {
+  const guard = { ...valores }, prev = mezcla;
+  for (const k in valores) delete valores[k]; Object.assign(valores, vals); mezcla = 1;
+  const r = armonia(S.medir(p => { const [dx, dy] = campo(p.x, p.y); return { x: p.x + dx, y: p.y + dy }; }));
+  for (const k in valores) delete valores[k]; Object.assign(valores, guard); mezcla = prev;
+  return r;
+}
+function optimizar(rangos) {
+  const v = {}; for (const k in rangos) v[k] = 0;
+  let mejor = evaluar(v); const base = mejor;
+  for (let pasada = 0; pasada < 3; pasada++) {
+    let cambio = false;
+    for (const k in rangos) {
+      const [lo, hi] = rangos[k];
+      for (let x = lo; x <= hi + 1e-9; x += 0.5) {
+        if (x === v[k]) continue;
+        const r = evaluar({ ...v, [k]: x });
+        if (r > mejor + 0.005) { mejor = r; v[k] = x; cambio = true; }
+      }
+    }
+    if (!cambio) break;
+  }
+  return { v, gana: mejor - base };
+}
 const refrescar = () => { if (raf) return; raf = true; requestAnimationFrame(() => { raf = false; pintar(); numeros(); }); };
 
 function controles() {
@@ -205,11 +233,21 @@ function controles() {
     `<label class="sim-c"><span class="sim-c-t"><span>${n}</span><em class="mono" data-v="${k}">0 mm</em></span><input type="range" min="${-max}" max="${max}" step="0.5" value="0" data-k="${k}" aria-label="${n}"><span class="sim-c-e"><small>${izq}</small><small>${der}</small></span></label>`).join("")}</div>`).join("");
   const poner = (k, v) => { valores[k] = v; const i = $(`#simCtl input[data-k="${k}"]`); if (i) i.value = v; const e = $(`#simCtl [data-v="${k}"]`); if (e) e.textContent = (v > 0 ? "+" : "") + v + " mm"; };
   $("#simCtl").querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => { poner(inp.dataset.k, +inp.value); refrescar(); }));
+  const nota = $("#simPreNota");
+  const decir = (t) => { nota.textContent = t || ""; nota.hidden = !t; };
+  decir("");
+  S.optimos ||= {};
   $("#simPre").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
-    S.controles.forEach(([k]) => poner(k, 0)); const [, vals] = S.presets[+b.dataset.i];
-    for (const k in vals) poner(k, vals[k]); refrescar();
+    const i = +b.dataset.i, [nombre, rangos] = S.presets[i];
+    const o = S.optimos[i] ||= optimizar(rangos);
+    S.controles.forEach(([k]) => poner(k, 0));
+    $("#simPre").querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
+    if (o.gana < 0.05) { decir(`En tu cara, ${nombre.toLowerCase()} no subiría tu armonía: esa zona ya está bien proporcionada.`); refrescar(); return; }
+    for (const k in o.v) poner(k, o.v[k]);
+    decir("Valores calculados para tu cara. Puedes ajustarlos a mano.");
+    refrescar();
   }));
-  $("#simReset").onclick = () => { S.controles.forEach(([k]) => poner(k, 0)); refrescar(); };
+  $("#simReset").onclick = () => { S.controles.forEach(([k]) => poner(k, 0)); $("#simPre").querySelectorAll("button").forEach(x => x.classList.remove("active")); decir(""); refrescar(); };
 }
 
 const sesiones = {};
