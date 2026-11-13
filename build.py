@@ -103,6 +103,7 @@ PAGES = [
     ("privacidad.html", "Aviso de privacidad · Resalta", "Aviso de privacidad integral de Resalta.", ""),
     ("terminos.html", "Términos y condiciones · Resalta", "Términos y condiciones de Resalta.", ""),
     ("calificacion.html", "Calificación facial gratis · Resalta", "Descubre tu puntaje de armonía facial del 0 al 100, gratis. Tu foto se analiza en tu dispositivo.", ""),
+    ("reporte.html", "Tu reporte · Resalta", "Tu análisis facial para leer y descargar.", '<script src="/assets/js/reporte.js?v=__V__"></script>'),
     ("visor.html", "Tu cara, medida · Resalta", "Vista previa del visor de medidas de Resalta.", ""),
     ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
 ]
@@ -113,6 +114,7 @@ _KEY = "sb-jxluabbugwdonqchbaxm-auth-token"
 _GATE = '<script>(function(){{try{{var t=localStorage.getItem("' + _KEY + '"),back=/[?&#](code|access_token|error|type)=/.test(location.href);{body}}}catch(e){{}}}})()</script>'
 GATES = {
     "analisis": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?next=/analisis.html");'),
+    "reporte": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next="+encodeURIComponent(location.pathname+location.search));'),
     "panel": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next=/panel.html");'),
     "cuenta": _GATE.format(body='if(t&&!back){var n=new URLSearchParams(location.search).get("next")||"/panel.html";if(!/^\\/(?!\\/)/.test(n))n="/panel.html";location.replace(n);}'),
 }
