@@ -1,6 +1,6 @@
 // The free viewer at /visor.html: pick a photo, measure it in the browser, show it in the viewer.
-import { analizar, precargar } from "/assets/js/medidas.js?v=15";
-import { montar } from "/assets/js/visor-ui.js?v=16";
+import { analizar, precargar } from "/assets/js/medidas.js?v=17";
+import { montar } from "/assets/js/visor-ui.js?v=17";
 
 const $ = (s) => document.querySelector(s);
 const file = $("#vFile"), go = $("#vGo"), msgEl = $("#vMsg");

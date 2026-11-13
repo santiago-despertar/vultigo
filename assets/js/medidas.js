@@ -56,7 +56,8 @@ export { ZONAS } from "/assets/js/zonas.js?v=15";
 import { ZONAS } from "/assets/js/zonas.js?v=15";
 
 // Builds every measurement from the 478 landmarks. L[i] = {x,y} in pixels.
-export function medir(L) {
+export function medir(L, sexo) {
+  const mujer = sexo === "mujer";
   const P = (i) => L[i];
   const out = [];
   const add = (m) => {
@@ -95,7 +96,7 @@ export function medir(L) {
     significa: "Valores bajos dan una cara más ancha y compacta; valores altos, una cara más alargada. Sirve para elegir corte de cabello, barba y lentes." });
 
   add({ id: "fwhr", zona: "proporciones", nombre: "Ancho contra altura del rostro medio",
-    valor: bizy / down(browMid, lipTop), unidad: "", rango: [1.55, 1.9],
+    valor: bizy / down(browMid, lipTop), unidad: "", rango: mujer ? [1.4, 1.65] : [1.55, 1.85],
     lineas: [[zyL, zyR], [browMid, lipTop]],
     que: "Ancho de pómulos dividido entre la distancia de cejas a labio superior.",
     significa: "Un valor más alto se asocia con un rostro medio compacto y pómulos marcados. Uno más bajo, con un rostro medio alto." });
@@ -110,7 +111,7 @@ export function medir(L) {
   const eyeLo = P(33), eyeLi = P(133), eyeRi = P(362), eyeRo = P(263);
   const eyeW = (dist(eyeLo, eyeLi) + dist(eyeRi, eyeRo)) / 2;
   add({ id: "separacion_ojos", zona: "ojos", nombre: "Separación entre los ojos",
-    valor: dist(eyeLi, eyeRi) / eyeW, unidad: "", rango: [1.0, 1.3],
+    valor: dist(eyeLi, eyeRi) / eyeW, unidad: "", rango: [1.12, 1.34],
     lineas: [[eyeLo, eyeLi], [eyeLi, eyeRi], [eyeRi, eyeRo]],
     que: "Espacio entre los dos ojos dividido entre el ancho de un ojo.",
     significa: "La regla de los quintos dice que entre los ojos cabe un ojo. Por debajo del rango se percibe como ojos juntos; por encima, como ojos separados." });
@@ -121,7 +122,7 @@ export function medir(L) {
     return deg(Math.atan2(dy, dx));
   };
   add({ id: "inclinacion_ojos", zona: "ojos", nombre: "Inclinación de los ojos",
-    valor: (tilt(eyeLi, eyeLo) + tilt(eyeRi, eyeRo)) / 2, unidad: "°", rango: [4, 8],
+    valor: (tilt(eyeLi, eyeLo) + tilt(eyeRi, eyeRo)) / 2, unidad: "°", rango: mujer ? [4, 8] : [1, 6],
     lineas: [[eyeLi, eyeLo], [eyeRi, eyeRo]],
     que: "Ángulo entre el lagrimal y la esquina externa de cada ojo. Positivo cuando la esquina externa queda más alta.",
     significa: "Una inclinación positiva moderada se percibe como mirada despierta. Cerca de 0 o negativa, como mirada caída o cansada." });
@@ -134,7 +135,7 @@ export function medir(L) {
     significa: "Valores altos dan un ojo más rasgado; valores bajos, un ojo más redondo y abierto. Depende mucho de la expresión en la foto." });
 
   add({ id: "esr", zona: "ojos", nombre: "Distancia entre pupilas contra ancho de cara",
-    valor: ipd / bizy, unidad: "", rango: [0.44, 0.48],
+    valor: ipd / bizy, unidad: "", rango: [0.44, 0.49],
     lineas: [[pupL, pupR], [zyL, zyR]],
     que: "Distancia entre pupilas dividida entre el ancho de pómulos.",
     significa: "Dice qué tanto del ancho de la cara ocupan los ojos. Valores bajos hacen que la cara se vea más ancha alrededor de los ojos." });
@@ -148,7 +149,7 @@ export function medir(L) {
   // ---------- nariz
   const alaL = P(129), alaR = P(358), noseW = dist(alaL, alaR);
   add({ id: "nariz_ojos", zona: "nariz", nombre: "Ancho de nariz contra separación de ojos",
-    valor: noseW / dist(eyeLi, eyeRi), unidad: "", rango: [0.95, 1.15],
+    valor: noseW / dist(eyeLi, eyeRi), unidad: "", rango: [1.1, 1.32],
     lineas: [[alaL, alaR], [eyeLi, eyeRi]],
     que: "Ancho de la base de la nariz dividido entre la distancia entre lagrimales.",
     significa: "La referencia clásica es que la nariz mida lo mismo que el espacio entre los ojos. Por encima, la nariz se percibe ancha para la cara." });
@@ -202,73 +203,73 @@ export function medir(L) {
 
   // ---------- cejas y más proporciones
   const bLi = P(107), bLo = P(70), bRi = P(336), bRo = P(300), bLp = P(105), bRp = P(334);
-  add({ id: "ceja_inclinacion", zona: "ojos", nombre: "Inclinación de las cejas",
-    valor: (tilt(bLi, bLo) + tilt(bRi, bRo)) / 2, unidad: "°", rango: [4, 12],
+  add({ id: "ceja_inclinacion", zona: "ojos", nombre: "Caída de la cola de la ceja",
+    valor: -(tilt(bLi, bLo) + tilt(bRi, bRo)) / 2, unidad: "°", rango: [4, 9],
     lineas: [[bLi, bLo], [bRi, bRo]],
-    que: "Ángulo de cada ceja, del extremo interno al externo. Positivo cuando la cola queda más alta que el inicio.",
-    significa: "Una ceja que sube un poco hacia afuera abre la mirada. Plana o caída hace ver el ojo cansado." });
+    que: "Qué tanto baja la cola de la ceja respecto a donde empieza, medido en el borde superior.",
+    significa: "Una cola que baja poco mantiene la mirada abierta. Si cae mucho, el ojo se ve triste o cansado; se corrige con diseño de cejas." });
   add({ id: "ceja_altura", zona: "ojos", nombre: "Altura de la ceja sobre el ojo",
-    valor: (down(bLp, P(159)) + down(bRp, P(386))) / 2 / eyeW, unidad: "", rango: [0.55, 0.8],
+    valor: (down(bLp, P(159)) + down(bRp, P(386))) / 2 / eyeW, unidad: "", rango: mujer ? [0.68, 0.88] : [0.55, 0.72],
     lineas: [[bLp, P(159)], [bRp, P(386)]],
     que: "Distancia de la ceja al párpado superior, en proporción al ancho del ojo.",
     significa: "Cejas bajas dan una mirada más intensa y marcada; cejas altas, una expresión más abierta y suave." });
   add({ id: "ceja_largo", zona: "ojos", nombre: "Largo de la ceja contra el ojo",
-    valor: (dist(bLi, bLo) + dist(bRi, bRo)) / 2 / eyeW, unidad: "", rango: [1.25, 1.55],
+    valor: (dist(bLi, bLo) + dist(bRi, bRo)) / 2 / eyeW, unidad: "", rango: [1.5, 1.68],
     lineas: [[bLi, bLo], [bRi, bRo], [eyeLo, eyeLi], [eyeRi, eyeRo]],
     que: "Largo de la ceja dividido entre el ancho del ojo.",
     significa: "La ceja debe pasar al ojo por los dos lados. Corta, la mirada pierde marco; se corrige con diseño o maquillaje de cejas." });
   add({ id: "entrecejo", zona: "ojos", nombre: "Separación entre cejas",
-    valor: dist(bLi, bRi) / dist(eyeLi, eyeRi), unidad: "", rango: [0.6, 0.85],
+    valor: dist(bLi, bRi) / dist(eyeLi, eyeRi), unidad: "", rango: [0.84, 0.95],
     lineas: [[bLi, bRi], [eyeLi, eyeRi]],
     que: "Espacio entre las dos cejas dividido entre el espacio entre los lagrimales.",
     significa: "Cejas muy juntas endurecen la expresión; muy separadas hacen ver la nariz más ancha." });
   add({ id: "ojo_cara", zona: "ojos", nombre: "Ancho del ojo contra ancho de cara",
-    valor: eyeW / bizy, unidad: "", rango: [0.185, 0.225],
+    valor: eyeW / bizy, unidad: "", rango: [0.185, 0.205],
     lineas: [[eyeLo, eyeLi], [zyL, zyR]],
     que: "Ancho de un ojo dividido entre el ancho de pómulos.",
     significa: "La regla de los quintos dice que un ojo ocupa cerca de un quinto del ancho de la cara." });
   add({ id: "bitemporal", zona: "proporciones", nombre: "Ancho de sienes contra pómulos",
-    valor: dist(P(21), P(251)) / bizy, unidad: "", rango: [0.78, 0.9],
+    valor: dist(P(21), P(251)) / bizy, unidad: "", rango: [0.9, 0.96],
     lineas: [[P(21), P(251)], [zyL, zyR]],
     que: "Ancho de la frente a la altura de las sienes dividido entre el ancho de pómulos.",
     significa: "Dice si la parte alta de la cara es más angosta o más ancha que los pómulos. Ayuda a elegir corte de cabello." });
   add({ id: "ojos_boca", zona: "proporciones", nombre: "Distancia de ojos a boca contra alto de cara",
-    valor: down(mid(pupL, pupR), stom) / down(P(10), ment), unidad: "", rango: [0.34, 0.38],
+    valor: down(mid(pupL, pupR), stom) / down(P(10), ment), unidad: "", rango: [0.4, 0.43],
     lineas: [[mid(pupL, pupR), stom], [P(10), ment]],
     que: "Distancia vertical de los ojos a la boca dividida entre el alto de la cara.",
-    significa: "En estudios de percepción, las caras con esta proporción cerca de 36% se califican como más atractivas." });
+    significa: "Relaciona el largo del centro de la cara con su alto total. Alto, la zona entre ojos y boca se ve larga; bajo, compacta." });
   add({ id: "nariz_alto_ancho", zona: "nariz", nombre: "Ancho contra largo de la nariz",
-    valor: noseW / down(P(168), subn), unidad: "", rango: [0.62, 0.8],
+    valor: noseW / down(P(168), subn), unidad: "", rango: [0.78, 0.88],
     lineas: [[alaL, alaR], [P(168), subn]],
     que: "Ancho de la base de la nariz dividido entre su largo, del entrecejo a la base.",
     significa: "Valores altos dan una nariz ancha y corta; valores bajos, una nariz larga y angosta." });
   add({ id: "nariz_cara", zona: "nariz", nombre: "Ancho de nariz contra ancho de cara",
-    valor: noseW / bizy, unidad: "", rango: [0.23, 0.28],
+    valor: noseW / bizy, unidad: "", rango: [0.28, 0.305],
     lineas: [[alaL, alaR], [zyL, zyR]],
     que: "Ancho de la nariz dividido entre el ancho de pómulos.",
     significa: "Dice qué tanto espacio ocupa la nariz en el ancho total de la cara." });
   add({ id: "filtrum", zona: "boca", nombre: "Espacio nariz-boca en el tercio inferior",
-    valor: down(subn, stom) / down(subn, ment), unidad: "", rango: [0.3, 0.36],
+    valor: down(subn, stom) / down(subn, ment), unidad: "", rango: [0.305, 0.34],
     lineas: [[subn, stom], [subn, ment]],
     que: "Distancia de la base de la nariz a la línea de la boca, como parte del tercio inferior.",
-    significa: "La referencia es un tercio. Más que eso, el labio superior se ve largo y la cara envejece; menos, el mentón domina." });
+    significa: "La referencia es cerca de un tercio. Más que eso, el labio superior se ve largo y la cara envejece; menos, el mentón domina." });
   add({ id: "labios_grosor", zona: "boca", nombre: "Grosor de labios contra ancho de boca",
-    valor: down(P(0), P(17)) / mouthW, unidad: "", rango: [0.3, 0.42],
+    valor: down(P(0), P(17)) / mouthW, unidad: "", rango: mujer ? [0.32, 0.37] : [0.26, 0.31],
     lineas: [[P(0), P(17)], [mouthL, mouthR]],
     que: "Alto total de los dos labios dividido entre el ancho de la boca.",
     significa: "Valores altos dan labios gruesos; bajos, labios delgados. Cambia mucho si la boca está apretada." });
   add({ id: "boca_mandibula", zona: "boca", nombre: "Ancho de boca contra mandíbula",
-    valor: mouthW / bigo, unidad: "", rango: [0.4, 0.5],
+    valor: mouthW / bigo, unidad: "", rango: [0.44, 0.52],
     lineas: [[mouthL, mouthR], [goL, goR]],
     que: "Ancho de la boca dividido entre el ancho de la mandíbula.",
     significa: "Relaciona el tamaño de la boca con la parte baja de la cara." });
   add({ id: "angulo_menton", zona: "mandibula", nombre: "Ángulo frontal de la mandíbula",
-    valor: angleAt(ment, goL, goR), unidad: "°", rango: [86, 100],
+    valor: angleAt(ment, goL, goR), unidad: "°", rango: mujer ? [110, 117] : [116, 123],
     lineas: [[goL, ment], [ment, goR]],
     que: "Ángulo que forman las dos líneas de la mandíbula al llegar al mentón.",
     significa: "Cerrado, la cara termina en punta, en forma de V; abierto, la mandíbula se ve ancha y cuadrada." });
   add({ id: "afinado", zona: "mandibula", nombre: "Ancho de mentón contra mandíbula",
-    valor: chinW / bigo, unidad: "", rango: [0.2, 0.28],
+    valor: chinW / bigo, unidad: "", rango: [0.21, 0.235],
     lineas: [[P(148), P(377)], [goL, goR]],
     que: "Ancho del mentón dividido entre el ancho de la mandíbula.",
     significa: "Dice qué tanto se afina la cara de la mandíbula al mentón." });
@@ -351,7 +352,7 @@ function calidad(L, w, h) {
 }
 
 // image: HTMLImageElement, ImageBitmap or canvas.
-export async function analizar(image) {
+export async function analizar(image, sexo) {
   const lm = await getLandmarker();
   const res = lm.detect(image);
   const faces = res.faceLandmarks || [];
@@ -360,7 +361,7 @@ export async function analizar(image) {
   const w = image.naturalWidth || image.width, h = image.naturalHeight || image.height;
   const L = faces[0].map(p => ({ x: p.x * w, y: p.y * h }));
   if (L.length < 478) throw new Error("sin_iris");
-  const medidas = medir(L);
+  const medidas = medir(L, sexo);
   const xs = L.map(p => p.x), ys = L.map(p => p.y);
   const caja = { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
   return { ancho: w, alto: h, puntos: L, caja, medidas, resumen: resumen(medidas), avisos: calidad(L, w, h) };

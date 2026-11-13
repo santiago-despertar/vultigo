@@ -302,7 +302,7 @@
       ev.preventDefault();
       const f = ev.target;
       if (!f.mayor.checked || !f.edad.value || +f.edad.value < 18) { alertInline(f, "Este servicio es solo para mayores de 18 años."); return; }
-      const answers = { edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: f.objetivo.value, notas: f.notas.value.trim() };
+      const answers = { edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: f.objetivo.value, piel: f.piel.value, lentes: f.lentes.value, procedimientos: f.procedimientos.value, presupuesto: f.presupuesto.value, tiempo: f.tiempo.value, rutina: f.rutina.value, notas: f.notas.value.trim() };
       if (!sb) { go(2); return; }
       if (order) {
         await sb.from("orders").update({ answers }).eq("id", order.id); order.answers = answers;
@@ -318,8 +318,8 @@
       msg(m, text);
     }
 
-    import("/assets/js/medidas.js?v=15").then(m => m.precargar()).catch(() => {});
-    import("/assets/js/perfil.js?v=16").then(m => m.precargarPerfil()).catch(() => {});
+    import("/assets/js/medidas.js?v=17").then(m => m.precargar()).catch(() => {});
+    import("/assets/js/perfil.js?v=17").then(m => m.precargarPerfil()).catch(() => {});
 
     const grid = $("#photoGrid");
     SLOTS.forEach(([key, title, sub]) => {
@@ -368,7 +368,7 @@
     async function medirPerfil(key, blob) {
       if (!sb || !order) return;
       try {
-        const { analizarPerfil } = await import("/assets/js/perfil.js?v=16");
+        const { analizarPerfil } = await import("/assets/js/perfil.js?v=17");
         const r = await analizarPerfil(await createImageBitmap(blob), (order.answers || {}).sexo);
         M.perfil[key] = compactarPerfil(r); await guardarMedidas();
       } catch (e) { delete M.perfil[key]; console.warn("perfil", e && e.message); }
@@ -379,9 +379,9 @@
     async function medir(blob, m) {
       if (!sb || !order) return;
       try {
-        const { analizar } = await import("/assets/js/medidas.js?v=15");
+        const { analizar } = await import("/assets/js/medidas.js?v=17");
         const bmp = await createImageBitmap(blob);
-        M.frente = compactar(await analizar(bmp));
+        M.frente = compactar(await analizar(bmp, (order.answers || {}).sexo));
         await guardarMedidas();
         medidasListas = true; check();
       } catch (e) {
@@ -535,7 +535,7 @@
       }
       return v;
     }
-    const completo = (r, o) => r && r.resumen && !(o.tier === "hard" && r.tier !== "hard");
+    const completo = (r, o) => r && r.resumen && r.v === 2 && !(o.tier === "hard" && r.tier !== "hard");
 
     async function abrir(o, scroll) {
       abierto = o.id;
@@ -545,7 +545,7 @@
       clearMsg($("#repMsg"));
       if (scroll) $("#reportArea").scrollIntoView({ behavior: "smooth", block: "start" });
       let r = await leerReporte(o.id);
-      if (r && r.resumen) await pintar(r, o);
+      if (r && r.resumen && r.v === 2) await pintar(r, o);
       if (completo(r, o) && r.estado !== "generando") { esperando(false); return; }
       generar(o);
     }
@@ -563,10 +563,10 @@
       const { data: s } = await sb.storage.from("fotos").createSignedUrl(`${o.user_id || user.id}/${o.id}/frente.jpg`, 600);
       if (!s) throw new Error("sin_foto");
       const [{ analizar }, img] = await Promise.all([
-        import("/assets/js/medidas.js?v=15"),
+        import("/assets/js/medidas.js?v=17"),
         new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = s.signedUrl; })
       ]);
-      return compactar(await analizar(img));
+      return compactar(await analizar(img, (o.answers || {}).sexo));
     }
     const cargarFoto = async (o, key) => {
       const { data: s } = await sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/${key}.jpg`, 3600);
@@ -574,7 +574,7 @@
       return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = s.signedUrl; });
     };
     async function medirPerfilGuardado(o) {
-      const { analizarPerfil } = await import("/assets/js/perfil.js?v=16");
+      const { analizarPerfil } = await import("/assets/js/perfil.js?v=17");
       for (const key of ["perfil_izq", "perfil_der"]) {
         try { return { ...compactarPerfil(await analizarPerfil(await cargarFoto(o, key), (o.answers || {}).sexo)), foto: key }; } catch (e) {}
       }
@@ -583,19 +583,20 @@
 
     async function generar(o) {
       const id = o.id;
-      esperando(true, "Estamos preparando tu reporte", "Suele tardar alrededor de un minuto. Puedes quedarte aquí o volver más tarde, se guarda en tu cuenta.");
+      esperando(true, "Estamos preparando tu análisis", "Tarda uno o dos minutos. Puedes quedarte aquí o volver más tarde, se guarda en tu cuenta.");
       try {
         const body = { order_id: id };
         if (!o.medidas || !o.medidas.medidas) { body.medidas = await medirGuardada(o); o.medidas = body.medidas; }
         if (!o.medidas.perfil) { const pf = await medirPerfilGuardado(o).catch(() => null); if (pf) { o.medidas.perfil = pf; body.perfil = pf; if (body.medidas) body.medidas.perfil = pf; } }
         let r = await fnCall("generar-reporte", body);
         // another tab may be writing it already: wait for that one
-        for (let i = 0; r.generando && i < 30; i++) {
-          await pausa(6000);
+        // the report is written in the background: look for it every few seconds
+        for (let i = 0; r.generando && i < 50; i++) {
+          await pausa(5000);
           if (abierto !== id) return;
           const d = await leerReporte(id);
+          if (d && d.estado === "error") throw new Error("fallo");
           if (completo(d, o) && d.estado !== "generando") r = { data: d };
-          else if (!d || d.estado !== "generando") r = await fnCall("generar-reporte", { order_id: id });
         }
         if (abierto !== id) return;
         if (!r.data || !r.data.resumen) throw new Error("tarde");
@@ -642,6 +643,14 @@
       });
     }
 
+    function irA(tab) {
+      $$("#dashNav button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+      $$("#repBody .dash-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+      const y = $("#reportArea").getBoundingClientRect().top + scrollY - 90;
+      if (scrollY > y) scrollTo({ top: y });
+    }
+    $$("#dashNav button").forEach(b => b.addEventListener("click", () => irA(b.dataset.tab)));
+
     const li = arr => (arr || []).map(x => `<li>${esc(x)}</li>`).join("");
     const NIVEL = { alto: "Impacto alto", medio: "Impacto medio", bajo: "Impacto bajo" };
     const ESF = { bajo: "poco esfuerzo", medio: "esfuerzo medio", alto: "mucho esfuerzo" };
@@ -654,7 +663,7 @@
       if (o.medidas && o.medidas.medidas) {
         const firmar = k => sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/${k}.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "");
         const pf = o.medidas.perfil;
-        const [{ montar }, foto, fotoP] = await Promise.all([import("/assets/js/visor-ui.js?v=16"), firmar("frente"), pf ? firmar(pf.foto || "perfil_izq") : ""]);
+        const [{ montar }, foto, fotoP] = await Promise.all([import("/assets/js/visor-ui.js?v=17"), firmar("frente"), pf ? firmar(pf.foto || "perfil_izq") : ""]);
         const vistas = $("#vVistas");
         const ver = (v) => {
           $$("#vVistas button").forEach(b => b.classList.toggle("active", b.dataset.v === v));
@@ -664,8 +673,31 @@
         $$("#vVistas button").forEach(b => { b.onclick = () => ver(b.dataset.v); });
         ver("frente");
         const n = o.medidas.medidas.length + (pf ? pf.medidas.length : 0);
-        $("#repCuenta").textContent = n + " medidas tomadas en " + (pf ? "frente y perfil" : "tu foto de frente");
+        $("#repCuenta").textContent = n + " medidas en " + (pf ? "frente y perfil" : "tu foto de frente");
+        if (foto) $("#dFoto").style.backgroundImage = `url("${foto}")`;
       }
+
+      // ---- inicio
+      const P = r.puntajes || {}, f1 = v => (typeof v === "number" ? v.toFixed(1) : "–");
+      const nivel = v => v == null ? "" : v < 4.5 ? "Por debajo del promedio" : v < 5.5 ? "En el promedio" : v < 6.5 ? "Arriba del promedio" : v < 7.5 ? "Atractivo" : v < 8.5 ? "Muy atractivo" : "Excepcional";
+      $("#dScore").textContent = f1(P.general);
+      $("#dNivel").textContent = nivel(P.general) + (P.general != null ? ". 5 es el promedio de la población." : "");
+      const PIL = [["armonia", "Armonía", "medidas"], ["angularidad", "Angularidad", "rasgos"], ["dimorfismo", "Dimorfismo", "rasgos"], ["rasgos", "Rasgos", "rasgos"]];
+      $("#dPilares").innerHTML = PIL.filter(x => P[x[0]] != null).map(([k, n, t]) => `<button type="button" class="visor-zone" data-ir="${t}"><span>${n}</span><i><b style="width:${P[k] * 10}%"></b></i><em class="mono">${f1(P[k])}</em></button>`).join("");
+      $("#dEval").textContent = (r.evaluaciones || "") + " evaluaciones";
+      const arq = r.arquetipo; $("#dArqCard").hidden = !(arq && arq.nombre);
+      if (arq && arq.nombre) { $("#dArqN").textContent = arq.nombre.charAt(0).toUpperCase() + arq.nombre.slice(1); $("#dArqT").textContent = arq.texto || ""; }
+      $("#dTop").innerHTML = (r.prioridades || []).slice(0, 3).map((p, i) => `<div class="rep-item"><b><span class="mono rep-n">${i + 1}</span>${esc(p.titulo)}</b><p class="rep-tags"><span class="rep-tag rep-${esc(p.impacto)}">${esc(NIVEL[p.impacto] || p.impacto)}</span><span class="rep-tag">${esc(ESF[p.esfuerzo] || p.esfuerzo)}</span></p></div>`).join("");
+
+      // ---- rasgos
+      const TIT = { angularidad: ["Angularidad", "Qué tan definida se ve tu estructura: pómulos, mandíbula, mentón y cuello. Depende mucho de la grasa corporal, la retención de líquidos y la postura."], dimorfismo: ["Dimorfismo", "Qué tanto cada rasgo se acerca a lo que se percibe como atractivo para tu sexo."], rasgos: ["Rasgos", "La calidad de cada rasgo por separado: piel, ojos, cejas, nariz, cabello, labios y sonrisa."] };
+      $("#pilaresBox").innerHTML = Object.keys(TIT).map(k => {
+        const gs = (r.grupos || []).filter(g => g.pilar === k); if (!gs.length) return "";
+        return `<div class="pil"><div class="pil-top"><div><h3>${TIT[k][0]}</h3><p class="hint">${TIT[k][1]}</p></div><p class="mono pil-n">${f1(P[k])}<span> / 10</span></p></div><div class="pil-grupos">${gs.map(g =>
+          `<div class="card pil-g"><div class="rep-zona-top"><b>${esc(g.titulo)}</b><span class="mono">${f1(g.puntaje)}</span></div>${g.items.map(x =>
+            `<div class="pil-row"><div class="pil-row-t"><span>${esc(x.nombre)}</span><i><b class="${x.puntaje < 4.5 ? "bajo" : x.puntaje >= 6.5 ? "alto" : ""}" style="width:${x.puntaje * 10}%"></b></i><em class="mono">${f1(x.puntaje)}</em></div><p class="hint">${esc(x.nota)}</p></div>`).join("")}</div>`).join("")}</div></div>`;
+      }).join("");
+      $$("#reportArea [data-ir]").forEach(b => { b.onclick = () => irA(b.dataset.ir); });
 
       $("#repFortalezas").innerHTML = (r.fortalezas || []).map(f => `<div class="rep-item"><b>${esc(f.titulo)}</b><p class="hint">${esc(f.texto)}</p></div>`).join("");
       $("#repPrioridades").innerHTML = (r.prioridades || []).map((p, i) => `<div class="rep-item"><b><span class="mono rep-n">${i + 1}</span>${esc(p.titulo)}</b><p class="hint">${esc(p.texto)}</p><p class="rep-tags"><span class="rep-tag rep-${esc(p.impacto)}">${esc(NIVEL[p.impacto] || p.impacto)}</span><span class="rep-tag">${esc(ESF[p.esfuerzo] || p.esfuerzo)}</span></p></div>`).join("");
@@ -685,10 +717,10 @@
 
       const col = r.color || {};
       const sw = arr => (arr || []).map(c => `<span class="rep-sw" title="${esc(c.nombre)}"><i style="background:${/^#[0-9a-f]{6}$/i.test(c.hex) ? c.hex : "#ccc"}"></i>${esc(c.nombre)}</span>`).join("");
-      $("#repColor").innerHTML = `<p class="rep-sub-t">Subtono <b>${esc(col.subtono)}</b></p><p class="hint">${esc(col.lectura)}</p><p class="label rep-mini">Te favorecen</p><div class="rep-sws">${sw(col.paleta)}</div><p class="label rep-mini">Mejor evitar</p><div class="rep-sws">${sw(col.evitar)}</div>`;
+      $("#repColor").innerHTML = `<p class="rep-sub-t">Subtono <b>${esc(col.subtono)}</b>${col.contraste ? ` · contraste <b>${esc(col.contraste)}</b>` : ""}</p><p class="hint">${esc(col.lectura)}</p><p class="label rep-mini">Te favorecen</p><div class="rep-sws">${sw(col.paleta)}</div><p class="label rep-mini">Mejor evitar</p><div class="rep-sws">${sw(col.evitar)}</div>`;
 
       const cb = r.cabello_barba || {};
-      $("#repCabello").innerHTML = `<p class="label rep-mini">Cortes</p><ul class="rep-list">${li(cb.cortes)}</ul><p class="label rep-mini">Barba</p><ul class="rep-list">${li(cb.barba)}</ul><p class="label rep-mini">Cejas</p><ul class="rep-list">${li(cb.cejas)}</ul>`;
+      $("#repCabello").innerHTML = `<p class="label rep-mini">Cortes</p><ul class="rep-list">${li(cb.cortes)}</ul><p class="label rep-mini">${(o.answers || {}).sexo === "mujer" ? "Contorno" : "Barba"}</p><ul class="rep-list">${li(cb.barba)}</ul><p class="label rep-mini">Cejas</p><ul class="rep-list">${li(cb.cejas)}</ul>${(cb.lentes || []).length ? `<p class="label rep-mini">Lentes</p><ul class="rep-list">${li(cb.lentes)}</ul>` : ""}`;
 
       $("#repPlanFases").innerHTML = (r.plan || []).map(f => `<div class="card rep-fase"><p class="label">${esc(f.fase)}</p>${(f.pasos || []).map(p => `<div class="rep-paso"><b>${esc(p.accion)}</b><p class="hint">${esc(p.porque)}</p></div>`).join("")}</div>`).join("");
 

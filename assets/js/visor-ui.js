@@ -6,6 +6,8 @@ const $ = (s) => document.querySelector(s);
 const ESTADO = { dentro: ["En rango", "ready"], cerca: ["Cerca del rango", "paid"], fuera: ["Fuera del rango", ""] };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmt = (m) => m.valor + (m.unidad || "");
+// where the value sits on a track whose middle half is the reference range
+const barra = (m) => { const [lo, hi] = m.rango, span = hi - lo || 1; return Math.max(3, Math.min(97, ((m.valor - (lo - span)) / (3 * span)) * 100)); };
 const say = (el, t, type) => { el.textContent = t; el.className = "msg show " + type; };
 
 let data = null, src = "", Z = ZONAS, zona = ZONAS[0][0], view = null, fila = null, casa = null;
@@ -45,9 +47,9 @@ export function montar(d, imgSrc, opciones = {}) {
   const warn = $("#vWarn");
   if (warn) { if ((data.avisos || []).length) say(warn, data.avisos.join(" "), "info"); else warn.className = "msg"; }
 
-  const score = $("#vScore"); if (score) score.textContent = data.resumen.general;
+  const score = $("#vScore"); if (score) score.textContent = (data.resumen.general / 10).toFixed(1);
   $("#vZones").innerHTML = data.resumen.zonas.map(z =>
-    `<button type="button" class="visor-zone" data-zona="${z.id}"><span>${esc(z.nombre)}</span><i><b style="width:${z.puntaje}%"></b></i><em class="mono">${z.puntaje}</em></button>`).join("");
+    `<button type="button" class="visor-zone" data-zona="${z.id}"><span>${esc(z.nombre)}</span><i><b style="width:${z.puntaje}%"></b></i><em class="mono">${(z.puntaje / 10).toFixed(1)}</em></button>`).join("");
   $("#vZones").querySelectorAll("button").forEach(b => b.addEventListener("click", () => setZona(b.dataset.zona, true)));
 
   $("#vTabs").innerHTML = Z.map(([id, n]) => `<button type="button" data-zona="${id}">${esc(n)}</button>`).join("");
@@ -66,7 +68,7 @@ function setZona(id, scroll) {
   const ms = data.medidas.filter(m => m.zona === id);
   $("#vList").innerHTML = ms.map(m => {
     const [txt, cls] = ESTADO[m.estado];
-    return `<button type="button" class="visor-row" data-id="${m.id}"><span>${esc(m.nombre)}</span><span class="visor-row-r"><b class="mono">${fmt(m)}</b><span class="status ${cls}">${txt}</span></span></button>`;
+    return `<button type="button" class="visor-row" data-id="${m.id}"><span>${esc(m.nombre)}<small class="mono">${fmt(m)}</small></span><span class="visor-row-r"><i class="visor-bar"><b class="${cls || "out"}" style="left:${barra(m)}%"></b></i><b class="mono">${(m.puntaje / 10).toFixed(1)}</b></span></button>`;
   }).join("");
   $("#vList").querySelectorAll("button").forEach(b => b.addEventListener("click", () => setMedida(b.dataset.id)));
   if (ms.length) setMedida(ms[0].id);
