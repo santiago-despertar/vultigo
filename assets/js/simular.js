@@ -253,24 +253,32 @@ function controles() {
 const sesiones = {};
 async function usar(modo, datos) {
   for (const k in valores) delete valores[k];
-  S = await (sesiones[modo] ||= (modo === "perfil" ? perfil(datos.urlPerfil, datos.sexo) : frente(datos.url, datos.sexo)).catch(e => { delete sesiones[modo]; throw e; }));
+  const llave = modo + "|" + (modo === "perfil" ? datos.urlPerfil : datos.url).split("?")[0];
+  S = await (sesiones[llave] ||= (modo === "perfil" ? perfil(datos.urlPerfil, datos.sexo) : frente(datos.url, datos.sexo)).catch(e => { delete sesiones[llave]; throw e; }));
   $("#simScoreL").textContent = modo === "perfil" ? "Armonía de perfil" : "Armonía de frente";
   marco(); controles(); pintar(); numeros();
 }
 
+const $$vistas = () => document.querySelectorAll("#simVistas button");
+let actuales = null, listo = false;
 export async function iniciar(datos) {
+  actuales = datos;
+  $$vistas().forEach(x => x.classList.toggle("active", x.dataset.v === "frente"));
   await usar("frente", datos);
+  $("#simVistas").hidden = !datos.urlPerfil;
+  if (listo) return;
+  listo = true;
   const orig = $("#simOrig"), ver = (si) => { mezcla = si ? 0 : 1; pintar(); orig.classList.toggle("on", si); };
   orig.addEventListener("pointerdown", (ev) => { ev.preventDefault(); ver(true); });
   ["pointerup", "pointerleave", "pointercancel"].forEach(e => orig.addEventListener(e, () => ver(false)));
   orig.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); ver(true); } });
   orig.addEventListener("keyup", () => ver(false));
-  const vistas = $("#simVistas"); vistas.hidden = !datos.urlPerfil;
+  const vistas = $("#simVistas");
   vistas.querySelectorAll("button").forEach(b => b.addEventListener("click", async () => {
     if (b.classList.contains("active")) return;
     vistas.querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
     $("#simMsg").className = "msg"; $("#simBox").classList.add("sim-cargando");
-    try { await usar(b.dataset.v, datos); }
+    try { await usar(b.dataset.v, actuales); }
     catch (e) { const m = $("#simMsg"); m.textContent = "No pudimos leer tu foto de perfil para simular. Prueba con la otra vista."; m.className = "msg show err"; }
     $("#simBox").classList.remove("sim-cargando");
   }));

@@ -486,7 +486,7 @@
     const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     const fecha = d => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
     const pausa = ms => new Promise(r => setTimeout(r, ms));
-    let user, abierto = null;
+    let user, abierto = null, todos = [], prog = null;
 
     (async () => {
       if (!sb) { $("#orders").innerHTML = '<p class="hint" style="padding:18px 0">Estamos terminando de preparar tu cuenta.</p>'; return; }
@@ -495,6 +495,7 @@
       $("#who").textContent = ((user.user_metadata && user.user_metadata.full_name) || String(user.email || "").split("@")[0]).split(" ")[0];
 
       const { data: orders } = await sb.from("orders").select("id,status,tier,created_at,paid_at,medidas,answers").order("created_at", { ascending: false });
+      todos = orders || [];
       const box = $("#orders");
       if (!orders || !orders.length) {
         box.innerHTML = '<p class="hint" style="padding:18px 0">Todavía no tienes análisis. <a href="/analisis.html">Empieza el tuyo</a>.</p>';
@@ -650,10 +651,79 @@
       // always land at the top of the section: on a phone the bar is far from the content it changes
       scrollTo({ top: $("#reportArea").getBoundingClientRect().top + scrollY - 84 });
       if (tab === "simular") abrirSim();
+      if (tab === "progreso") progreso();
+      const ab = $("#dashNav button.active"); if (ab && ab.scrollIntoView && innerWidth <= 900) ab.scrollIntoView({ inline: "nearest", block: "nearest" });
+    }
+
+    // ---- progress over time and side-by-side compare
+    const PIL = [["general", "General"], ["armonia", "Armonía"], ["angularidad", "Angularidad"], ["dimorfismo", "Dimorfismo"], ["rasgos", "Rasgos"]];
+    const corta = d => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+    const sg1 = x => (x > 0 ? "+" : "") + x.toFixed(1);
+    function progreso() {
+      if (!prog) prog = cargarProgreso().catch(e => { prog = null; $("#progNota").textContent = "No pudimos cargar tu historial. Vuelve a intentarlo en un momento."; });
+      return prog;
+    }
+    async function cargarProgreso() {
+      const hechos = todos.filter(o => o.status === "listo" || o.status === "pagado");
+      const ids = hechos.map(o => o.id);
+      const { data } = ids.length ? await sb.from("reports").select("order_id, puntajes:data->puntajes").in("order_id", ids) : { data: [] };
+      const pts = Object.fromEntries((data || []).map(r => [r.order_id, r.puntajes]));
+      const serie = hechos.filter(o => pts[o.id] && pts[o.id].general != null)
+        .map(o => ({ o, p: pts[o.id], t: new Date(o.paid_at || o.created_at) })).sort((a, b) => a.t - b.t);
+      if (!serie.length) { $("#progNota").textContent = "Tu primer reporte todavía se está preparando."; return; }
+      const ult = serie[serie.length - 1], pri = serie[0];
+      const dl = ult.p.general - pri.p.general;
+      $("#progNow").innerHTML = `${(+ult.p.general).toFixed(1)}<small>/ 10</small>` + (serie.length > 1 ? ` <em class="sim-d ${Math.abs(dl) < .05 ? "" : dl > 0 ? "sube" : "baja"}">${sg1(dl)}</em>` : "");
+      $("#progPils").innerHTML = PIL.slice(1).map(([k, n]) => `<span>${n}</span><b>${ult.p[k] != null ? (+ult.p[k]).toFixed(1) : "–"}</b>`).join("");
+      $("#progChart").innerHTML = grafica(serie);
+      $("#progNota").textContent = serie.length > 1
+        ? `${serie.length} escaneos desde el ${corta(pri.t)}.`
+        : "Este es tu punto de partida. Cuando hagas otro escaneo, aquí vas a ver la línea de tu avance y podrás comparar las dos fotos.";
+      if (serie.length > 1) comparar(serie);
+    }
+    function grafica(serie) {
+      const W = Math.max(300, Math.min(760, $("#progChart").clientWidth || 640)), H = W < 500 ? 180 : 210, pl = 30, pr = 22, pt = 18, pb = 26;
+      const t0 = +serie[0].t, t1 = +serie[serie.length - 1].t, span = Math.max(1, t1 - t0);
+      const X = t => serie.length === 1 ? (pl + W - pr) / 2 : pl + 18 + (W - pl - pr - 36) * ((+t - t0) / span);
+      const vals = serie.map(s => +s.p.general), lo = Math.max(0, Math.floor(Math.min(...vals) - 1)), hi = Math.min(10, Math.ceil(Math.max(...vals) + 1));
+      const Y = v => pt + (H - pt - pb) * (1 - (v - lo) / Math.max(1, hi - lo));
+      let g = "";
+      for (let v = lo; v <= hi; v++) g += `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${pl - 8}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+      const pts = serie.map(s => [X(s.t), Y(+s.p.general)]);
+      if (pts.length > 1) g += `<polyline fill="none" stroke="var(--ink)" stroke-width="2" points="${pts.map(p => p.join(",")).join(" ")}"/>`;
+      serie.forEach((s, i) => {
+        const [x, y] = pts[i];
+        g += `<circle cx="${x}" cy="${y}" r="5" fill="var(--ink)" stroke="var(--surface-raised)" stroke-width="2"/><text x="${x}" y="${y - 11}" text-anchor="middle" style="fill:var(--ink);font-weight:500">${(+s.p.general).toFixed(1)}</text>`;
+        if (serie.length <= 6 || i === 0 || i === serie.length - 1) g += `<text x="${x}" y="${H - 6}" text-anchor="middle">${new Date(s.t).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}</text>`;
+      });
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tu calificación general en cada escaneo">${g}</svg>`;
+    }
+    function comparar(serie) {
+      $("#progCmp").hidden = false;
+      const opt = serie.map((s, i) => `<option value="${i}">${new Date(s.t).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "2-digit" })} · ${(+s.p.general).toFixed(1)}</option>`).join("");
+      const a = $("#cmpA"), b = $("#cmpB"); a.innerHTML = opt; b.innerHTML = opt;
+      a.value = 0; b.value = serie.length - 1;
+      const firmar = (o) => sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/frente.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "");
+      const fila = (n, va, vb, sub, d) => `<div class="sim-row"><span>${esc(n)}${sub ? `<small class="mono">${sub}</small>` : ""}</span><em class="sim-d ${Math.abs(d) < .05 ? "" : d > 0 ? "sube" : "baja"}">${sg1(d)}</em><b class="mono">${vb}</b></div>`;
+      const pintarCmp = async () => {
+        const A = serie[+a.value], B = serie[+b.value];
+        $("#cmpLA").textContent = corta(A.t); $("#cmpLB").textContent = corta(B.t);
+        $("#cmpPils").innerHTML = PIL.filter(([k]) => A.p[k] != null && B.p[k] != null)
+          .map(([k, n]) => fila(n, A.p[k], B.p[k], `${(+A.p[k]).toFixed(1)} → ${(+B.p[k]).toFixed(1)}`, B.p[k] - A.p[k])).join("");
+        const lista = o => [...((o.medidas || {}).medidas || []), ...(((o.medidas || {}).perfil || {}).medidas || [])];
+        const ma = Object.fromEntries(lista(A.o).map(m => [m.id, m]));
+        const ch = lista(B.o).filter(m => ma[m.id]).map(m => ({ m, o: ma[m.id], d: (m.puntaje - ma[m.id].puntaje) / 10 }))
+          .filter(x => Math.abs(x.d) >= 0.2).sort((p, q) => Math.abs(q.d) - Math.abs(p.d)).slice(0, 10);
+        $("#cmpMed").innerHTML = ch.length ? ch.map(x => fila(x.m.nombre, 0, (x.m.puntaje / 10).toFixed(1), `${x.o.valor}${x.o.unidad || ""} → ${x.m.valor}${x.m.unidad || ""}`, x.d)).join("")
+          : '<p class="hint" style="padding:8px 0">Tus medidas casi no cambiaron entre estos dos escaneos.</p>';
+        const [fa, fb] = await Promise.all([firmar(A.o), firmar(B.o)]);
+        $("#cmpFA").style.backgroundImage = fa ? `url("${fa}")` : ""; $("#cmpFB").style.backgroundImage = fb ? `url("${fb}")` : "";
+      };
+      a.onchange = b.onchange = pintarCmp; pintarCmp();
     }
     function abrirSim() {
       if (!sim && actual) {
-        sim = import("/assets/js/simular.js?v=20").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
+        sim = import("/assets/js/simular.js?v=21").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
           .catch(e => { sim = null; $("#simWait").hidden = true; msg($("#simMsg"), e && e.message === "sin_foto" ? "No encontramos tu foto de frente para simular." : "No pudimos preparar el simulador. Vuelve a intentarlo en un momento."); });
       }
     }
@@ -683,7 +753,9 @@
         const n = o.medidas.medidas.length + (pf ? pf.medidas.length : 0);
         $("#repCuenta").textContent = n + " medidas en " + (pf ? "frente y perfil" : "tu foto de frente");
         if (foto) $("#dFoto").style.backgroundImage = `url("${foto}")`;
-        actual = { url: foto, urlPerfil: fotoP || null, sexo: (o.answers || {}).sexo };
+        const otra = !actual || actual.id !== o.id;
+        actual = { id: o.id, url: foto, urlPerfil: fotoP || null, sexo: (o.answers || {}).sexo };
+        if (otra) { sim = null; $("#simBox").hidden = true; $("#simWait").hidden = false; }
         // someone may have opened Simular before the photo was ready
         if ($('.dash-tab[data-tab="simular"]').classList.contains("active")) abrirSim();
       }
