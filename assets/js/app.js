@@ -271,7 +271,7 @@
   // ---------- cuenta ----------
   if (page === "cuenta") {
     const params = new URLSearchParams(location.search);
-    const next = safePath(params.get("next"), "/panel.html");
+    const next = safePath(params.get("next"), "/panel");
     const tabs = $$(".tabs button");
     function show(t) {
       tabs.forEach(b => b.classList.toggle("active", b.dataset.tab === t));
@@ -391,7 +391,7 @@
       const m = $("#loginMsg"), id = $("#li-email").value.trim();
       if (!id.includes("@")) return msg(m, "Escribe tu correo arriba y vuelve a dar clic.");
       if (!sb) return notReady(m);
-      await sb.auth.resetPasswordForEmail(id, { redirectTo: location.origin + "/cuenta.html?modo=nueva" });
+      await sb.auth.resetPasswordForEmail(id, { redirectTo: location.origin + "/cuenta?modo=nueva" });
       msg(m, "Si el correo existe, te mandamos un enlace para cambiar tu contraseña.", "ok");
     });
   }
@@ -496,7 +496,7 @@
     (async () => {
       if (!sb) return;
       user = await getUser();
-      if (!user) { await toLogin("/cuenta.html?next=/analisis.html"); return; }
+      if (!user) { await toLogin("/cuenta?next=/analisis"); return; }
       // resume the latest draft order if there is one
       const { data } = await sb.from("orders").select("*").eq("status", "borrador").order("created_at", { ascending: false }).limit(1);
       if (data && data[0]) {
@@ -891,7 +891,7 @@
     (async () => {
       if (!sb) { $("#orders").innerHTML = '<p class="hint" style="padding:18px 0">Estamos terminando de preparar tu cuenta.</p>'; return; }
       user = await getUser();
-      if (!user) { await toLogin("/cuenta.html?modo=entrar&next=/panel.html"); return; }
+      if (!user) { await toLogin("/cuenta?modo=entrar&next=/panel"); return; }
       $("#who").textContent = ((user.user_metadata && user.user_metadata.full_name) || String(user.email || "").split("@")[0]).split(" ")[0];
 
       const { data: orders } = await sb.from("orders").select("id,status,tier,created_at,paid_at,medidas,answers").order("created_at", { ascending: false });
@@ -900,7 +900,7 @@
       if (conNombre) $("#who").textContent = conNombre.answers.nombre.split(" ")[0];
       const box = $("#orders");
       if (!orders || !orders.length) {
-        box.innerHTML = '<p class="hint" style="padding:18px 0">Todavía no tienes análisis. <a href="/analisis.html">Empieza el tuyo</a>.</p>';
+        box.innerHTML = '<p class="hint" style="padding:18px 0">Todavía no tienes análisis. <a href="/analisis">Empieza el tuyo</a>.</p>';
         return;
       }
       box.innerHTML = "";
@@ -910,7 +910,7 @@
         row.innerHTML = `<div><b>${esc((C.PLAN_NAMES || {})[o.tier] || "Análisis Resalta")}</b><div class="hint">${fecha(o.created_at)}</div></div><div style="display:flex;gap:10px;align-items:center"><span class="status ${cls}">${txt}</span></div>`;
         const act = row.lastElementChild;
         if (o.status === "borrador") {
-          act.insertAdjacentHTML("beforeend", '<a class="btn btn-ghost" style="height:40px" href="/analisis.html">Continuar</a>');
+          act.insertAdjacentHTML("beforeend", '<a class="btn btn-ghost" style="height:40px" href="/analisis">Continuar</a>');
           const del = document.createElement("button"); del.className = "order-del"; del.type = "button"; del.textContent = "Borrar";
           del.setAttribute("aria-label", "Borrar este análisis sin pagar");
           del.onclick = async () => {
@@ -919,7 +919,7 @@
             try {
               await fnCall("delete-photos", { accion: "pedido", order_id: o.id });
               row.remove(); todos = todos.filter(x => x.id !== o.id);
-              if (!box.querySelector(".order")) box.innerHTML = '<p class="hint" style="padding:18px 0">Todavía no tienes análisis. <a href="/analisis.html">Empieza el tuyo</a>.</p>';
+              if (!box.querySelector(".order")) box.innerHTML = '<p class="hint" style="padding:18px 0">Todavía no tienes análisis. <a href="/analisis">Empieza el tuyo</a>.</p>';
             } catch (e) { del.disabled = false; del.textContent = "Borrar"; msg($("#privMsg"), "No pudimos borrar ese análisis. Inténtalo de nuevo en un momento."); }
           };
           act.appendChild(del);
@@ -933,7 +933,7 @@
       const pagado = orders.find(o => o.status === "pagado" || o.status === "listo");
       if (pagado) abrir(pagado, false);
       if (pagado && new URLSearchParams(location.search).get("suscripcion") === "ok") {
-        history.replaceState(null, "", "/panel.html");
+        history.replaceState(null, "", "/panel");
         setTimeout(() => { irA("progreso"); msg($("#subMsg"), "Listo, tu seguimiento mensual está activo. Ya puedes hacer tu escaneo de este mes.", "ok"); }, 300);
       }
     })();
@@ -1161,7 +1161,7 @@
         $("#subL").textContent = "Seguimiento mensual"; $("#subT").textContent = "Mide tu avance cada mes";
         $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu línea de progreso y la comparación entre fotos. ${st.nuevo === false ? "" : "El primer mes es gratis, después "}<b class="mono">${esc(precio)}</b> MXN al mes y cancelas cuando quieras.`;
         boton("Activar seguimiento", "btn btn-primary", function () { accion(this, "suscribir"); });
-        enlace("Un escaneo suelto", "/analisis.html", "btn btn-ghost");
+        enlace("Un escaneo suelto", "/analisis", "btn btn-ghost");
       } else {
         $("#subL").textContent = "Tu seguimiento mensual";
         if (st.prueba) {
@@ -1170,7 +1170,7 @@
         } else if (st.disponible) {
           $("#subT").textContent = "Tu escaneo de este mes está disponible";
           $("#subX").textContent = "Sube tus fotos nuevas y te armamos un reporte completo para comparar con el anterior.";
-          enlace("Hacer mi escaneo del mes", "/analisis.html?seguimiento=1", "btn btn-primary");
+          enlace("Hacer mi escaneo del mes", "/analisis?seguimiento=1", "btn btn-primary");
         } else {
           $("#subT").textContent = "Ya hiciste tu escaneo de este mes";
           $("#subX").textContent = st.cancela ? `Tu suscripción termina el ${fin}.` : `El siguiente se libera el ${fin}, cuando se renueva tu suscripción.`;
@@ -1303,7 +1303,7 @@
       const r = {}; Object.keys(r0 || {}).forEach(k => { r[k] = parsear(r0[k]); });
       $("#repBody").hidden = false;
       $("#repResumen").textContent = r.resumen || "";
-      const pdf = $("#repPdf"); if (pdf) { pdf.href = "/reporte.html?pedido=" + encodeURIComponent(o.id); pdf.hidden = false; }
+      const pdf = $("#repPdf"); if (pdf) { pdf.href = "/reporte?pedido=" + encodeURIComponent(o.id); pdf.hidden = false; }
 
       if (o.medidas && o.medidas.medidas) {
         const firmar = k => sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/${k}.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "");

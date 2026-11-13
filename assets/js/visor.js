@@ -1,4 +1,4 @@
-// The free viewer at /visor.html: pick a photo, measure it in the browser, show it in the viewer.
+// The free viewer at /visor: pick a photo, measure it in the browser, show it in the viewer.
 import { analizar, precargar } from "/assets/js/medidas.js?v=18";
 import { montar } from "/assets/js/visor-ui.js?v=17";
 
@@ -45,6 +45,6 @@ async function run() {
   go.disabled = false; go.textContent = "Medir mi cara";
 }
 
-// Lets the page be opened with a sample photo: /visor.html?foto=/assets/img/...
+// Lets the page be opened with a sample photo: /visor?foto=/assets/img/...
 const sample = new URLSearchParams(location.search).get("foto");
 if (sample && /^\/assets\/img\//.test(sample)) loadImage(sample).then(i => { img = i; run(); }).catch(() => {});

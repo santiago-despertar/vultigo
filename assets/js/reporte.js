@@ -20,7 +20,7 @@
     const sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY);
     const { data: { user } } = await sb.auth.getUser();
     const id = new URLSearchParams(location.search).get("pedido");
-    if (!user) { location.replace("/cuenta.html?modo=entrar&next=" + encodeURIComponent(location.pathname + location.search)); return; }
+    if (!user) { location.replace("/cuenta?modo=entrar&next=" + encodeURIComponent(location.pathname + location.search)); return; }
     if (!id) return fallo("Falta el reporte que quieres ver. Ábrelo desde tu cuenta.");
     const [{ data: o }, { data: rep }] = await Promise.all([
       sb.from("orders").select("id,tier,answers,medidas,created_at,paid_at,status").eq("id", id).maybeSingle(),
