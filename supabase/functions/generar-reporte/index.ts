@@ -95,6 +95,38 @@ const esquema = {
   }
 };
 
+
+// The model sometimes hands back a section as a JSON string (with stray text after it). Recover the object.
+function parsear(v: unknown): unknown {
+  if (typeof v !== "string") return v;
+  const t = v.trim();
+  try { return JSON.parse(t); } catch (_) { /* fall through */ }
+  if (t[0] !== "{" && t[0] !== "[") return v;
+  let depth = 0, enTexto = false, escape = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (enTexto) { if (escape) escape = false; else if (c === "\\") escape = true; else if (c === '"') enTexto = false; continue; }
+    if (c === '"') enTexto = true;
+    else if (c === "{" || c === "[") depth++;
+    else if (c === "}" || c === "]") { depth--; if (depth === 0) { try { return JSON.parse(t.slice(0, i + 1)); } catch (_) { return v; } } }
+  }
+  return v;
+}
+const lista = (x: unknown) => Array.isArray(x) && x.length > 0;
+function limpiar(r: Record<string, unknown>) {
+  const o: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(r)) o[k] = parsear(v);
+  return o;
+}
+// Every section the panel shows has to be there and in the right shape.
+function completo(r: Record<string, any>) {
+  return typeof r.resumen === "string" && r.resumen.length > 20
+    && lista(r.fortalezas) && lista(r.prioridades) && lista(r.zonas) && lista(r.plan)
+    && r.piel && typeof r.piel.lectura === "string" && lista(r.piel.acciones)
+    && r.color && typeof r.color.lectura === "string" && lista(r.color.paleta)
+    && r.cabello_barba && lista(r.cabello_barba.cortes);
+}
+
 function instrucciones(tier: string, a: Record<string, unknown>) {
   const edad = a.edad ? `${a.edad} años` : "edad no indicada";
   return `Eres el analista de Resalta, un servicio de análisis de estética facial para México y Latinoamérica.
@@ -178,14 +210,7 @@ Deno.serve(async (req) => {
       `${x.nombre} (${x.zona}): ${x.valor}${x.unidad ?? ""} | referencia ${(x.rango as number[])[0]} a ${(x.rango as number[])[1]} | ${x.estado} | puntaje ${x.puntaje}`).join("\n");
     const zonas = m.resumen.zonas.map((z: Record<string, unknown>) => `${z.nombre}: ${z.puntaje}`).join(", ");
 
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
+    const cuerpo = {
         model: MODELO,
         max_tokens: 7000,
         system: instrucciones(order.tier, order.answers ?? {}),
@@ -198,18 +223,28 @@ Deno.serve(async (req) => {
             { type: "text", text: `${imagenes.length > 1 ? "Fotos: la primera es de frente, la segunda de perfil." : "Foto de frente."}\n\nPuntaje general: ${m.resumen.general}/100.\nPuntajes por zona: ${zonas}.\n\nMedidas:\n${tabla}\n${m.avisos?.length ? `\nAvisos de calidad de la foto: ${m.avisos.join(" ")}` : ""}\n\nEscribe el reporte.` }
           ]
         }]
-      })
-    });
-    if (!r.ok) {
-      console.error("anthropic", r.status, (await r.text()).slice(0, 500));
-      await soltar();
-      return json({ error: "No pudimos generar tu reporte en este momento" }, 502);
-    }
-    const resp = await r.json();
-    const bloque = (resp.content ?? []).find((c: Record<string, unknown>) => c.type === "tool_use");
-    if (!bloque) { console.error("sin tool_use", JSON.stringify(resp).slice(0, 500)); await soltar(); return json({ error: "No pudimos generar tu reporte en este momento" }, 502); }
-
-    const data = { ...bloque.input, tier: order.tier, modelo: MODELO, generado: new Date().toISOString(), uso: resp.usage ?? null };
+      };
+    const pedir = async () => {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify(cuerpo)
+      });
+      if (!r.ok) { console.error("anthropic", r.status, (await r.text()).slice(0, 500)); return null; }
+      const resp = await r.json();
+      const bloque = (resp.content ?? []).find((c: Record<string, unknown>) => c.type === "tool_use");
+      if (!bloque) { console.error("sin tool_use", JSON.stringify(resp).slice(0, 500)); return null; }
+      return { input: limpiar(bloque.input), usage: resp.usage ?? null };
+    };
+    // one retry if a section came back missing or malformed
+    let res = await pedir();
+    if (res && !completo(res.input as Record<string, any>)) { console.warn("reporte incompleto, reintento"); const otro = await pedir(); if (otro && completo(otro.input as Record<string, any>)) res = otro; }
+    if (!res || !completo(res.input as Record<string, any>)) { await soltar(); return json({ error: "No pudimos generar tu reporte en este momento" }, 502); }
+    const data = { ...res.input, tier: order.tier, modelo: MODELO, generado: new Date().toISOString(), uso: res.usage };
     if (order.tier !== "hard") delete data.avanzado;
     await admin.from("reports").update({ data }).eq("order_id", order.id);
     await admin.from("orders").update({ status: "listo", delivered_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pagado");
