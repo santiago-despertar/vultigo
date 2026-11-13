@@ -318,7 +318,7 @@
       msg(m, text);
     }
 
-    import("/assets/js/medidas.js?v=17").then(m => m.precargar()).catch(() => {});
+    import("/assets/js/medidas.js?v=18").then(m => m.precargar()).catch(() => {});
     import("/assets/js/perfil.js?v=17").then(m => m.precargarPerfil()).catch(() => {});
 
     const grid = $("#photoGrid");
@@ -379,7 +379,7 @@
     async function medir(blob, m) {
       if (!sb || !order) return;
       try {
-        const { analizar } = await import("/assets/js/medidas.js?v=17");
+        const { analizar } = await import("/assets/js/medidas.js?v=18");
         const bmp = await createImageBitmap(blob);
         M.frente = compactar(await analizar(bmp, (order.answers || {}).sexo));
         await guardarMedidas();
@@ -492,7 +492,7 @@
       if (!sb) { $("#orders").innerHTML = '<p class="hint" style="padding:18px 0">Estamos terminando de preparar tu cuenta.</p>'; return; }
       user = await getUser();
       if (!user) { await toLogin("/cuenta.html?modo=entrar&next=/panel.html"); return; }
-      $("#who").textContent = (user.user_metadata && user.user_metadata.full_name) || user.email;
+      $("#who").textContent = ((user.user_metadata && user.user_metadata.full_name) || String(user.email || "").split("@")[0]).split(" ")[0];
 
       const { data: orders } = await sb.from("orders").select("id,status,tier,created_at,paid_at,medidas,answers").order("created_at", { ascending: false });
       const box = $("#orders");
@@ -563,7 +563,7 @@
       const { data: s } = await sb.storage.from("fotos").createSignedUrl(`${o.user_id || user.id}/${o.id}/frente.jpg`, 600);
       if (!s) throw new Error("sin_foto");
       const [{ analizar }, img] = await Promise.all([
-        import("/assets/js/medidas.js?v=17"),
+        import("/assets/js/medidas.js?v=18"),
         new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = s.signedUrl; })
       ]);
       return compactar(await analizar(img, (o.answers || {}).sexo));
@@ -643,11 +643,16 @@
       });
     }
 
+    let sim = null, actual = null;
     function irA(tab) {
       $$("#dashNav button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
       $$("#repBody .dash-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
-      const y = $("#reportArea").getBoundingClientRect().top + scrollY - 90;
-      if (scrollY > y) scrollTo({ top: y });
+      // always land at the top of the section: on a phone the bar is far from the content it changes
+      scrollTo({ top: $("#reportArea").getBoundingClientRect().top + scrollY - 84 });
+      if (tab === "simular" && !sim && actual) {
+        sim = import("/assets/js/simular.js?v=18").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
+          .catch(e => { sim = null; $("#simWait").hidden = true; msg($("#simMsg"), e && e.message === "sin_foto" ? "No encontramos tu foto de frente para simular." : "No pudimos preparar el simulador. Vuelve a intentarlo en un momento."); });
+      }
     }
     $$("#dashNav button").forEach(b => b.addEventListener("click", () => irA(b.dataset.tab)));
 
@@ -675,6 +680,7 @@
         const n = o.medidas.medidas.length + (pf ? pf.medidas.length : 0);
         $("#repCuenta").textContent = n + " medidas en " + (pf ? "frente y perfil" : "tu foto de frente");
         if (foto) $("#dFoto").style.backgroundImage = `url("${foto}")`;
+        actual = { url: foto, sexo: (o.answers || {}).sexo };
       }
 
       // ---- inicio
