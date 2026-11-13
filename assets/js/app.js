@@ -689,13 +689,25 @@
         if (!sub) return;
         let st = {}; try { st = await fnCall("suscripcion", { accion: "estado" }); } catch (e) { return; }
         if (st.activa) return;
+        const fecha = d => d.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+        const en30 = new Date(Date.now() + 30 * 864e5);
+        $$("[data-sub-fecha]").forEach(e => { e.textContent = fecha(en30); });
+        if (st.nuevo === false) { // already had a subscription before: no free month again
+          sub.querySelector(".upsell-price").innerHTML = `<b class="mono">${C.SUB_PRICE || "$349"}</b> MXN al mes`;
+          sub.querySelector(".hint").textContent = "Se cobra a la tarjeta que acabas de usar. Cancelas cuando quieras desde tu cuenta.";
+        }
         sub.hidden = false;
         $("#subNo").onclick = () => { sub.hidden = true; };
         $("#subYes").onclick = async () => {
           const b = $("#subYes"), m = $("#subMsgG"); clearMsg(m);
-          b.disabled = true; b.textContent = "Abriendo el pago…";
-          try { const { url } = await fnCall("suscripcion", { accion: "suscribir" }); location.href = url; }
-          catch (e) { b.disabled = false; b.textContent = "Activar mi seguimiento"; msg(m, "No pudimos abrir el pago. Inténtalo de nuevo en un momento."); }
+          b.disabled = true; b.textContent = "Activando…";
+          try {
+            const r = await fnCall("suscripcion", { accion: "activar", order_id: id });
+            if (r.url) { location.href = r.url; return; }
+            sub.hidden = true;
+            const pc = r.primer_cobro ? fecha(new Date(r.primer_cobro)) : "";
+            msg(done, r.prueba ? `Listo. Tu seguimiento está activo. Tu primer cobro será el ${pc} y lo puedes cancelar antes desde tu cuenta.` : "Listo. Tu seguimiento está activo.", "ok");
+          } catch (e) { b.disabled = false; b.textContent = "Sí, agregar mi seguimiento"; msg(m, "No pudimos activarlo. Inténtalo de nuevo en un momento."); }
         };
       }
 
@@ -996,12 +1008,15 @@
       };
       if (!st.activa) {
         $("#subL").textContent = "Seguimiento mensual"; $("#subT").textContent = "Mide tu avance cada mes";
-        $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu línea de progreso y la comparación entre fotos. <b class="mono">${esc(precio)}</b> MXN al mes y cancelas cuando quieras.`;
+        $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu línea de progreso y la comparación entre fotos. ${st.nuevo === false ? "" : "El primer mes es gratis, después "}<b class="mono">${esc(precio)}</b> MXN al mes y cancelas cuando quieras.`;
         boton("Activar seguimiento", "btn btn-primary", function () { accion(this, "suscribir"); });
         enlace("Un escaneo suelto", "/analisis.html", "btn btn-ghost");
       } else {
         $("#subL").textContent = "Tu seguimiento mensual";
-        if (st.disponible) {
+        if (st.prueba) {
+          $("#subT").textContent = "Tu mes gratis está activo";
+          $("#subX").textContent = st.cancela ? `Cancelaste tu seguimiento. No se te va a cobrar y termina el ${fin}.` : `Tu primer cobro es el ${fin}. Ese mismo día se libera tu primer escaneo del seguimiento para comparar tu avance.`;
+        } else if (st.disponible) {
           $("#subT").textContent = "Tu escaneo de este mes está disponible";
           $("#subX").textContent = "Sube tus fotos nuevas y te armamos un reporte completo para comparar con el anterior.";
           enlace("Hacer mi escaneo del mes", "/analisis.html?seguimiento=1", "btn btn-primary");
@@ -1011,6 +1026,7 @@
         }
         if (st.cancela) {
           if (st.disponible) $("#subX").textContent += ` Tu suscripción termina el ${fin}.`;
+          if (st.prueba) $("#subX").textContent = `Cancelaste tu seguimiento. No se te va a cobrar y termina el ${fin}.`;
           boton("Seguir con mi suscripción", "btn btn-ghost", function () { accion(this, "reactivar"); });
         } else {
           boton("Cancelar suscripción", "prog-link", function () {
