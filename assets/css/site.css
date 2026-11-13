@@ -1906,7 +1906,7 @@ html.fq-abierto{overflow:hidden}
 .fx-top i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.14)}
 .fx-top span{margin-left:10px;font-family:var(--font-mono);font-size:12px;color:rgba(255,255,255,.45)}
 .fx-top em{margin-left:auto;font-style:normal;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:3px 7px}
-.fx-stage{position:relative;height:560px;color:#EEF2F5}
+.fx-stage{position:relative;height:520px;color:#EEF2F5}
 .fx-scene{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .45s ease}
 .fx-scene.on{opacity:1;visibility:visible}
 .fx:not(.fx-run) .fx-scene *{animation-play-state:paused!important}
@@ -1962,7 +1962,7 @@ html.fq-abierto{overflow:hidden}
 /* strengths and flaws */
 .fx-ui{position:absolute;inset:0;padding:22px;display:flex;flex-direction:column;gap:14px}
 .fx-hero{display:flex;align-items:center;gap:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px}
-.fx-hero img{width:96px;height:96px;object-fit:cover;object-position:50% 35%;border-radius:12px}
+.fx-thumb{flex:none;width:96px;height:96px;border-radius:12px;background-size:230%;background-position:50% 30%}
 .fx-big{font-size:46px;font-weight:300;line-height:1.05;margin:2px 0 0}
 .fx-pct{font-size:13px;color:rgba(255,255,255,.65);margin:2px 0 0}
 .fx-bal{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -2010,11 +2010,11 @@ html.fq-abierto{overflow:hidden}
 .fx-typing i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.6);animation:fxBlink 1s infinite}
 .fx-typing i:nth-child(2){animation-delay:.15s}.fx-typing i:nth-child(3){animation-delay:.3s}
 @keyframes fxBlink{50%{opacity:.25}}
-.fx-txt{display:none}
-.fx-scene.on .fx-typing{animation:fxGone 0s linear 2.6s forwards}
+.fx-txt{display:block;max-height:0;opacity:0;overflow:hidden}
+.fx-scene.on .fx-typing{animation:fxGone .2s linear 2.6s forwards}
 .fx-scene.on .fx-txt{animation:fxShow .4s ease 2.6s forwards}
-@keyframes fxGone{to{display:none;width:0;opacity:0}}
-@keyframes fxShow{from{display:block;opacity:0}to{display:block;opacity:1}}
+@keyframes fxGone{to{opacity:0;height:0;width:0;overflow:hidden}}
+@keyframes fxShow{from{max-height:0;opacity:0}to{max-height:240px;opacity:1}}
 .fx-m.img{padding:10px;display:flex;flex-direction:column;gap:10px}
 .fx-btn{align-self:flex-start;font-size:13px;padding:8px 14px;border-radius:999px;background:#EEF2F5;color:#14181C}
 .fx-m.img img{width:180px;height:200px;object-fit:cover;object-position:50% 35%;border-radius:10px;opacity:0}
@@ -2055,7 +2055,7 @@ html.fq-abierto{overflow:hidden}
   .fx-bal>div:last-child .fx-b:nth-child(n+4){display:none}
   .fx-bal>div:first-child .fx-b:nth-child(n+3){display:none}
   .fx-big{font-size:38px}
-  .fx-hero img{width:72px;height:72px}
+  .fx-thumb{width:72px;height:72px}
   .fx-row{grid-template-columns:minmax(0,1fr) 60px 32px;font-size:12px}
   .fx-chat{padding:14px}
   .fx-m{font-size:13px}
