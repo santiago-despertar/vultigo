@@ -1559,3 +1559,4 @@ g.esc3d-marcas{opacity:0;transition:opacity .3s}
 .cal-video .checks li{border-top-color:rgba(255,255,255,.14)}
 .cal-video .checks li::before{color:#34e07a}
 @media (max-width:560px){.cal-res-num span{font-size:52px}}
+.cal-paso{padding:0!important}
