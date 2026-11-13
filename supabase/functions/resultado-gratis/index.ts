@@ -22,7 +22,7 @@ function correo(nombre: string, score: number, partes: Parte[], fuerte: string, 
       <tr><td style="padding:10px 0;border-bottom:1px solid #E3E7EA;font-size:15px;color:#16191D">${esc(p.k)}</td>
       <td style="padding:10px 0;border-bottom:1px solid #E3E7EA;width:140px"><div style="background:#E3E7EA;border-radius:4px;height:6px"><div style="background:#4A5866;border-radius:4px;height:6px;width:${Math.max(4, Math.min(100, p.v))}%"></div></div></td>
       <td style="padding:10px 0 10px 12px;border-bottom:1px solid #E3E7EA;text-align:right;font-family:monospace;font-size:15px;color:#16191D">${Math.round(p.v)}</td></tr>`).join("");
-  const url = `${site}/cuenta.html?next=/analisis.html&utm_source=email&utm_medium=resultado&utm_campaign=calificacion`;
+  const url = `${site}/cuenta?next=/analisis&utm_source=email&utm_medium=resultado&utm_campaign=calificacion`;
   return `<!doctype html><html><body style="margin:0;background:#F3F1EC;font-family:Helvetica,Arial,sans-serif;color:#16191D">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F3F1EC"><tr><td align="center" style="padding:28px 14px">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#FFFFFF;border-radius:16px;border:1px solid #D3D8DD">
