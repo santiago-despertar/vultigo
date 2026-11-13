@@ -18,6 +18,7 @@
         <button type="button" data-tab="reporte">Reporte</button>
         <button type="button" data-tab="plan">Plan</button>
         <button type="button" data-tab="simular">Simular</button>
+        <button type="button" data-tab="progreso">Progreso</button>
       </nav>
       <div class="dash-body">
         <div class="rep-head">
@@ -51,6 +52,7 @@
               <button type="button" class="card dash-tool" data-ir="reporte"><b>Reporte</b><span class="hint">La lectura completa, zona por zona</span></button>
               <button type="button" class="card dash-tool" data-ir="plan"><b>Plan</b><span class="hint">Qué hacer y en qué orden</span></button>
               <button type="button" class="card dash-tool" data-ir="simular"><b>Simular</b><span class="hint">Mueve mentón, nariz, labios y cejas sobre tu foto</span></button>
+              <button type="button" class="card dash-tool" data-ir="progreso"><b>Progreso</b><span class="hint">Tu calificación en cada escaneo y la comparación entre fotos</span></button>
             </div>
           </div>
 
@@ -130,6 +132,30 @@
                 <button type="button" class="btn btn-ghost" id="simReset" style="margin:4px 0 16px">Reiniciar</button>
                 <div class="card"><p class="label">Lo que cambia en tus medidas</p><div id="simDelta"></div></div>
               </div>
+            </div>
+          </div>
+
+          <div class="dash-tab" data-tab="progreso">
+            <h3 class="rep-h rep-h0">Tu progreso</h3>
+            <p class="hint rep-sub">Cada escaneo queda guardado. Aquí ves cómo cambia tu calificación con el tiempo y puedes comparar dos escaneos lado a lado.</p>
+            <div class="card prog-card">
+              <div class="prog-top"><div><p class="label">Calificación general</p><p class="prog-now" id="progNow"></p></div><div class="prog-pils" id="progPils"></div></div>
+              <div class="prog-chart" id="progChart"></div>
+              <p class="hint" id="progNota"></p>
+            </div>
+            <div class="card prog-cmp" id="progCmp" hidden>
+              <p class="label">Comparar escaneos</p>
+              <div class="prog-sel"><select id="cmpA" aria-label="Escaneo anterior"></select><span class="sim-fl">→</span><select id="cmpB" aria-label="Escaneo más reciente"></select></div>
+              <div class="prog-fotos"><figure><div class="prog-foto" id="cmpFA"></div><figcaption class="hint" id="cmpLA"></figcaption></figure><figure><div class="prog-foto" id="cmpFB"></div><figcaption class="hint" id="cmpLB"></figcaption></figure></div>
+              <div id="cmpPils" class="prog-rows"></div>
+              <p class="label" style="margin-top:18px">Medidas que más cambiaron</p>
+              <div id="cmpMed" class="prog-rows"></div>
+            </div>
+            <div class="card prog-oferta" id="progOferta">
+              <p class="label">Nuevo escaneo</p>
+              <h3>Mide tu avance cada mes</h3>
+              <p class="hint">Repite tu escaneo con la misma luz, distancia y peinado. Los cambios reales de piel, peso, barba o tratamientos se notan entre 6 y 12 semanas.</p>
+              <div id="progAccion" class="prog-accion"><a class="btn btn-primary" href="/analisis.html">Hacer un nuevo escaneo</a></div>
             </div>
           </div>
 
