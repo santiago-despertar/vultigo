@@ -24,6 +24,7 @@ HEAD = """<!doctype html>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/site.css?v=__V__">
+<script>try{{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}}catch(e){{}}</script>
 {extra_head}
 </head>
 <body data-page="{page}">
@@ -41,7 +42,7 @@ HEADER = """<header class="site-header">
     </nav>
     <div class="nav-cta">
       <a class="btn btn-ghost" href="/cuenta.html" data-auth="out">Entrar</a>
-      <a class="btn btn-ghost" href="/panel.html" data-auth="in" hidden>Mi cuenta</a>
+      <a class="btn btn-ghost" href="/panel.html" data-auth="in">Mi cuenta</a>
       <a class="btn btn-primary" href="/analisis.html">Empieza tu plan</a>
       <button class="menu-btn" aria-label="Abrir menú" onclick="document.getElementById('navLinks').classList.toggle('open')">
         <svg width="22" height="22" viewBox="0 0 22 22" stroke="currentColor" stroke-width="1.6"><path d="M3 7h16M3 15h16"/></svg>
