@@ -219,6 +219,7 @@
       if (gb) gb.hidden = t === "signup" && !!s1 && !s1.classList.contains("on");
     }
     tabs.forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
+    $$("[data-go]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); show(a.dataset.go); }));
     if (params.get("modo") === "entrar") show("login");
 
     $$("[data-google]").forEach(btn => btn.addEventListener("click", async () => {
@@ -246,6 +247,12 @@
       if (inp) setTimeout(() => inp.focus({ preventScroll: true }), 60);
     }
     suF.querySelector('[data-su="atras"]').addEventListener("click", () => suIr(suPaso - 1));
+    // the small back link steps back inside the form before leaving the page
+    const ob = $("#onbBack");
+    if (ob) ob.addEventListener("click", e => {
+      if (!suF.hidden && suPaso > 1) { e.preventDefault(); suIr(suPaso - 1); }
+      else if (suF.hidden && params.get("modo") !== "entrar") { e.preventDefault(); show("signup"); }
+    });
     // a lead is kept as soon as we have the email, even if they stop before the password
     function guardarLead(email, nombre) {
       if (!sb) return;
@@ -312,6 +319,12 @@
       scrollTo({ top: 0, behavior: "smooth" });
     }
     $$("[data-back]").forEach(b => b.addEventListener("click", () => go(+b.dataset.back)));
+    const ob = $("#onbBack");
+    if (ob) ob.addEventListener("click", e => {
+      const act = document.querySelector(".wstep.active"), n = act ? +act.dataset.step : 1;
+      if (n > 1) { e.preventDefault(); go(n - 1); }
+      else if (quiz && quiz.atras()) e.preventDefault();
+    });
 
     // The profile form is shown one question at a time, like a short quiz.
     const quiz = (() => {
@@ -323,7 +336,8 @@
       qs.forEach(q => {
         const sel = q.querySelector("select"); if (!sel) return;
         sel.hidden = true;
-        const box = document.createElement("div"); box.className = "opts" + (sel.options.length > 5 ? " opts-2" : "");
+        const box = document.createElement("div"), opsT = [...sel.options].filter(o => !o.disabled).map(o => o.textContent);
+        box.className = "opts" + (sel.options.length > 5 ? " opts-2" : "") + (opsT.length > 5 && opsT.every(t => t.length <= 15) ? " cortas" : "");
         [...sel.options].filter(o => !o.disabled).forEach(o => {
           const b = document.createElement("button"); b.type = "button"; b.className = "opt"; b.textContent = o.textContent; b.dataset.v = o.value || o.textContent;
           b.addEventListener("click", () => {
@@ -379,6 +393,7 @@
           mostrar(saltarNombre && i === 0 && f.nombre.value.trim() ? 1 : i, true);
         },
         alFinal() { mostrar(qs.length - 1); },
+        atras() { if (i === 0) return false; mostrar(paso(i, -1)); return true; },
         ir(name) { const k = qs.findIndex(q => q.querySelector(`[name="${name}"]`)); if (k >= 0) mostrar(k); }
       };
     })();
