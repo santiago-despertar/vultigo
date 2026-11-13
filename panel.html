@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794574226">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794575252">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 <script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next=/panel.html");}catch(e){}})()</script>
 </head>
@@ -62,6 +62,7 @@
         <button type="button" data-tab="plan">Plan</button>
         <button type="button" data-tab="simular">Simular</button>
         <button type="button" data-tab="progreso">Progreso</button>
+        <button type="button" data-tab="chat">Preguntar</button>
       </nav>
       <div class="dash-body">
         <div class="rep-head">
@@ -96,6 +97,7 @@
               <button type="button" class="card dash-tool" data-ir="plan"><b>Plan</b><span class="hint">Qué hacer y en qué orden</span></button>
               <button type="button" class="card dash-tool" data-ir="simular"><b>Simular</b><span class="hint">Mueve mentón, nariz, labios y cejas sobre tu foto</span></button>
               <button type="button" class="card dash-tool" data-ir="progreso"><b>Progreso</b><span class="hint">Tu calificación en cada escaneo y la comparación entre fotos</span></button>
+              <button type="button" class="card dash-tool" data-ir="chat"><b>Preguntar</b><span class="hint">Resuelve tus dudas sobre tu reporte, cortes, barba o piel</span></button>
             </div>
           </div>
 
@@ -204,6 +206,25 @@
             </div>
           </div>
 
+          <div class="dash-tab" data-tab="chat">
+            <h3 class="rep-h rep-h0">Pregunta sobre tus resultados</h3>
+            <p class="hint rep-sub">Responde con base en tus medidas y tu reporte. Pregunta lo que quieras sobre tu cara, cortes, barba, piel o qué hacer primero.</p>
+            <div class="card chat-card">
+              <div class="chat-log" id="chatLog" aria-live="polite"></div>
+              <div class="chat-sug" id="chatSug">
+                <button type="button" class="sim-pre">¿Qué corte de pelo me queda mejor?</button>
+                <button type="button" class="sim-pre">¿Qué es lo primero que debo trabajar?</button>
+                <button type="button" class="sim-pre">¿Qué tipo de barba me conviene?</button>
+                <button type="button" class="sim-pre">¿Por qué salió así mi calificación?</button>
+              </div>
+              <form class="chat-form" id="chatForm">
+                <textarea id="chatIn" rows="1" maxlength="1500" placeholder="Escribe tu pregunta" aria-label="Tu pregunta"></textarea>
+                <button class="btn btn-primary" type="submit" id="chatBtn">Enviar</button>
+              </form>
+              <p class="hint chat-nota">Es orientación general sobre estética, no consejo médico.</p>
+            </div>
+          </div>
+
           <p class="hint rep-note">Este análisis es información general sobre estética. Las medidas salen de fotos de celular y son estimaciones. Antes de cualquier tratamiento o procedimiento, consúltalo con un médico certificado.</p>
         </div>
       </div>
@@ -249,8 +270,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794574226"></script>
-<script src="/assets/js/app.js?v=1794574226"></script>
+<script src="/assets/js/config.js?v=1794575252"></script>
+<script src="/assets/js/app.js?v=1794575252"></script>
 
 </body>
 </html>
