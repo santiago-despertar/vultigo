@@ -44,6 +44,24 @@
     if (!r.ok) throw new Error(j.error || "Error " + r.status);
     return j;
   }
+  // A confirm window for things that can't be undone. With `palabra`, the button only works after typing it.
+  function confirmar({ titulo, texto, boton = "Borrar", palabra = "" }) {
+    return new Promise(res => {
+      const d = document.createElement("div"); d.className = "conf"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
+      d.innerHTML = `<div class="conf-box"><h3></h3><p class="hint"></p>${palabra ? `<div class="field"><label for="confIn">Escribe <b>${palabra}</b> para confirmar</label><input id="confIn" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>` : ""}<div class="conf-acc"><button type="button" class="btn btn-ghost" data-c="no">Cancelar</button><button type="button" class="btn conf-si" data-c="si"></button></div></div>`;
+      d.querySelector("h3").textContent = titulo; d.querySelector("p").textContent = texto; d.querySelector(".conf-si").textContent = boton;
+      const si = d.querySelector(".conf-si"), inp = d.querySelector("#confIn");
+      const ok = () => !palabra || (inp.value.trim().toUpperCase() === palabra);
+      si.disabled = !ok();
+      if (inp) inp.addEventListener("input", () => { si.disabled = !ok(); });
+      const fin = v => { document.removeEventListener("keydown", tecla); d.remove(); document.body.style.overflow = ""; res(v); };
+      const tecla = e => { if (e.key === "Escape") fin(false); if (e.key === "Enter" && ok()) fin(true); };
+      d.addEventListener("click", e => { if (e.target === d || e.target.dataset.c === "no") fin(false); if (e.target.dataset.c === "si" && ok()) fin(true); });
+      document.addEventListener("keydown", tecla);
+      document.body.appendChild(d); document.body.style.overflow = "hidden";
+      (inp || si).focus();
+    });
+  }
   // What an order keeps from the engine: enough for the report and to redraw every measurement later.
   function compactar(r) {
     const p1 = v => Math.round(v * 10) / 10;
@@ -456,6 +474,18 @@
           else f[k].value = a[k];
         });
         if (order.escaneo3d) escaneoListo("hecho");
+        // a draft they came back to can be thrown away to start over
+        const main = document.querySelector("main.onb");
+        if (main && !main.querySelector(".onb-reset")) {
+          const r = document.createElement("button"); r.type = "button"; r.className = "onb-reset"; r.textContent = "Empezar de cero";
+          r.onclick = async () => {
+            if (!(await confirmar({ titulo: "¿Empezar de cero?", texto: "Borramos tus respuestas y las fotos que ya subiste en este análisis, y empiezas otra vez desde la primera pregunta.", boton: "Sí, empezar de cero" }))) return;
+            r.disabled = true; r.textContent = "Borrando…";
+            try { await fnCall("delete-photos", { accion: "pedido", order_id: order.id }); location.reload(); }
+            catch (e) { r.disabled = false; r.textContent = "Empezar de cero"; }
+          };
+          main.appendChild(r);
+        }
       }
       const fn = $("#aboutForm").nombre;
       if (fn && !fn.value && user.user_metadata && user.user_metadata.full_name) fn.value = user.user_metadata.full_name;
@@ -831,7 +861,21 @@
         const row = document.createElement("div"); row.className = "order"; row.dataset.order = o.id;
         row.innerHTML = `<div><b>${esc((C.PLAN_NAMES || {})[o.tier] || "Análisis Resalta")}</b><div class="hint">${fecha(o.created_at)}</div></div><div style="display:flex;gap:10px;align-items:center"><span class="status ${cls}">${txt}</span></div>`;
         const act = row.lastElementChild;
-        if (o.status === "borrador") act.insertAdjacentHTML("beforeend", '<a class="btn btn-ghost" style="height:40px" href="/analisis.html">Continuar</a>');
+        if (o.status === "borrador") {
+          act.insertAdjacentHTML("beforeend", '<a class="btn btn-ghost" style="height:40px" href="/analisis.html">Continuar</a>');
+          const del = document.createElement("button"); del.className = "order-del"; del.type = "button"; del.textContent = "Borrar";
+          del.setAttribute("aria-label", "Borrar este análisis sin pagar");
+          del.onclick = async () => {
+            if (!(await confirmar({ titulo: "¿Borrar este análisis?", texto: "Se borran tus respuestas y las fotos que subiste en este análisis. Puedes empezar uno nuevo cuando quieras.", boton: "Sí, borrar" }))) return;
+            del.disabled = true; del.textContent = "Borrando…";
+            try {
+              await fnCall("delete-photos", { accion: "pedido", order_id: o.id });
+              row.remove(); todos = todos.filter(x => x.id !== o.id);
+              if (!box.querySelector(".order")) box.innerHTML = '<p class="hint" style="padding:18px 0">Todavía no tienes análisis. <a href="/analisis.html">Empieza el tuyo</a>.</p>';
+            } catch (e) { del.disabled = false; del.textContent = "Borrar"; msg($("#privMsg"), "No pudimos borrar ese análisis. Inténtalo de nuevo en un momento."); }
+          };
+          act.appendChild(del);
+        }
         if (o.status === "pagado" || o.status === "listo") {
           const btn = document.createElement("button"); btn.className = "btn btn-primary"; btn.style.height = "40px"; btn.textContent = "Ver reporte";
           btn.onclick = () => abrir(o, true); act.appendChild(btn);
@@ -1319,9 +1363,27 @@
     $("#deletePhotos").addEventListener("click", async () => {
       const m = $("#privMsg"); clearMsg(m);
       if (!sb) return notReady(m);
-      if (!confirm("¿Borrar todas tus fotos? Esto no se puede deshacer.")) return;
+      if (!(await confirmar({ titulo: "¿Borrar todas tus fotos?", texto: "Tus reportes se quedan en tu cuenta, pero ya no vamos a tener tus fotos para nuevos análisis. Esto no se puede deshacer.", boton: "Sí, borrar mis fotos" }))) return;
       try { const r = await fnCall("delete-photos", {}); msg(m, `Listo. Borramos ${r.deleted} fotos.`, "ok"); }
       catch (e) { msg(m, "No pudimos borrar tus fotos. Escríbenos a contacto@resalta.co."); }
+    });
+
+    $("#deleteAccount").addEventListener("click", async () => {
+      const m = $("#privMsg"), b = $("#deleteAccount"); clearMsg(m);
+      if (!sb) return notReady(m);
+      const st = await fnCall("suscripcion", { accion: "estado" }).catch(() => ({}));
+      const extra = st.activa ? " También cancelamos tu seguimiento mensual y ya no se te cobra." : "";
+      if (!(await confirmar({ titulo: "¿Borrar tu cuenta?", texto: "Se borra todo: tus reportes, tus fotos, tus medidas y tu acceso. No lo podemos recuperar después." + extra, boton: "Borrar mi cuenta", palabra: "BORRAR" }))) return;
+      b.disabled = true; b.textContent = "Borrando tu cuenta…";
+      try {
+        await fnCall("delete-photos", { accion: "cuenta", confirmar: "BORRAR" });
+        try { sessionStorage.clear(); } catch (e) {}
+        await sb.auth.signOut().catch(() => {});
+        location.href = "/?cuenta=borrada";
+      } catch (e) {
+        b.disabled = false; b.textContent = "Borrar mi cuenta";
+        msg(m, e.message === "No pudimos cancelar tu suscripción" ? "No pudimos cancelar tu suscripción, así que no borramos nada. Inténtalo de nuevo o escríbenos a contacto@resalta.co." : "No pudimos borrar tu cuenta. Inténtalo de nuevo o escríbenos a contacto@resalta.co.");
+      }
     });
   }
 })();
@@ -1337,3 +1399,11 @@ document.querySelectorAll(".how-video").forEach(box => {
     box.appendChild(v); v.play().catch(() => {});
   });
 });
+
+// after deleting an account they land on the home page with a short confirmation
+if (new URLSearchParams(location.search).get("cuenta") === "borrada") {
+  const t = document.createElement("div"); t.className = "aviso-top"; t.setAttribute("role", "status");
+  t.textContent = "Listo, borramos tu cuenta y todo lo que tenía.";
+  document.body.appendChild(t); history.replaceState(null, "", location.pathname);
+  setTimeout(() => t.remove(), 6000);
+}
