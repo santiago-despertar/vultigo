@@ -1,10 +1,10 @@
 // Interactive measurement viewer: photo with the measurement lines on top and a list of measurements.
-import { analizar, ZONAS } from "/assets/js/medidas.js?v=3";
+import { analizar, ZONAS } from "/assets/js/medidas.js?v=4";
 
 const $ = (s) => document.querySelector(s);
 const file = $("#vFile"), go = $("#vGo"), msgEl = $("#vMsg");
 const ESTADO = { dentro: ["En rango", "ready"], cerca: ["Cerca del rango", "paid"], fuera: ["Fuera del rango", ""] };
-let img = null, data = null, zona = ZONAS[0][0], activa = null;
+let img = null, data = null, zona = ZONAS[0][0], activa = null, view = null;
 
 function say(el, t, type = "err") { el.textContent = t; el.className = "msg show " + type; }
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -47,10 +47,17 @@ async function run() {
 
 function render() {
   $("#vStart").hidden = true; $("#vResult").hidden = false;
-  $("#vImg").src = img.src;
+  // Zoom the stage to the face: a 4:5 frame around the landmarks, kept inside the photo.
+  const c = data.caja, fw = c.x1 - c.x0, fh = c.y1 - c.y0;
+  let vh = Math.min(data.alto, fh * 1.75), vw = vh * 0.8;
+  if (vw > data.ancho) { vw = data.ancho; vh = Math.min(data.alto, vw / 0.8); }
+  if (vw < fw * 1.25) { vw = Math.min(data.ancho, fw * 1.25); vh = Math.min(data.alto, vw / 0.8); }
+  const cx = (c.x0 + c.x1) / 2, cy = (c.y0 + c.y1) / 2 - fh * 0.06;
+  const vx = Math.max(0, Math.min(data.ancho - vw, cx - vw / 2)), vy = Math.max(0, Math.min(data.alto - vh, cy - vh / 2));
+  view = { x: vx, y: vy, w: vw, h: vh };
   const svg = $("#vSvg");
-  svg.setAttribute("viewBox", `0 0 ${data.ancho} ${data.alto}`);
-  $("#vStage").style.aspectRatio = data.ancho + " / " + data.alto;
+  svg.setAttribute("viewBox", `${vx} ${vy} ${vw} ${vh}`);
+  $("#vStage").style.aspectRatio = vw + " / " + vh;
 
   const warn = $("#vWarn");
   if (data.avisos.length) say(warn, data.avisos.join(" "), "info"); else warn.className = "msg";
@@ -100,13 +107,13 @@ function setMedida(id) {
 }
 
 function draw(m) {
-  const svg = $("#vSvg"), w = Math.max(data.ancho, data.alto) / 260; // stroke scales with the photo
+  const svg = $("#vSvg"), w = view.w / 220; // stroke scales with the zoomed frame
   const seen = new Set(); let dots = "";
   const lines = m.lineas.map(([a, b]) => {
     [a, b].forEach(p => { const k = p.x.toFixed(1) + "," + p.y.toFixed(1); if (!seen.has(k)) { seen.add(k); dots += `<circle cx="${p.x}" cy="${p.y}" r="${w * 1.7}"/>`; } });
     return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`;
   }).join("");
-  svg.innerHTML = `<g class="halo" stroke-width="${w * 2.4}">${lines}</g><g class="line" stroke-width="${w}">${lines}</g><g class="dot">${dots}</g>`;
+  svg.innerHTML = `<image href="${img.src}" x="0" y="0" width="${data.ancho}" height="${data.alto}"/><g class="halo" stroke-width="${w * 2.4}">${lines}</g><g class="line" stroke-width="${w}">${lines}</g><g class="dot">${dots}</g>`;
 }
 
 // Lets the page be opened with a sample photo: /visor.html?foto=/assets/img/...

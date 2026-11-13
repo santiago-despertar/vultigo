@@ -88,13 +88,13 @@ export function medir(L) {
     significa: "Cerca de 1 las dos zonas miden lo mismo, que es lo que se percibe como una cara equilibrada. Por debajo de 1 el tercio inferior domina; por encima, la zona media se ve más larga." });
 
   add({ id: "alto_ancho", zona: "proporciones", nombre: "Altura contra ancho de la cara",
-    valor: down(P(10), ment) / bizy, unidad: "", rango: [1.25, 1.45],
+    valor: down(P(10), ment) / bizy, unidad: "", rango: [1.15, 1.35],
     lineas: [[P(10), ment], [zyL, zyR]],
     que: "Altura de la cara (frente a mentón) dividida entre el ancho de pómulos.",
     significa: "Valores bajos dan una cara más ancha y compacta; valores altos, una cara más alargada. Sirve para elegir corte de cabello, barba y lentes." });
 
   add({ id: "fwhr", zona: "proporciones", nombre: "Ancho contra altura del rostro medio",
-    valor: bizy / down(browMid, lipTop), unidad: "", rango: [1.8, 2.1],
+    valor: bizy / down(browMid, lipTop), unidad: "", rango: [1.55, 1.9],
     lineas: [[zyL, zyR], [browMid, lipTop]],
     que: "Ancho de pómulos dividido entre la distancia de cejas a labio superior.",
     significa: "Un valor más alto se asocia con un rostro medio compacto y pómulos marcados. Uno más bajo, con un rostro medio alto." });
@@ -109,10 +109,10 @@ export function medir(L) {
   const eyeLo = P(33), eyeLi = P(133), eyeRi = P(362), eyeRo = P(263);
   const eyeW = (dist(eyeLo, eyeLi) + dist(eyeRi, eyeRo)) / 2;
   add({ id: "separacion_ojos", zona: "ojos", nombre: "Separación entre los ojos",
-    valor: dist(eyeLi, eyeRi) / eyeW, unidad: "", rango: [0.9, 1.1],
+    valor: dist(eyeLi, eyeRi) / eyeW, unidad: "", rango: [1.0, 1.3],
     lineas: [[eyeLo, eyeLi], [eyeLi, eyeRi], [eyeRi, eyeRo]],
     que: "Espacio entre los dos ojos dividido entre el ancho de un ojo.",
-    significa: "La regla de los quintos dice que entre los ojos cabe un ojo. Menos de 0.9 se percibe como ojos juntos; más de 1.1, como ojos separados." });
+    significa: "La regla de los quintos dice que entre los ojos cabe un ojo. Por debajo del rango se percibe como ojos juntos; por encima, como ojos separados." });
 
   const tilt = (inner, outer) => {
     // positive when the outer corner sits higher than the inner one
@@ -154,7 +154,7 @@ export function medir(L) {
 
   const mouthL = P(61), mouthR = P(291), mouthW = dist(mouthL, mouthR);
   add({ id: "boca_nariz", zona: "nariz", nombre: "Ancho de boca contra ancho de nariz",
-    valor: mouthW / noseW, unidad: "", rango: [1.4, 1.65],
+    valor: mouthW / noseW, unidad: "", rango: [1.25, 1.55],
     lineas: [[mouthL, mouthR], [alaL, alaR]],
     que: "Ancho de la boca dividido entre el ancho de la nariz.",
     significa: "Una boca cerca de una vez y media el ancho de la nariz se ve en proporción. Menos, boca pequeña o nariz ancha." });
@@ -187,14 +187,14 @@ export function medir(L) {
     significa: "Valores altos dan una mandíbula ancha y cuadrada; valores bajos, una cara que se afina hacia abajo." });
 
   add({ id: "angulo_mandibula", zona: "mandibula", nombre: "Ángulo de la mandíbula visto de frente",
-    valor: (angleAt(goL, zyL, ment) + angleAt(goR, zyR, ment)) / 2, unidad: "°", rango: [115, 130],
+    valor: (angleAt(goL, zyL, ment) + angleAt(goR, zyR, ment)) / 2, unidad: "°", rango: [120, 138],
     lineas: [[zyL, goL], [goL, ment], [zyR, goR], [goR, ment]],
     que: "Ángulo que forma el contorno de la cara al doblar en la mandíbula hacia el mentón.",
     significa: "Un ángulo más cerrado se ve como mandíbula marcada; uno más abierto, como contorno suave o redondeado. El ángulo real se mide mejor en la foto de perfil." });
 
   const chinW = dist(P(148), P(377));
   add({ id: "menton_boca", zona: "mandibula", nombre: "Ancho de mentón contra ancho de boca",
-    valor: chinW / mouthW, unidad: "", rango: [0.6, 0.85],
+    valor: chinW / mouthW, unidad: "", rango: [0.4, 0.6],
     lineas: [[P(148), P(377)], [mouthL, mouthR]],
     que: "Ancho del mentón dividido entre el ancho de la boca.",
     significa: "Dice si el mentón se ve ancho y cuadrado o angosto y en punta respecto a la boca." });
@@ -254,5 +254,7 @@ export async function analizar(image) {
   const L = faces[0].map(p => ({ x: p.x * w, y: p.y * h }));
   if (L.length < 478) throw new Error("sin_iris");
   const medidas = medir(L);
-  return { ancho: w, alto: h, puntos: L, medidas, resumen: resumen(medidas), avisos: calidad(L, w, h) };
+  const xs = L.map(p => p.x), ys = L.map(p => p.y);
+  const caja = { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+  return { ancho: w, alto: h, puntos: L, caja, medidas, resumen: resumen(medidas), avisos: calidad(L, w, h) };
 }
