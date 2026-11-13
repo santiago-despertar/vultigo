@@ -1592,3 +1592,27 @@ g.esc3d-marcas{opacity:0;transition:opacity .3s}
 .mide-cont{position:absolute;left:12px;bottom:12px;display:flex;align-items:baseline;gap:6px;padding:6px 12px;border-radius:var(--r-pill);background:rgba(22,25,29,.72);color:#fff;font-size:13px}
 .mide-cont b{font-size:20px;font-weight:500;color:#34e07a}
 @media (min-width:820px){.mide{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}}
+
+/* v37 confirm window, delete account, delete draft analysis */
+.priv-acc{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.btn-borrar{background:none;border:0;padding:8px 0;font:inherit;font-size:15px;color:#B42318;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.btn-borrar:disabled{opacity:.5;cursor:default}
+.order-del{background:none;border:0;padding:8px 4px;font:inherit;font-size:14px;color:var(--ink-3, #6B7280);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.order-del:hover{color:#B42318}
+.conf{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(22,25,29,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);animation:confIn .18s ease-out}
+.conf-box{width:100%;max-width:440px;background:var(--surface-raised,#fff);border:1px solid var(--line);border-radius:var(--r-md);padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.conf-box h3{font-size:22px;font-weight:500;margin:0 0 8px}
+.conf-box .hint{margin:0 0 18px}
+.conf-box .field{margin-bottom:18px}
+.conf-box .field label{font-weight:400}
+.conf-acc{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.conf-si{background:#B42318;color:#fff;border:0}
+.conf-si:disabled{background:#E4A7A1;cursor:not-allowed}
+@keyframes confIn{from{opacity:0}to{opacity:1}}
+@media (max-width:560px){.conf{align-items:flex-end;padding:12px}.conf-acc .btn{flex:1}}
+.aviso-top{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:1000;max-width:calc(100% - 32px);padding:12px 18px;border-radius:var(--r-pill);background:#16191D;color:#fff;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.onb-reset{position:absolute;top:18px;right:20px;z-index:5;background:none;border:0;color:#fff;font:inherit;font-size:15px;opacity:.75;padding:6px 8px;border-radius:8px;cursor:pointer}
+.onb-reset:hover{opacity:1;background:rgba(255,255,255,.08)}
+@media (max-width:760px){.onb-reset{top:12px;right:10px}}
+.conf-box{color:var(--ink,#16191D)}
+.order .status{white-space:nowrap}
