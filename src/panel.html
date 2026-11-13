@@ -26,7 +26,8 @@
         <p class="rep-lead" id="repResumen"></p>
 
         <h3 class="rep-h">Tus medidas</h3>
-        <p class="hint rep-sub">Toca una zona o una medida para verla marcada en tu foto.</p>
+        <p class="hint rep-sub"><span id="repCuenta"></span>. Toca una zona o una medida para verla marcada en tu foto.</p>
+        <div class="tabs rep-vistas" id="vVistas" hidden><button type="button" data-v="frente" class="active">Frente</button><button type="button" data-v="perfil">Perfil</button></div>
         <div class="visor">
           <div class="visor-face">
             <div class="visor-stage" id="vStage"><svg id="vSvg" role="img" aria-label="Tu foto con las medidas" preserveAspectRatio="xMidYMid slice"></svg></div>
@@ -51,6 +52,9 @@
 
         <h3 class="rep-h">Zona por zona</h3>
         <div class="rep-zonas" id="repZonas"></div>
+
+        <h3 class="rep-h" id="repAngulosH" hidden>Tus otros ángulos</h3>
+        <div class="rep-three" id="repAngulos"></div>
 
         <h3 class="rep-h">Piel, color y estilo</h3>
         <div class="rep-three">
