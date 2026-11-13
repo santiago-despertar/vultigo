@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794593394">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794594252">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 <script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next=/panel.html");}catch(e){}})()</script>
 </head>
@@ -234,8 +234,11 @@
 
     <div class="card" style="margin-top:20px">
       <p class="label" style="margin-bottom:10px">Privacidad</p>
-      <p class="hint" style="margin-bottom:16px">Puedes borrar tus fotos en cualquier momento. Tu reporte se queda en tu cuenta.</p>
-      <button class="btn btn-ghost" id="deletePhotos">Borrar mis fotos</button>
+      <p class="hint" style="margin-bottom:16px">Puedes borrar tus fotos en cualquier momento y tu reporte se queda en tu cuenta. O puedes borrar tu cuenta completa con todo lo que tiene.</p>
+      <div class="priv-acc">
+        <button class="btn btn-ghost" id="deletePhotos">Borrar mis fotos</button>
+        <button class="btn-borrar" id="deleteAccount">Borrar mi cuenta</button>
+      </div>
       <div class="msg" id="privMsg"></div>
     </div>
   </div>
@@ -272,8 +275,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794593394"></script>
-<script src="/assets/js/app.js?v=1794593394"></script>
+<script src="/assets/js/config.js?v=1794594252"></script>
+<script src="/assets/js/app.js?v=1794594252"></script>
 
 </body>
 </html>
