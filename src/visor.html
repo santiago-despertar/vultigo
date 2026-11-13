@@ -1,0 +1,51 @@
+<main class="app-main">
+  <div class="wrap" style="max-width:1120px">
+    <div style="text-align:center;margin-bottom:32px">
+      <span class="tag">Vista previa</span>
+      <h1 class="h-xl" style="margin-top:18px">Tu cara, <span class="muted">medida</span></h1>
+      <p class="lead" style="max-width:560px;margin:14px auto 0">Sube una foto de frente y toca cualquier medida para verla sobre tu cara. La foto se analiza en tu dispositivo y no se sube a internet.</p>
+    </div>
+
+    <div class="panel wide" id="vStart">
+      <div class="grid-2" style="gap:28px;align-items:center">
+        <label class="slot" style="aspect-ratio:4/5;cursor:pointer" id="vDrop">
+          <b>Sube tu foto de frente</b><small>o tómala con tu cámara</small>
+          <input type="file" accept="image/*" id="vFile" aria-label="Foto de frente">
+        </label>
+        <div>
+          <p class="label" style="margin-bottom:12px">Para medidas más exactas</p>
+          <ul class="checklist" style="margin:0 0 20px">
+            <li>Mira directo a la cámara, cara relajada y boca cerrada</li>
+            <li>Cabeza derecha, sin inclinarla ni girarla</li>
+            <li>Luz de frente, sin lentes ni gorra</li>
+            <li>Cámara a la altura de tus ojos, a un brazo de distancia</li>
+          </ul>
+          <div class="msg" id="vMsg"></div>
+          <button class="btn btn-primary btn-block" id="vGo" disabled>Medir mi cara</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="vResult" hidden>
+      <div class="visor">
+        <div class="visor-face">
+          <div class="visor-stage" id="vStage"><svg id="vSvg" role="img" aria-label="Tu foto con las medidas" preserveAspectRatio="xMidYMid slice"></svg></div>
+          <div class="visor-now" id="vNow" aria-live="polite"></div>
+        </div>
+        <div class="visor-side">
+          <div class="msg" id="vWarn"></div>
+          <div class="card visor-score">
+            <div><p class="label">Puntaje general</p><p class="mono visor-big"><span id="vScore">0</span><span class="visor-of"> / 10</span></p></div>
+            <div class="visor-zones" id="vZones"></div>
+          </div>
+          <div class="visor-detail card" id="vDetail" hidden></div>
+          <div class="tabs visor-tabs" id="vTabs"></div>
+          <div id="vList"></div>
+          <p class="hint" style="margin-top:16px">Las medidas son estimaciones a partir de una foto. El lente, la distancia y la postura las cambian. Los rangos son referencias de proporción, no un diagnóstico.</p>
+          <button class="btn btn-ghost" id="vAgain" style="margin-top:16px">Probar con otra foto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script type="module" src="/assets/js/visor.js?v=__V__"></script>

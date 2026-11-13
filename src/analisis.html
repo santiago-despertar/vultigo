@@ -20,6 +20,20 @@
           </div>
           <div class="field"><label for="q-goal">¿Qué te gustaría mejorar?</label>
             <select id="q-goal" name="objetivo"><option>Verme mejor en general</option><option>Mandíbula y perfil</option><option>Piel</option><option>Cabello</option><option>Cejas y vello facial</option><option>Ojos y mirada</option><option>Salir mejor en fotos</option></select></div>
+          <div class="grid-2" style="gap:16px">
+            <div class="field"><label for="q-skin">Tu piel es</label>
+              <select id="q-skin" name="piel"><option>No sé</option><option>Normal</option><option>Grasa</option><option>Seca</option><option>Mixta</option><option>Sensible</option></select></div>
+            <div class="field"><label for="q-glasses">¿Usas lentes?</label>
+              <select id="q-glasses" name="lentes"><option>No</option><option>Sí, a diario</option><option>Solo a veces</option></select></div>
+            <div class="field"><label for="q-proc">¿Qué tan lejos quieres llegar?</label>
+              <select id="q-proc" name="procedimientos"><option>Solo cambios sin procedimientos</option><option>Abierto a procedimientos sin cirugía</option><option>Abierto a todo, incluida cirugía</option></select></div>
+            <div class="field"><label for="q-budget">Presupuesto al mes (MXN)</label>
+              <select id="q-budget" name="presupuesto"><option>Menos de $500</option><option>$500 a $2,000</option><option>$2,000 a $5,000</option><option>Más de $5,000</option></select></div>
+            <div class="field"><label for="q-time">Tiempo al día para cuidarte</label>
+              <select id="q-time" name="tiempo"><option>5 minutos</option><option>15 minutos</option><option>30 minutos o más</option></select></div>
+            <div class="field"><label for="q-routine">Tu rutina de piel hoy</label>
+              <select id="q-routine" name="rutina"><option>Ninguna</option><option>Solo me lavo la cara</option><option>Limpiador, crema y protector solar</option><option>Rutina completa con activos</option></select></div>
+          </div>
           <div class="field"><label for="q-notes">Algo más que debamos saber (opcional)</label><textarea id="q-notes" name="notas" maxlength="600" placeholder="Ej. uso lentes, tengo acné, me corté el pelo hace poco..."></textarea></div>
           <label class="check"><input type="checkbox" name="mayor" required> <span>Confirmo que tengo 18 años o más.</span></label>
           <button class="btn btn-primary" type="submit">Continuar</button>
@@ -30,7 +44,7 @@
       <section class="wstep" data-step="2" style="padding:0">
         <span class="label">Paso 2 de 3</span>
         <h2 style="font-size:34px;margin:10px 0 8px">Sube tus 6 fotos</h2>
-        <p class="hint">Luz natural de frente, sin lentes ni filtros, cara despejada, a la altura de tus ojos. Mejor si alguien más te las toma.</p>
+        <p class="hint">Para que tus medidas salgan exactas: usa la cámara trasera con zoom 2x, a unos dos metros y a la altura de tus ojos. De cerca y con la cámara frontal la cara se deforma. Luz natural de frente, sin lentes ni filtros, cabello detrás de las orejas, boca cerrada y cabeza derecha. En las de perfil, gira hasta que no se vea la otra ceja. Pide a alguien que te las tome o apoya el celular.</p>
         <div class="photo-grid" id="photoGrid"></div>
         <label class="check"><input type="checkbox" id="consent"> <span>Autorizo a Resalta a tratar mis fotos, que pueden contener datos biométricos, únicamente para generar mi análisis, conforme al <a href="/privacidad.html" target="_blank">aviso de privacidad</a>. Puedo pedir que se borren en cualquier momento.</span></label>
         <div class="msg" id="photoMsg"></div>

@@ -10,65 +10,109 @@
       <div id="orders"><p class="hint" style="padding:18px 0">Cargando…</p></div>
     </div>
 
-    <section id="reportArea" class="rep" hidden>
-      <div class="rep-head">
-        <div><p class="label" id="repPlan">Tu reporte</p><h2 class="rep-title">Tu análisis facial</h2><p class="hint" id="repDate"></p></div>
-        <span class="status ready" id="repStatus">Listo</span>
-      </div>
+    <section id="reportArea" class="rep dash" hidden>
+      <nav class="dash-nav" id="dashNav" aria-label="Secciones de tu análisis">
+        <button type="button" data-tab="inicio" class="active">Inicio</button>
+        <button type="button" data-tab="medidas">Medidas</button>
+        <button type="button" data-tab="rasgos">Rasgos</button>
+        <button type="button" data-tab="reporte">Reporte</button>
+        <button type="button" data-tab="plan">Plan</button>
+        <button type="button" data-tab="simular">Simular</button>
+      </nav>
+      <div class="dash-body">
+        <div class="rep-head">
+          <div><p class="label" id="repPlan">Tu reporte</p><h2 class="rep-title">Tu análisis facial</h2><p class="hint" id="repDate"></p></div>
+          <span class="status ready" id="repStatus">Listo</span>
+        </div>
 
-      <div class="card rep-wait" id="repWait" hidden>
-        <div class="rep-spin" aria-hidden="true"></div>
-        <div><b id="repWaitT">Estamos preparando tu reporte</b><p class="hint" id="repWaitS">Suele tardar alrededor de un minuto. Puedes quedarte aquí o volver más tarde, se guarda en tu cuenta.</p></div>
-      </div>
-      <div class="msg" id="repMsg"></div>
+        <div class="card rep-wait" id="repWait" hidden>
+          <div class="rep-spin" aria-hidden="true"></div>
+          <div><b id="repWaitT">Estamos preparando tu análisis</b><p class="hint" id="repWaitS">Tarda uno o dos minutos. Puedes quedarte aquí o volver más tarde, se guarda en tu cuenta.</p></div>
+        </div>
+        <div class="msg" id="repMsg"></div>
 
-      <div id="repBody" hidden>
-        <p class="rep-lead" id="repResumen"></p>
-
-        <h3 class="rep-h">Tus medidas</h3>
-        <p class="hint rep-sub"><span id="repCuenta"></span>. Toca una zona o una medida para verla marcada en tu foto.</p>
-        <div class="tabs rep-vistas" id="vVistas" hidden><button type="button" data-v="frente" class="active">Frente</button><button type="button" data-v="perfil">Perfil</button></div>
-        <div class="visor">
-          <div class="visor-face">
-            <div class="visor-stage" id="vStage"><svg id="vSvg" role="img" aria-label="Tu foto con las medidas" preserveAspectRatio="xMidYMid slice"></svg></div>
-            <div class="visor-now" id="vNow" aria-live="polite"></div>
-          </div>
-          <div class="visor-side">
-            <div class="msg" id="vWarn"></div>
-            <div class="card visor-score">
-              <div><p class="label">Puntaje general</p><p class="mono visor-big"><span id="vScore">0</span><span class="visor-of"> / 100</span></p></div>
-              <div class="visor-zones" id="vZones"></div>
+        <div id="repBody" hidden>
+          <div class="dash-tab active" data-tab="inicio">
+            <div class="dash-hero">
+              <div class="card dash-score">
+                <p class="label">Puntaje general</p>
+                <p class="mono dash-big"><span id="dScore">0</span><span class="visor-of"> / 10</span></p>
+                <p class="hint" id="dNivel"></p>
+                <div class="dash-pilares" id="dPilares"></div>
+              </div>
+              <div class="dash-foto" id="dFoto"><div class="dash-foto-pie"><b id="dEval"></b><span id="repCuenta"></span></div></div>
             </div>
-            <div class="visor-detail card" id="vDetail" hidden></div>
-            <div class="tabs visor-tabs" id="vTabs"></div>
-            <div id="vList"></div>
+            <div class="card dash-arq" id="dArqCard" hidden><p class="label">Tu tipo de cara</p><h3 id="dArqN"></h3><p class="hint" id="dArqT"></p></div>
+            <p class="rep-lead" id="repResumen"></p>
+            <div class="card"><p class="label">Lo primero que conviene trabajar</p><div id="dTop" class="rep-items"></div></div>
+            <div class="dash-tools">
+              <button type="button" class="card dash-tool" data-ir="medidas"><b>Medidas</b><span class="hint">Cada proporción marcada en tu foto, de frente y de perfil</span></button>
+              <button type="button" class="card dash-tool" data-ir="rasgos"><b>Rasgos</b><span class="hint">Angularidad, dimorfismo, piel, ojos, cabello y sonrisa</span></button>
+              <button type="button" class="card dash-tool" data-ir="reporte"><b>Reporte</b><span class="hint">La lectura completa, zona por zona</span></button>
+              <button type="button" class="card dash-tool" data-ir="plan"><b>Plan</b><span class="hint">Qué hacer y en qué orden</span></button>
+              <button type="button" class="card dash-tool" data-ir="simular"><b>Simular</b><span class="hint">Ve cómo cambiaría tu cara. En preparación</span></button>
+            </div>
           </div>
+
+          <div class="dash-tab" data-tab="medidas">
+            <h3 class="rep-h rep-h0">Tus medidas</h3>
+            <p class="hint rep-sub">Toca una zona o una medida para verla marcada en tu foto.</p>
+            <div class="tabs rep-vistas" id="vVistas" hidden><button type="button" data-v="frente" class="active">Frente</button><button type="button" data-v="perfil">Perfil</button></div>
+            <div class="visor">
+              <div class="visor-face">
+                <div class="visor-stage" id="vStage"><svg id="vSvg" role="img" aria-label="Tu foto con las medidas" preserveAspectRatio="xMidYMid slice"></svg></div>
+                <div class="visor-now" id="vNow" aria-live="polite"></div>
+              </div>
+              <div class="visor-side">
+                <div class="msg" id="vWarn"></div>
+                <div class="card visor-score">
+                  <div><p class="label">Armonía de esta vista</p><p class="mono visor-big"><span id="vScore">0</span><span class="visor-of"> / 10</span></p></div>
+                  <div class="visor-zones" id="vZones"></div>
+                </div>
+                <div class="visor-detail card" id="vDetail" hidden></div>
+                <div class="tabs visor-tabs" id="vTabs"></div>
+                <div id="vList"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-tab" data-tab="rasgos">
+            <h3 class="rep-h rep-h0">Tus rasgos, uno por uno</h3>
+            <p class="hint rep-sub">Cada rasgo se califica de 0 a 10 a partir de tus seis fotos. 5 es el promedio de la población, 7 ya destaca.</p>
+            <div id="pilaresBox"></div>
+          </div>
+
+          <div class="dash-tab" data-tab="reporte">
+            <div class="rep-two rep-two0">
+              <div class="card"><p class="label">Lo que tienes a favor</p><div id="repFortalezas" class="rep-items"></div></div>
+              <div class="card"><p class="label">Lo que más te conviene trabajar</p><div id="repPrioridades" class="rep-items"></div></div>
+            </div>
+            <h3 class="rep-h">Zona por zona</h3>
+            <div class="rep-zonas" id="repZonas"></div>
+            <h3 class="rep-h" id="repAngulosH" hidden>Tus otros ángulos</h3>
+            <div class="rep-three" id="repAngulos"></div>
+            <h3 class="rep-h">Piel, color y estilo</h3>
+            <div class="rep-three">
+              <div class="card"><p class="label">Piel</p><div id="repPiel"></div></div>
+              <div class="card"><p class="label">Tu color</p><div id="repColor"></div></div>
+              <div class="card"><p class="label">Cabello, barba y cejas</p><div id="repCabello"></div></div>
+            </div>
+            <div id="repAvanzado"></div>
+          </div>
+
+          <div class="dash-tab" data-tab="plan">
+            <h3 class="rep-h rep-h0">Tu plan</h3>
+            <p class="hint rep-sub">En orden de impacto. Empieza por la primera fase y no brinques pasos.</p>
+            <div class="rep-plan" id="repPlanFases"></div>
+          </div>
+
+          <div class="dash-tab" data-tab="simular">
+            <h3 class="rep-h rep-h0">Simular cambios</h3>
+            <div class="card"><p class="label">En preparación</p><p class="hint" style="margin-top:8px">Aquí vas a poder mover tu mentón, nariz, mandíbula y cejas sobre tu propia foto y ver cómo cambian tus medidas, y girar un modelo 3D de tu cara. Te avisamos cuando esté listo, sin costo extra para tu plan.</p></div>
+          </div>
+
+          <p class="hint rep-note">Este análisis es información general sobre estética. Las medidas salen de fotos de celular y son estimaciones. Antes de cualquier tratamiento o procedimiento, consúltalo con un médico certificado.</p>
         </div>
-
-        <div class="rep-two">
-          <div class="card"><p class="label">Lo que tienes a favor</p><div id="repFortalezas" class="rep-items"></div></div>
-          <div class="card"><p class="label">Lo que más te conviene trabajar</p><div id="repPrioridades" class="rep-items"></div></div>
-        </div>
-
-        <h3 class="rep-h">Zona por zona</h3>
-        <div class="rep-zonas" id="repZonas"></div>
-
-        <h3 class="rep-h" id="repAngulosH" hidden>Tus otros ángulos</h3>
-        <div class="rep-three" id="repAngulos"></div>
-
-        <h3 class="rep-h">Piel, color y estilo</h3>
-        <div class="rep-three">
-          <div class="card"><p class="label">Piel</p><div id="repPiel"></div></div>
-          <div class="card"><p class="label">Tu color</p><div id="repColor"></div></div>
-          <div class="card"><p class="label">Cabello, barba y cejas</p><div id="repCabello"></div></div>
-        </div>
-
-        <h3 class="rep-h">Tu plan</h3>
-        <div class="rep-plan" id="repPlanFases"></div>
-
-        <div id="repAvanzado"></div>
-
-        <p class="hint rep-note">Este reporte es información general sobre estética. Las medidas salen de fotos de celular y son estimaciones. Antes de cualquier tratamiento o procedimiento, consúltalo con un médico certificado.</p>
       </div>
     </section>
 
