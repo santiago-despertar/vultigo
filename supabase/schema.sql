@@ -1,4 +1,4 @@
--- Vultigo database. Run once in Supabase > SQL Editor.
+-- Resalta database. Run once in Supabase > SQL Editor.
 
 -- Profiles: one per user (email or Google sign-in, no username)
 create table if not exists public.profiles (
@@ -26,6 +26,7 @@ create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   status text not null default 'borrador' check (status in ('borrador','pagado','listo','reembolsado')),
+  tier text not null default 'soft' check (tier in ('soft','hard')),
   answers jsonb not null default '{}',
   photos_consent_at timestamptz,
   stripe_session_id text,
@@ -42,9 +43,11 @@ create policy "own draft update" on public.orders for update
   with check (auth.uid() = user_id and status = 'borrador');
 -- Customers can only change answers and consent; payment fields are written by the webhook (service role)
 revoke update on public.orders from authenticated;
-grant update (answers, photos_consent_at) on public.orders to authenticated;
+-- measurements of the front photo, taken in the browser while the order is a draft
+alter table public.orders add column if not exists medidas jsonb;
+grant update (answers, photos_consent_at, medidas) on public.orders to authenticated;
 
--- Reports: written by Vultigo (service role), readable by the owner
+-- Reports: written by Resalta (service role), readable by the owner
 create table if not exists public.reports (
   order_id uuid primary key references public.orders(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -73,6 +76,7 @@ create table if not exists public.leads (
   id bigint generated always as identity primary key,
   email text not null check (position('@' in email) > 1),
   score integer,
+  metrics jsonb,
   source text,
   created_at timestamptz not null default now()
 );
