@@ -34,8 +34,8 @@ HEADER = """<header class="site-header">
   <div class="wrap nav">
     <a class="brand" href="/" aria-label="Resalta, inicio"><img src="/assets/img/mark-ink.svg" alt=""><span>resalta</span></a>
     <nav class="nav-links" id="navLinks">
-      <a href="/#por-que">Por qué Resalta</a>
       <a href="/#como-funciona">Cómo funciona</a>
+      <a href="/#por-que">Por qué Resalta</a>
       <a href="/calificacion.html">Calificación gratis</a>
       <a href="/#preguntas">Preguntas</a>
       <a href="/cuenta.html" class="menu-only">Entrar / Mi cuenta</a>
@@ -116,7 +116,7 @@ GATES = {
     "analisis": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?next=/analisis.html");'),
     "reporte": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next="+encodeURIComponent(location.pathname+location.search));'),
     "panel": _GATE.format(body='if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next=/panel.html");'),
-    "cuenta": _GATE.format(body='if(t&&!back){var n=new URLSearchParams(location.search).get("next")||"/panel.html";if(!/^\\/(?!\\/)/.test(n))n="/panel.html";location.replace(n);}'),
+    "cuenta": _GATE.format(body='if(t&&!back&&!/[?&]modo=nueva/.test(location.search)){var n=new URLSearchParams(location.search).get("next")||"/panel.html";if(!/^\\/(?!\\/)/.test(n))n="/panel.html";location.replace(n);}'),
 }
 
 for fname, title, desc, extra in PAGES:

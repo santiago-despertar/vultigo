@@ -16,9 +16,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794594252">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794595843">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
-<script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(t&&!back){var n=new URLSearchParams(location.search).get("next")||"/panel.html";if(!/^\/(?!\/)/.test(n))n="/panel.html";location.replace(n);}}catch(e){}})()</script>
+<script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(t&&!back&&!/[?&]modo=nueva/.test(location.search)){var n=new URLSearchParams(location.search).get("next")||"/panel.html";if(!/^\/(?!\/)/.test(n))n="/panel.html";location.replace(n);}}catch(e){}})()</script>
 </head>
 <body data-page="cuenta">
 <header class="site-header">
@@ -79,6 +79,15 @@
         <button class="btn btn-primary btn-block" type="submit">Entrar</button>
         <p class="hint" style="text-align:center;margin-top:16px"><a href="#" id="forgot">¿Olvidaste tu contraseña?</a></p>
       </form>
+      <form id="newPassForm" data-pane="nueva" hidden novalidate>
+        <h1 class="onb-title">Crea tu<br><span>nueva contraseña</span></h1>
+        <p class="onb-sub">Escríbela dos veces y la guardamos. Con ella entras a tu reporte desde cualquier dispositivo.</p>
+        <div class="field"><label for="np-pass">Nueva contraseña</label><input id="np-pass" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Mínimo 8 caracteres"></div>
+        <div class="field"><label for="np-pass2">Repítela</label><input id="np-pass2" name="password2" type="password" autocomplete="new-password" minlength="8" required placeholder="Otra vez"></div>
+        <label class="check np-ver"><input type="checkbox" id="np-ver"> <span>Mostrar contraseña</span></label>
+        <div class="msg" id="newPassMsg"></div>
+        <button class="btn btn-primary btn-block" type="submit">Guardar mi contraseña</button>
+      </form>
       <div id="googleBox">
       <div class="or"><span>o</span></div>
       <button class="btn btn-google btn-block" type="button" data-google>
@@ -124,8 +133,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794594252"></script>
-<script src="/assets/js/app.js?v=1794594252"></script>
+<script src="/assets/js/config.js?v=1794595843"></script>
+<script src="/assets/js/app.js?v=1794595843"></script>
 
 </body>
 </html>
