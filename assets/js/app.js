@@ -848,6 +848,7 @@
       const r = {}; Object.keys(r0 || {}).forEach(k => { r[k] = parsear(r0[k]); });
       $("#repBody").hidden = false;
       $("#repResumen").textContent = r.resumen || "";
+      const pdf = $("#repPdf"); if (pdf) { pdf.href = "/reporte.html?pedido=" + encodeURIComponent(o.id); pdf.hidden = false; }
 
       if (o.medidas && o.medidas.medidas) {
         const firmar = k => sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/${k}.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "");
