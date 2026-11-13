@@ -1469,3 +1469,24 @@ html:has(main.onb){background:#56636E}
 .slot-guia{top:7%;width:auto;height:56%;aspect-ratio:3/4}
 @media (max-width:640px){.slot small{font-size:11px;line-height:1.3}.slot b{font-size:13px}.slot-guia{height:52%;top:6%}}
 .esc3d-ico{background-size:auto 78%}
+/* v31 guided 3D scan */
+.esc3d-paso{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.esc3d-marco{position:absolute;pointer-events:none;border-radius:50%;box-shadow:0 0 0 200vmax rgba(14,17,20,.5)}
+.esc3d-anillo{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);overflow:visible}
+.esc3d-anillo ellipse{fill:none;stroke-width:5;vector-effect:non-scaling-stroke}
+.esc3d-anillo .base{stroke:rgba(255,255,255,.25);transition:stroke .2s}
+.esc3d-anillo .prog{stroke:#7fb895;stroke-linecap:round;stroke-dasharray:0 100;transform:rotate(-90deg);transform-origin:150px 200px;transition:stroke-dasharray .35s ease}
+.esc3d.mal .esc3d-anillo .base{stroke:#e0675a}
+.esc3d.bien .esc3d-anillo .base{stroke:rgba(127,184,149,.55)}
+.esc3d .esc-p{font-size:19px;font-weight:500}
+.esc3d.mal .esc-p{color:#ffb4aa}
+.esc3d-flecha{position:absolute;width:44px;height:44px;opacity:0;transition:opacity .2s;background:#fff;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E") center/contain no-repeat}
+.esc3d-flecha.f-der{opacity:1;right:-62px;top:calc(50% - 22px);animation:fDer 1s ease-in-out infinite}
+.esc3d-flecha.f-izq{opacity:1;left:-62px;top:calc(50% - 22px);transform:scaleX(-1);animation:fIzq 1s ease-in-out infinite}
+.esc3d-flecha.f-arriba{opacity:1;top:-62px;left:calc(50% - 22px);transform:rotate(-90deg);animation:fArr 1s ease-in-out infinite}
+.esc3d-flecha.f-abajo{opacity:1;bottom:-62px;left:calc(50% - 22px);transform:rotate(90deg);animation:fAba 1s ease-in-out infinite}
+@keyframes fDer{50%{transform:translateX(8px)}}
+@keyframes fIzq{0%,100%{transform:scaleX(-1)}50%{transform:scaleX(-1) translateX(8px)}}
+@keyframes fArr{0%,100%{transform:rotate(-90deg)}50%{transform:rotate(-90deg) translateX(8px)}}
+@keyframes fAba{0%,100%{transform:rotate(90deg)}50%{transform:rotate(90deg) translateX(8px)}}
+@media (max-width:560px){.esc3d-flecha.f-der{right:-50px}.esc3d-flecha.f-izq{left:-50px}.esc3d-flecha{width:36px;height:36px}}
