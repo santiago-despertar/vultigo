@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794607227">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794609269">
 <script>try{var _p=location.pathname;if(/\.html$/.test(_p))history.replaceState(null,"",((/\/index\.html$/.test(_p)?_p.slice(0,-10):_p.slice(0,-5))||"/")+location.search+location.hash)}catch(e){}</script>
 <script>try{var _d=document.documentElement;if(document.fonts&&document.fonts.load){_d.classList.add("fload");var _ok=function(){_d.classList.remove("fload")};Promise.all([document.fonts.load("300 40px Inter"),document.fonts.load("400 16px Inter"),document.fonts.load("600 16px Inter")]).then(_ok,_ok);setTimeout(_ok,900)}}catch(e){}</script>
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
@@ -165,9 +165,21 @@
                 <div class="sim-pres" id="simPre"></div>
                 <p class="hint sim-pre-nota" id="simPreNota" hidden></p>
                 <div id="simCtl"></div>
-                <button type="button" class="btn btn-ghost" id="simReset" style="margin:4px 0 16px">Reiniciar</button>
+                <label class="sim-magro"><input type="checkbox" id="simMagro"> <span><b>Con menos grasa en la cara</b><small>Cómo te verías si bajas de peso: mandíbula, pómulos y cuello más marcados.</small></span></label>
+                <div class="sim-acc"><button type="button" class="btn btn-primary" id="simIABtn">Ver resultado realista</button><button type="button" class="btn btn-ghost" id="simReset">Reiniciar</button></div>
+                <p class="hint sim-acc-n">Aplica estos mismos cambios a tu foto con IA para verlo como se vería de verdad.</p>
+                <div class="msg" id="simIAMsg"></div>
                 <div class="card"><p class="label">Lo que cambia en tus medidas</p><div id="simDelta"></div></div>
               </div>
+            </div>
+            <div class="card sim-ia" id="simIA" hidden>
+              <p class="label">Resultado realista</p>
+              <div class="sim-ia-g">
+                <figure><img id="simIAAntes" alt="Tu foto original"><figcaption>Antes</figcaption></figure>
+                <figure class="sim-ia-d"><img id="simIADesp" alt="Tu foto con los cambios aplicados"><div class="sim-ia-load"><div class="rep-spin" aria-hidden="true"></div><span>Generando tu imagen, tarda unos 20 segundos</span></div><figcaption>Después</figcaption></figure>
+              </div>
+              <ul class="sim-ia-l" id="simIALista"></ul>
+              <p class="hint">Imagen generada con IA a partir de tu foto. Sirve para darte una idea, no es una promesa de resultado.</p>
             </div>
           </div>
 
@@ -265,8 +277,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794607227"></script>
-<script src="/assets/js/app.js?v=1794607227"></script>
+<script src="/assets/js/config.js?v=1794609269"></script>
+<script src="/assets/js/app.js?v=1794609269"></script>
 
 </body>
 </html>
