@@ -2,7 +2,7 @@
   <div class="wrap" style="max-width:1080px">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:32px">
       <div><span class="label">Mi cuenta</span><h1 style="font-size:44px;margin-top:8px">Hola, <span id="who">…</span></h1></div>
-      <div style="display:flex;gap:10px"><a class="btn btn-primary" href="/analisis.html">Nuevo análisis</a><button class="btn btn-ghost" id="logout">Salir</button></div>
+      <div style="display:flex;gap:10px"><a class="btn btn-primary" href="/analisis">Nuevo análisis</a><button class="btn btn-ghost" id="logout">Salir</button></div>
     </div>
 
     <div class="acceso card" id="acceso" hidden></div>
@@ -62,24 +62,8 @@
 
           <div class="dash-tab" data-tab="medidas">
             <h3 class="rep-h rep-h0">Tus medidas</h3>
-            <p class="hint rep-sub">Toca una zona o una medida para verla marcada en tu foto.</p>
-            <div class="tabs rep-vistas" id="vVistas" hidden><button type="button" data-v="frente" class="active">Frente</button><button type="button" data-v="perfil">Perfil</button></div>
-            <div class="visor">
-              <div class="visor-face">
-                <div class="visor-stage" id="vStage"><svg id="vSvg" role="img" aria-label="Tu foto con las medidas" preserveAspectRatio="xMidYMid slice"></svg></div>
-                <div class="visor-now" id="vNow" aria-live="polite"></div>
-              </div>
-              <div class="visor-side">
-                <div class="msg" id="vWarn"></div>
-                <div class="card visor-score">
-                  <div><p class="label">Armonía de esta vista</p><p class="mono visor-big"><span id="vScore">0</span><span class="visor-of"> / 10</span></p></div>
-                  <div class="visor-zones" id="vZones"></div>
-                </div>
-                <div class="visor-detail card" id="vDetail" hidden></div>
-                <div class="tabs visor-tabs" id="vTabs"></div>
-                <div id="vList"></div>
-              </div>
-            </div>
+            <p class="hint rep-sub">Cada medida con su rango de referencia. Toca una para verla marcada en tu cara.</p>
+            <div id="fqRoot"></div>
           </div>
 
           <div class="dash-tab" data-tab="rasgos">
@@ -191,8 +175,11 @@
 
     <div class="card" style="margin-top:20px">
       <p class="label" style="margin-bottom:10px">Privacidad</p>
-      <p class="hint" style="margin-bottom:16px">Puedes borrar tus fotos en cualquier momento. Tu reporte se queda en tu cuenta.</p>
-      <button class="btn btn-ghost" id="deletePhotos">Borrar mis fotos</button>
+      <p class="hint" style="margin-bottom:16px">Puedes borrar tus fotos en cualquier momento y tu reporte se queda en tu cuenta. O puedes borrar tu cuenta completa con todo lo que tiene.</p>
+      <div class="priv-acc">
+        <button class="btn btn-ghost" id="deletePhotos">Borrar mis fotos</button>
+        <button class="btn-borrar" id="deleteAccount">Borrar mi cuenta</button>
+      </div>
       <div class="msg" id="privMsg"></div>
     </div>
   </div>
