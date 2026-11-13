@@ -249,12 +249,12 @@ Deno.serve(async (req) => {
         max_tokens: 10000,
         system: instrucciones(order.tier, order.answers ?? {}),
         tools: [{ name: "reporte", description: "Entrega el reporte de análisis facial.", input_schema: esquema }],
-        tool_choice: { type: "tool", name: "reporte" },
+        tool_choice: { type: "auto" },
         messages: [{
           role: "user",
           content: [
             ...imagenes,
-            { type: "text", text: `Fotos, en este orden: ${vistas.join("; ")}.\n\nPuntaje general de frente: ${m.resumen.general}/100.\nPuntajes por zona: ${zonas}.\n\nMedidas de frente:\n${tabla}${perfilTxt}\n${m.avisos?.length ? `\nAvisos de calidad de la foto: ${m.avisos.join(" ")}` : ""}\n\nEscribe el reporte.` }
+            { type: "text", text: `Fotos, en este orden: ${vistas.join("; ")}.\n\nPuntaje general de frente: ${m.resumen.general}/100.\nPuntajes por zona: ${zonas}.\n\nMedidas de frente:\n${tabla}${perfilTxt}\n${m.avisos?.length ? `\nAvisos de calidad de la foto: ${m.avisos.join(" ")}` : ""}\n\nEntrega el reporte llamando a la herramienta reporte, con todas sus secciones. No escribas nada fuera de la herramienta.` }
           ]
         }]
       };
@@ -271,8 +271,13 @@ Deno.serve(async (req) => {
       if (!r.ok) { console.error("anthropic", r.status, (await r.text()).slice(0, 500)); return null; }
       const resp = await r.json();
       const bloque = (resp.content ?? []).find((c: Record<string, unknown>) => c.type === "tool_use");
-      if (!bloque) { console.error("sin tool_use", JSON.stringify(resp).slice(0, 500)); return null; }
-      return { input: limpiar(bloque.input), usage: resp.usage ?? null };
+      if (bloque) return { input: limpiar(bloque.input), usage: resp.usage ?? null };
+      // some models answer with the JSON as text instead of calling the tool
+      const texto = (resp.content ?? []).filter((c: Record<string, unknown>) => c.type === "text").map((c: Record<string, unknown>) => c.text).join("");
+      const desde = texto.indexOf("{");
+      const obj = desde >= 0 ? parsear(texto.slice(desde)) : null;
+      if (obj && typeof obj === "object") return { input: limpiar(obj as Record<string, unknown>), usage: resp.usage ?? null };
+      console.error("sin tool_use", resp.stop_reason, JSON.stringify(resp).slice(0, 500)); return null;
     };
     // one retry if a section came back missing or malformed
     let res = await pedir();
