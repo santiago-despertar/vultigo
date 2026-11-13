@@ -117,7 +117,19 @@
   }, { capture: true, passive: true }));
 
   // analytics events (Google Analytics; the Meta pixel can hook here too)
-  const track = (nombre, datos) => { try { if (window.gtag) window.gtag("event", nombre, datos || {}); } catch (e) {} };
+  // Meta pixel names for our events; purchase carries the order id so Meta never counts it twice.
+  const META = { sign_up: "CompleteRegistration", begin_checkout: "InitiateCheckout", purchase: "Purchase", generate_lead: "Lead" };
+  const track = (nombre, datos) => {
+    datos = datos || {};
+    try { if (window.gtag) window.gtag("event", nombre, datos); } catch (e) {}
+    try {
+      if (window.fbq && META[nombre]) {
+        const p = {}; if (datos.value) { p.value = datos.value; p.currency = datos.currency || "MXN"; }
+        if (datos.items && datos.items[0]) { p.content_ids = [datos.items[0].item_id]; p.content_name = datos.items[0].item_name; p.content_type = "product"; }
+        window.fbq("track", META[nombre], p, datos.transaction_id ? { eventID: "compra-" + datos.transaction_id } : undefined);
+      }
+    } catch (e) {}
+  };
   const precio = tier => Number(String((C.PRICES || {})[tier] || "").replace(/[^0-9.]/g, "")) || undefined;
   const errES = (e) => {
     const m = (e && e.message) || "";
