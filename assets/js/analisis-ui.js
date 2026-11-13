@@ -62,8 +62,10 @@ export function montarAnalisis(root, opts) {
   impactos(todas);
   S = { root, frente, perfil, todas, filtro: "todas", lista: [], abierta: null, abiertos: new Set(GRUPOS.map(g => g[0])) };
 
-  const gF = frente ? s10(frente.data.resumen.general) : null, gP = perfil ? s10(perfil.data.resumen.general) : null;
-  const total = armonia != null ? armonia : gP == null ? gF : gF == null ? gP : gF * 0.6 + gP * 0.4;
+  // same strict curve as the report, so the front and profile chips agree with the total
+  const deVista = (k) => { const ps = todas.filter(m => m.vista === k).map(m => m.puntaje); return ps.length ? armoniaDe(ps) : null; };
+  const gF = frente ? deVista("frente") : null, gP = perfil ? deVista("perfil") : null;
+  const total = armonia != null ? armonia : armoniaDe(todas.map(m => m.puntaje));
   const mini = (v, k) => v && v.src ? `<button type="button" class="fq-foto" data-v="${k}" aria-label="Ver solo ${k}">${fotoSvg(v.data, v.src)}<span>${k === "frente" ? "Frente" : "Perfil"}</span></button>` : "";
   root.innerHTML = `
     <div class="fq">

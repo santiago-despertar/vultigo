@@ -1,7 +1,7 @@
 // Landmark editor: shows the points the measurements are built from on the customer's photo,
 // lets them drag any point that landed in the wrong place, and measures again live.
 // Front: the key points of the 478-point face model. Profile: the named points of the silhouette.
-import { analizar, medir, resumen } from "/assets/js/medidas.js?v=19";
+import { analizar, medir, resumen } from "/assets/js/medidas.js?v=20";
 import { analizarPerfil, medirPuntos, ZONAS_PERFIL } from "/assets/js/perfil.js?v=20";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

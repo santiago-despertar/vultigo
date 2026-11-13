@@ -285,7 +285,7 @@ export function medir(L, sexo) {
   const stomMid = mid(P(13), P(14));
   const comis = (along(stomMid, mid(mouthL, mouthR), vx, vy)) / mouthW * 100;
   add({ id: "comisuras", zona: "boca", nombre: "Posición de las comisuras", unidad: "%",
-    valor: comis, rango: [0, 5],
+    valor: comis, rango: [-2, 4],
     lineas: [[mouthL, stomMid], [stomMid, mouthR]],
     que: "Qué tan arriba o abajo quedan las esquinas de la boca respecto al centro de los labios, con la cara relajada.",
     significa: "Comisuras un poco hacia arriba dan una expresión amable aunque no sonrías. Hacia abajo, la cara se ve seria o cansada." });

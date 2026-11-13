@@ -597,7 +597,7 @@
       msg(m, text);
     }
 
-    import("/assets/js/medidas.js?v=19").then(m => m.precargar()).catch(() => {});
+    import("/assets/js/medidas.js?v=20").then(m => m.precargar()).catch(() => {});
     import("/assets/js/perfil.js?v=20").then(m => m.precargarPerfil()).catch(() => {});
 
     const grid = $("#photoGrid"), gridOpc = $("#photoGridOpc") || grid;
@@ -709,7 +709,7 @@
       fotoFrente = blob;
       if (!sb || !order) return;
       try {
-        const { analizar } = await import("/assets/js/medidas.js?v=19");
+        const { analizar } = await import("/assets/js/medidas.js?v=20");
         const bmp = await createImageBitmap(blob);
         const r = await analizar(bmp, (order.answers || {}).sexo);
         crudo = { bmp, puntos: r.puntos, medidas: r.medidas, caja: r.caja };
@@ -1146,7 +1146,7 @@
       const { data: s } = await sb.storage.from("fotos").createSignedUrl(`${o.user_id || user.id}/${o.id}/frente.jpg`, 600);
       if (!s) throw new Error("sin_foto");
       const [{ analizar }, img] = await Promise.all([
-        import("/assets/js/medidas.js?v=19"),
+        import("/assets/js/medidas.js?v=20"),
         new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = s.signedUrl; })
       ]);
       return compactar(await analizar(img, (o.answers || {}).sexo));
@@ -1422,7 +1422,7 @@
     }
     function abrirSim() {
       if (!sim && actual) {
-        sim = import("/assets/js/simular.js?v=24").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
+        sim = import("/assets/js/simular.js?v=25").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
           .catch(e => { sim = null; $("#simWait").hidden = true; msg($("#simMsg"), e && e.message === "sin_foto" ? "No encontramos tu foto de frente para simular." : "No pudimos preparar el simulador. Vuelve a intentarlo en un momento."); });
       }
     }
@@ -1500,7 +1500,7 @@
       if (o.medidas && o.medidas.medidas) {
         const firmar = k => sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/${k}.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "");
         const pf = o.medidas.perfil;
-        const [{ montarAnalisis }, foto, fotoP] = await Promise.all([import("/assets/js/analisis-ui.js?v=2"), firmar("frente"), pf ? firmar(pf.foto || "perfil_izq") : ""]);
+        const [{ montarAnalisis }, foto, fotoP] = await Promise.all([import("/assets/js/analisis-ui.js?v=3"), firmar("frente"), pf ? firmar(pf.foto || "perfil_izq") : ""]);
         const pun = (r.puntajes || {}).armonia;
         montarAnalisis($("#fqRoot"), {
           frente: { data: o.medidas, src: foto }, perfil: pf ? { data: pf, src: fotoP } : null,
@@ -1515,7 +1515,7 @@
             const vista = b.dataset.pe, key = vista === "perfil" ? (pf.foto || "perfil_izq") : "frente";
             b.disabled = true; clearMsg($("#peMsg"));
             try {
-              const [img, { editarPuntos }] = await Promise.all([cargarFoto(o, key), import("/assets/js/puntos.js?v=1")]);
+              const [img, { editarPuntos }] = await Promise.all([cargarFoto(o, key), import("/assets/js/puntos.js?v=2")]);
               const res = await editarPuntos({ vista, img, sexo: (o.answers || {}).sexo });
               if (res) {
                 const datos = vista === "perfil" ? { ...compactarPerfil(res), foto: key } : compactar(res);

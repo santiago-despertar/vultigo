@@ -1,6 +1,6 @@
 // Simulator: warps a photo with sliders and measures the result again, front or profile.
 // The same displacement that moves the pixels moves the landmarks, so the numbers follow what you see.
-import { analizar, medir, resumen } from "/assets/js/medidas.js?v=19";
+import { analizar, medir, resumen } from "/assets/js/medidas.js?v=20";
 import { analizarPerfil, medirPuntos, ZONAS_PERFIL } from "/assets/js/perfil.js?v=20";
 
 const $ = (s) => document.querySelector(s);
