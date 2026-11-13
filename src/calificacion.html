@@ -11,14 +11,25 @@
         <p class="onb-sub">Sube una foto de frente y en 30 segundos medimos tus proporciones y te damos tu puntaje del 0 al 100. Es gratis.</p>
         <label class="cal-foto" id="rateDrop">
           <span class="slot-guia" style="background-image:url(https://jxluabbugwdonqchbaxm.supabase.co/storage/v1/object/public/publico/poses/frente.png)"></span>
-          <b>Sube tu foto de frente</b><small>o tómala con tu cámara</small>
+          <b>Sube tu foto de frente</b><small>Toca para elegir una foto</small>
           <input type="file" accept="image/*" id="rateFile" aria-label="Foto de frente">
+          <div class="cal-cam" id="camBox" hidden>
+            <video id="camVideo" playsinline muted></video>
+            <i class="cal-cam-ovalo"></i>
+            <p class="cal-cam-txt">Acomoda tu cara dentro del óvalo</p>
+            <div class="cal-cam-acc">
+              <button type="button" class="cal-cam-x" id="camX">Cancelar</button>
+              <button type="button" class="cal-cam-shot" id="camShot" aria-label="Tomar foto"></button>
+              <span></span>
+            </div>
+          </div>
         </label>
+        <button type="button" class="btn btn-ghost btn-block cal-cam-btn" id="camBtn">Tomar foto con mi cámara</button>
         <ul class="cal-tips"><li>Mira directo a la cámara</li><li>Luz de frente</li><li>Sin lentes ni filtros</li></ul>
         <label class="check"><input type="checkbox" id="rateAdult"> <span>Tengo 18 años o más y la foto es mía.</span></label>
         <div class="msg" id="rateMsg"></div>
         <button class="btn btn-primary btn-block" id="rateGo" disabled>Calcular mi puntaje</button>
-        <p class="hint cal-priv">Tu foto se analiza en tu celular y nunca se sube a internet.</p>
+        <p class="hint cal-priv">Tu foto se analiza en tu dispositivo y nunca se sube a internet.</p>
       </section>
 
       <!-- 2. processing -->
@@ -48,7 +59,7 @@
           <div class="field"><label for="lead-email">Correo</label><input id="lead-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="tu@correo.com" required></div>
           <div class="msg" id="leadMsg"></div>
           <button class="btn btn-primary btn-block" type="submit">Enviarme mi resultado</button>
-          <p class="hint cal-priv">Solo guardamos tu correo y tu puntaje, nunca tu foto. <a href="/privacidad.html">Aviso de privacidad</a>.</p>
+          <p class="hint cal-priv">Solo guardamos tu correo y tu puntaje, nunca tu foto. <a href="/privacidad">Aviso de privacidad</a>.</p>
         </form>
       </section>
 
@@ -61,12 +72,12 @@
           <h2>Lo que tu puntaje gratis no te dice</h2>
           <p>Tu puntaje mide 6 proporciones de tu cara de frente. Es un buen comienzo, pero no te dice <b>qué hacer</b>. El análisis completo revisa más de 110 rasgos con tus fotos de frente, sonriendo y de perfil, y te da un plan en orden: qué cambiar primero, qué no vale la pena y cómo te verías.</p>
           <ul class="checks">
-            <li>Más de 110 evaluaciones de tu cara</li>
+            <li>Más de 120 evaluaciones de tu cara</li>
             <li>Tu proyección: cómo te verías con tu plan</li>
             <li>Tu edad visual contra tu edad real</li>
             <li>Plan por fases: piel, cabello, barba, cejas y estilo</li>
           </ul>
-          <a class="btn btn-primary btn-block" id="calCta" href="/cuenta.html?next=/analisis.html">Quiero mi análisis completo</a>
+          <a class="btn btn-primary btn-block" id="calCta" href="/cuenta?next=/analisis">Quiero mi análisis completo</a>
           <p class="hint cal-priv">Listo en unos minutos. Lo ves en tu cuenta y en PDF.</p>
         </div>
       </section>
