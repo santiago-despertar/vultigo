@@ -2064,6 +2064,17 @@ html.fq-abierto{overflow:hidden}
 @media (prefers-reduced-motion:reduce){
   .fx-scene *,.fx-tab .fx-bar u{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}
 }
+/* layout fixes: cards beside the face on desktop, under it on mobile */
+.fx-list{left:auto;top:16px;right:16px;bottom:auto;width:300px;max-width:none;margin:0}
+.fx-row{grid-template-columns:minmax(0,1fr) 54px 34px}
+.fx-edit{left:auto;right:16px;top:16px;bottom:auto;width:260px;flex-direction:column;align-items:flex-start;gap:4px}
+@media (max-width:900px){
+  .fx-face{height:58%}
+  .fx-list,.fx-edit{left:12px;right:12px;top:auto;bottom:12px;width:auto}
+  .fx-edit{flex-direction:row;align-items:center;justify-content:space-between}
+  .fx-list .fx-row:nth-of-type(n+3){display:none}
+}
+
 /* less empty space before the footer */
 .site-footer{margin-top:0}
 body[data-page=index] .app-main{padding-bottom:0}
