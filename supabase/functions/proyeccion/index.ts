@@ -74,7 +74,10 @@ Deno.serve(async (req) => {
       const src = await fetch(String(body.demo_url));
       if (!src.ok) return json({ error: "sin_foto" }, 400);
       const out = await editar(new Uint8Array(await src.arrayBuffer()), instrucciones(tipo, body.reporte || {}, body.answers || {}));
-      return out ? json({ data: out.data, mime: out.mime }) : json({ error: "fallo" }, 502);
+      if (!out) return json({ error: "fallo" }, 502);
+      const path = `${user.id}/demo/${Date.now()}.${out.mime.includes("jpeg") ? "jpg" : "png"}`;
+      await admin.storage.from("fotos").upload(path, Uint8Array.from(atob(out.data), (c) => c.charCodeAt(0)), { contentType: out.mime });
+      return json({ url: (await admin.storage.from("fotos").createSignedUrl(path, 3600)).data?.signedUrl });
     }
     const { data: order } = await supabase.from("orders").select("id,user_id,tier,answers,status").eq("id", String(body.order_id || "")).maybeSingle();
     if (!order || !["pagado", "listo"].includes(order.status)) return json({ error: "Pedido no válido" }, 400);
