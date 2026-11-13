@@ -75,9 +75,10 @@ Deno.serve(async (req) => {
       if (!src.ok) return json({ error: "sin_foto" }, 400);
       const out = await editar(new Uint8Array(await src.arrayBuffer()), instrucciones(tipo, body.reporte || {}, body.answers || {}));
       if (!out) return json({ error: "fallo" }, 502);
-      const path = `${user.id}/demo/${Date.now()}.${out.mime.includes("jpeg") ? "jpg" : "png"}`;
-      await admin.storage.from("fotos").upload(path, Uint8Array.from(atob(out.data), (c) => c.charCodeAt(0)), { contentType: out.mime });
-      return json({ url: (await admin.storage.from("fotos").createSignedUrl(path, 3600)).data?.signedUrl });
+      // example images only (never a customer): public so they can be added to the site
+      const path = `demo/${Date.now()}.${out.mime.includes("jpeg") ? "jpg" : "png"}`;
+      await admin.storage.from("publico").upload(path, Uint8Array.from(atob(out.data), (c) => c.charCodeAt(0)), { contentType: out.mime });
+      return json({ url: admin.storage.from("publico").getPublicUrl(path).data.publicUrl });
     }
     const { data: order } = await supabase.from("orders").select("id,user_id,tier,answers,status").eq("id", String(body.order_id || "")).maybeSingle();
     if (!order || !["pagado", "listo"].includes(order.status)) return json({ error: "Pedido no válido" }, 400);
