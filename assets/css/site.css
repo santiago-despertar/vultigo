@@ -1352,3 +1352,85 @@ html.esc-on,html.esc-on body{overflow:hidden}
 .su-nav{display:flex;gap:10px;margin-top:6px}
 .su-nav .btn{flex:1}
 .su-nav [hidden]{display:none}
+
+/* v29 onboarding as a squeeze page: moving color background, glass card, small back link */
+body:has(main.onb){background:#5C6A76;color:#fff}
+body:has(main.onb) .site-header,body:has(main.onb) .site-footer{display:none}
+.app-main.onb{position:relative;min-height:100vh;min-height:100svh;padding:76px 0 56px;display:flex;flex-direction:column;justify-content:center;isolation:isolate}
+.onb-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(160deg,#66737E 0%,#56636E 55%,#4D5964 100%)}
+.onb-bg i{position:absolute;width:85vmax;height:85vmax;border-radius:50%;will-change:transform}
+.onb-bg i:nth-child(1){top:-35vmax;right:-30vmax;background:radial-gradient(circle,rgba(200,180,142,.55) 0%,rgba(200,180,142,0) 62%);animation:onbA 26s ease-in-out infinite alternate}
+.onb-bg i:nth-child(2){bottom:-40vmax;left:-30vmax;background:radial-gradient(circle,rgba(46,57,68,.75) 0%,rgba(46,57,68,0) 62%);animation:onbB 32s ease-in-out infinite alternate}
+.onb-bg i:nth-child(3){top:10vmax;left:-20vmax;background:radial-gradient(circle,rgba(169,182,191,.45) 0%,rgba(169,182,191,0) 60%);animation:onbC 38s ease-in-out infinite alternate}
+.onb-bg i:nth-child(4){bottom:-30vmax;right:-25vmax;background:radial-gradient(circle,rgba(110,126,142,.6) 0%,rgba(110,126,142,0) 60%);animation:onbA 44s ease-in-out infinite alternate-reverse}
+@keyframes onbA{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-14vmax,10vmax) scale(1.12)}100%{transform:translate(-6vmax,-8vmax) scale(.95)}}
+@keyframes onbB{0%{transform:translate(0,0) scale(1)}50%{transform:translate(16vmax,-12vmax) scale(1.08)}100%{transform:translate(6vmax,6vmax) scale(1.15)}}
+@keyframes onbC{0%{transform:translate(0,0) scale(1)}50%{transform:translate(20vmax,6vmax) scale(.9)}100%{transform:translate(30vmax,-10vmax) scale(1.1)}}
+@media (prefers-reduced-motion:reduce){.onb-bg i{animation:none}}
+.onb-back{position:fixed;top:18px;left:20px;z-index:5;display:inline-flex;align-items:center;gap:6px;color:#fff;text-decoration:none;font-size:15px;opacity:.9;padding:6px 8px;border-radius:8px}
+.onb-back:hover{opacity:1;background:rgba(255,255,255,.08)}
+.onb .panel{max-width:440px;background:rgba(18,24,30,.16);-webkit-backdrop-filter:blur(22px) saturate(1.15);backdrop-filter:blur(22px) saturate(1.15);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:36px 34px;color:#fff;box-shadow:0 30px 80px rgba(20,26,32,.18)}
+.onb .panel.wide{max-width:760px}
+.onb .panel.wide:has(.wstep[data-step="1"].active){max-width:520px}
+.onb-mark{display:block;height:34px;width:auto;margin:0 0 26px}
+.onb-title{font-family:var(--font-display);font-weight:400;font-size:46px;line-height:1.02;letter-spacing:-.02em;margin:0 0 14px;color:#fff}
+.onb-title span{color:rgba(255,255,255,.62)}
+.onb-sub{color:rgba(255,255,255,.8);font-size:16px;line-height:1.5;margin:0 0 26px}
+.onb h1,.onb h2,.onb b{color:#fff}
+.onb .hint,.onb .label,.onb small,.onb .check{color:rgba(255,255,255,.74)}
+.onb a{color:#fff}
+.onb .tabs{display:none}
+.onb .field label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.onb .field{position:relative}
+.onb input:not([type=checkbox]):not([type=radio]):not([type=file]),.onb textarea{background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.24)!important;color:#fff!important;border-radius:12px!important;height:54px;font-size:17px;padding:0 16px}
+.onb textarea{height:auto;min-height:110px;padding:14px 16px}
+.onb input::placeholder,.onb textarea::placeholder{color:rgba(255,255,255,.55)}
+.onb input:focus,.onb textarea:focus{outline:none!important;border-color:rgba(255,255,255,.7)!important;background:rgba(255,255,255,.13)!important}
+.onb input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 40px #5f6c77 inset!important;caret-color:#fff}
+.onb input[type=checkbox]{accent-color:#fff;width:17px;height:17px}
+.onb .btn-primary{background:#fff;color:var(--ink);border-color:#fff}
+.onb .btn-primary:hover{background:#F1F2F3}
+.onb .btn-primary:disabled{opacity:.45}
+.onb .su-nav .btn-primary::after,.onb .quiz-nav .btn-primary::after{content:"";width:14px;height:14px;margin-left:12px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8'%3E%3Cpath d='M2 8h12M9 3l5 5-5 5'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8'%3E%3Cpath d='M2 8h12M9 3l5 5-5 5'/%3E%3C/svg%3E") center/contain no-repeat}
+.onb .btn-ghost{background:transparent;border-color:rgba(255,255,255,.32);color:#fff}
+.onb .btn-ghost:hover{background:rgba(255,255,255,.08)}
+.onb .or{color:rgba(255,255,255,.7)}
+.onb .or::before,.onb .or::after{background:rgba(255,255,255,.2)!important}
+.onb .btn-google{border-color:#fff}
+.onb-switch{text-align:center;font-size:14px;color:rgba(255,255,255,.75);margin:18px 0 0}
+.onb .su-h{font-family:var(--font-display);font-weight:400;font-size:32px;line-height:1.1;letter-spacing:-.01em;margin:0 0 20px}
+.onb .quiz .q h2{font-family:var(--font-display);font-weight:400;font-size:34px;line-height:1.08;letter-spacing:-.01em}
+.onb .quiz-bar{background:rgba(255,255,255,.18)}
+.onb .quiz-bar i{background:#fff}
+.onb .progress i{background:rgba(255,255,255,.18)}
+.onb .progress i.on{background:#fff}
+.onb .panel:has(.wstep[data-step="1"].active)>.progress{display:none}
+.onb .quiz .opt{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fff}
+.onb .quiz .opt:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.4)}
+.onb .quiz .opt.on{background:#fff;color:var(--ink);border-color:#fff}
+.onb .slot{background:rgba(255,255,255,.07)!important;border:1px dashed rgba(255,255,255,.38);color:#fff}
+.onb .slot:hover{border-color:#fff}
+.onb .esc-cta.card{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff}
+.onb .esc-cta.card p{color:rgba(255,255,255,.78)}
+.onb .plan-in{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fff}
+.onb .plan-in small{color:rgba(255,255,255,.75)}
+.onb .plan-in .checks li{border-top-color:rgba(255,255,255,.16)}
+.onb .plan-in .checks li::before{color:inherit}
+.onb .plan-opt input:checked+.plan-in{background:#fff;color:var(--ink);border-color:#fff;box-shadow:none}
+.onb .plan-opt input:checked+.plan-in b{color:var(--ink)}
+.onb .plan-opt input:checked+.plan-in small{color:var(--ink-muted)}
+.onb .plan-opt input:checked+.plan-in .checks li{border-top-color:var(--line)}
+.onb .plan-opt input:checked+.plan-in .checks li::before{color:var(--slate-deep)}
+.onb .plan-rec{background:var(--sand);color:var(--ink)}
+@media (max-width:560px){
+  .app-main.onb{padding:64px 0 40px;justify-content:flex-start}
+  .onb .panel{padding:28px 22px;border-radius:18px}
+  .onb-title{font-size:38px}
+  .onb .quiz .q h2{font-size:27px}
+  .onb .su-h{font-size:26px}
+  .onb-back{top:12px;left:10px}
+}
+@media (max-width:560px){.onb .wrap{padding:0 14px}.quiz .opts-2.cortas{grid-template-columns:1fr 1fr}}
+html:has(main.onb){background:#56636E}
+.onb textarea{font-family:var(--font-sans)}
+.onb .quiz-nav .btn,.onb .su-nav .btn{white-space:nowrap}
