@@ -82,3 +82,19 @@ create table if not exists public.leads (
 );
 alter table public.leads enable row level security;
 create policy "anyone can leave their email" on public.leads for insert to anon, authenticated with check (true);
+
+-- Monthly follow-up plan (one rescan per billing period)
+create table if not exists public.suscripciones (
+  user_id uuid primary key references auth.users on delete cascade,
+  stripe_customer text,
+  stripe_subscription text unique,
+  estado text,
+  periodo_inicio timestamptz,
+  periodo_fin timestamptz,
+  cancela boolean default false,
+  creado timestamptz default now(),
+  actualizado timestamptz default now()
+);
+alter table public.suscripciones enable row level security;
+create policy "own subscription read" on public.suscripciones for select using (auth.uid() = user_id);
+alter table public.orders add column if not exists origen text;
