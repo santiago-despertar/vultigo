@@ -1463,3 +1463,8 @@ html:has(main.onb){background:#56636E}
 .esc3d .esc-stage video{object-fit:contain}
 .esc3d-malla{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
 .esc3d .esc-oval{width:min(46vw,300px,40vh)}
+.onb-back{position:absolute}
+.onb .esc3d-cta.card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff}
+.onb .esc3d-cta.card p,.onb .esc3d-cta .label{color:rgba(255,255,255,.78)}
+.slot-guia{top:7%;width:auto;height:56%;aspect-ratio:3/4}
+@media (max-width:640px){.slot small{font-size:11px;line-height:1.3}.slot b{font-size:13px}.slot-guia{height:52%;top:6%}}
