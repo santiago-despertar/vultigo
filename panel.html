@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794570489">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794571516">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 <script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(!t&&!back)location.replace("/cuenta.html?modo=entrar&next=/panel.html");}catch(e){}})()</script>
 </head>
@@ -93,7 +93,7 @@
               <button type="button" class="card dash-tool" data-ir="rasgos"><b>Rasgos</b><span class="hint">Angularidad, dimorfismo, piel, ojos, cabello y sonrisa</span></button>
               <button type="button" class="card dash-tool" data-ir="reporte"><b>Reporte</b><span class="hint">La lectura completa, zona por zona</span></button>
               <button type="button" class="card dash-tool" data-ir="plan"><b>Plan</b><span class="hint">Qué hacer y en qué orden</span></button>
-              <button type="button" class="card dash-tool" data-ir="simular"><b>Simular</b><span class="hint">Ve cómo cambiaría tu cara. En preparación</span></button>
+              <button type="button" class="card dash-tool" data-ir="simular"><b>Simular</b><span class="hint">Mueve mentón, nariz, labios y cejas sobre tu foto</span></button>
             </div>
           </div>
 
@@ -151,7 +151,25 @@
 
           <div class="dash-tab" data-tab="simular">
             <h3 class="rep-h rep-h0">Simular cambios</h3>
-            <div class="card"><p class="label">En preparación</p><p class="hint" style="margin-top:8px">Aquí vas a poder mover tu mentón, nariz, mandíbula y cejas sobre tu propia foto y ver cómo cambian tus medidas, y girar un modelo 3D de tu cara. Te avisamos cuando esté listo, sin costo extra para tu plan.</p></div>
+            <p class="hint rep-sub">Mueve los controles para ver cómo cambiaría tu cara de frente y qué pasa con tus medidas. Es una simulación ilustrativa, no una promesa de resultado.</p>
+            <div class="card rep-wait" id="simWait"><div class="rep-spin" aria-hidden="true"></div><div><b>Preparando tu simulador</b><p class="hint">Tarda unos segundos la primera vez.</p></div></div>
+            <div class="msg" id="simMsg"></div>
+            <div class="visor" id="simBox" hidden>
+              <div class="visor-face">
+                <div class="visor-stage" id="simStage"><canvas id="simCanvas" class="sim-canvas" role="img" aria-label="Tu foto con los cambios simulados"></canvas>
+                  <button type="button" class="sim-orig" id="simOrig">Mantén presionado para ver el original</button></div>
+                <div class="visor-now" id="simNow" aria-live="polite"></div>
+              </div>
+              <div class="visor-side">
+                <div class="card visor-score">
+                  <div><p class="label">Armonía de frente</p><p class="sim-score" id="simScore"></p></div>
+                  <div class="visor-zones" id="simZonas"></div>
+                </div>
+                <div id="simCtl"></div>
+                <button type="button" class="btn btn-ghost" id="simReset" style="margin:4px 0 16px">Reiniciar</button>
+                <div class="card"><p class="label">Lo que cambia en tus medidas</p><div id="simDelta"></div></div>
+              </div>
+            </div>
           </div>
 
           <p class="hint rep-note">Este análisis es información general sobre estética. Las medidas salen de fotos de celular y son estimaciones. Antes de cualquier tratamiento o procedimiento, consúltalo con un médico certificado.</p>
@@ -199,8 +217,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794570489"></script>
-<script src="/assets/js/app.js?v=1794570489"></script>
+<script src="/assets/js/config.js?v=1794571516"></script>
+<script src="/assets/js/app.js?v=1794571516"></script>
 
 </body>
 </html>
