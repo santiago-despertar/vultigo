@@ -1696,3 +1696,32 @@ html.fload .post-main{opacity:0}
 .poses figure span{display:block;width:62px;height:78px;border-radius:8px;background:var(--mist) center/auto 86% no-repeat}
 .poses figcaption{font:10px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted)}
 @media (max-width:640px){.poses figure span{width:56px;height:70px}}
+
+/* v41 affiliates page (reuses card, strip, field, order, status, faq2) */
+.af .af-hero{padding:8px 0 28px}
+.af .af-strip{margin:0 0 28px}
+.af .af-strip .wrap,.af .af-strip{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.af .af-strip .stat{min-width:120px}
+.af-card{margin-bottom:20px}
+.af-h{font-size:28px;font-weight:400}
+.af-card .field{margin-bottom:14px}
+.af-card select{width:100%}
+.af-link{display:flex;gap:10px;margin-top:10px}
+.af-link input{flex:1;min-width:0;font:15px var(--font-mono);padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#F8F9FA}
+.af-row-r{display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.af-kpis .stat b{font-size:28px}
+.af section.af-how,.af section.af-faq{padding:0}
+.af-how{margin:44px 0 8px}
+.af-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.af-steps .card i{font-style:normal;font-size:12px;color:var(--ink-muted)}
+.af-steps h3{font-size:21px;font-weight:400;margin:10px 0 6px}
+.af-faq{margin:44px 0 20px}
+.af-admin .order{align-items:flex-start}
+@media (max-width:760px){
+  .af-steps{grid-template-columns:1fr}
+  .af .af-strip .stat{min-width:calc(50% - 10px)}
+  .af-link{flex-direction:column}
+  .af-card .order{flex-direction:column;align-items:flex-start}
+  .af-row-r{justify-content:flex-start}
+}
+@media (max-width:760px){.af .af-strip{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px}.af .af-strip .stat{min-width:0}}
