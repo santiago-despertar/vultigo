@@ -4,7 +4,23 @@ import { analizar, ZONAS } from "/assets/js/medidas.js?v=5";
 const $ = (s) => document.querySelector(s);
 const file = $("#vFile"), go = $("#vGo"), msgEl = $("#vMsg");
 const ESTADO = { dentro: ["En rango", "ready"], cerca: ["Cerca del rango", "paid"], fuera: ["Fuera del rango", ""] };
-let img = null, data = null, zona = ZONAS[0][0], activa = null, view = null;
+let img = null, data = null, zona = ZONAS[0][0], activa = null, view = null, fila = null;
+// On phones the explanation opens right under the measurement you tapped; on a wide screen it stays in its card.
+const movil = matchMedia("(max-width:900px)");
+let casa = null;
+function colocarDetalle() {
+  const d = $("#vDetail"); if (!d) return;
+  if (!casa) { casa = document.createComment("detalle"); d.before(casa); }
+  if (movil.matches && fila) {
+    if (fila.nextElementSibling !== d) fila.after(d);
+    // keep the tapped measurement visible below the pinned photo
+    const tope = $(".visor-face").getBoundingClientRect().bottom + 8;
+    const r = fila.getBoundingClientRect();
+    if (r.top < tope) scrollBy({ top: r.top - tope, behavior: "smooth" });
+  }
+  else if (d.previousSibling !== casa) casa.after(d);
+}
+movil.addEventListener("change", colocarDetalle);
 
 function say(el, t, type = "err") { el.textContent = t; el.className = "msg show " + type; }
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -91,11 +107,13 @@ function setZona(id, scroll) {
 function setMedida(id) {
   activa = data.medidas.find(m => m.id === id);
   $("#vList").querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.id === id));
+  fila = $(`#vList button[data-id="${id}"]`);
   draw(activa);
   const m = activa, [lo, hi] = m.rango, [txt, cls] = ESTADO[m.estado];
   // range bar: the reference range sits in the middle half of the track
   const span = hi - lo || 1, min = lo - span, max = hi + span;
   const pos = Math.max(2, Math.min(98, ((m.valor - min) / (max - min)) * 100));
+  $("#vNow").innerHTML = `<b>${esc(m.nombre)}</b><i class="mono">${fmt(m)}</i>`;
   const d = $("#vDetail"); d.hidden = false;
   d.innerHTML = `
     <div class="visor-detail-top"><p class="label">${esc(ZONAS.find(z => z[0] === m.zona)[1])}</p><span class="status ${cls}">${txt}</span></div>
@@ -104,6 +122,7 @@ function setMedida(id) {
     <div class="visor-range" aria-hidden="true"><i></i><b style="left:${pos}%"></b></div>
     <p class="hint"><b>Qué mide.</b> ${esc(m.que)}</p>
     <p class="hint" style="margin-top:8px"><b>Qué significa.</b> ${esc(m.significa)}</p>`;
+  colocarDetalle();
 }
 
 function draw(m) {
