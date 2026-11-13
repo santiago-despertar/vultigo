@@ -859,3 +859,8 @@ body[data-page=index] .frame>section.notes{padding:24px 40px 40px}
 /* v11: comparison rows keep every step on the same line */
 .way{align-items:start}
 .way>b{align-self:center}
+
+/* v12: the header shows the right account link from the first paint, and both links take the same room */
+html:not(.authed) [data-auth="in"]{display:none!important}
+html.authed [data-auth="out"]{display:none!important}
+.nav-cta [data-auth]{min-width:112px;justify-content:center;text-align:center}
