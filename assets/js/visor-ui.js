@@ -8,7 +8,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<":
 const fmt = (m) => m.valor + (m.unidad || "");
 const say = (el, t, type) => { el.textContent = t; el.className = "msg show " + type; };
 
-let data = null, src = "", zona = ZONAS[0][0], view = null, fila = null, casa = null;
+let data = null, src = "", Z = ZONAS, zona = ZONAS[0][0], view = null, fila = null, casa = null;
 
 // On phones the explanation opens right under the measurement you tapped; on a wide screen it stays in its card.
 const movil = matchMedia("(max-width:900px)");
@@ -29,11 +29,11 @@ movil.addEventListener("change", colocarDetalle);
 
 // data: what the engine returned (or the same shape read back from the order). src: the photo URL.
 export function montar(d, imgSrc, opciones = {}) {
-  data = d; src = imgSrc; zona = ZONAS[0][0]; fila = null;
+  data = d; src = imgSrc; Z = d.zonas || ZONAS; zona = Z[0][0]; fila = null; colocarDetalle();
 
   // Zoom the stage to the face: a 4:5 frame around the landmarks, kept inside the photo.
   const c = data.caja, fw = c.x1 - c.x0, fh = c.y1 - c.y0;
-  let vh = Math.min(data.alto, fh * 1.75), vw = vh * 0.8;
+  let vh = Math.min(data.alto, fh * (data.tipo === "perfil" || data.mira ? 1.25 : 1.75)), vw = vh * 0.8;
   if (vw > data.ancho) { vw = data.ancho; vh = Math.min(data.alto, vw / 0.8); }
   if (vw < fw * 1.25) { vw = Math.min(data.ancho, fw * 1.25); vh = Math.min(data.alto, vw / 0.8); }
   const cx = (c.x0 + c.x1) / 2, cy = (c.y0 + c.y1) / 2 - fh * 0.06;
@@ -50,7 +50,7 @@ export function montar(d, imgSrc, opciones = {}) {
     `<button type="button" class="visor-zone" data-zona="${z.id}"><span>${esc(z.nombre)}</span><i><b style="width:${z.puntaje}%"></b></i><em class="mono">${z.puntaje}</em></button>`).join("");
   $("#vZones").querySelectorAll("button").forEach(b => b.addEventListener("click", () => setZona(b.dataset.zona, true)));
 
-  $("#vTabs").innerHTML = ZONAS.map(([id, n]) => `<button type="button" data-zona="${id}">${esc(n)}</button>`).join("");
+  $("#vTabs").innerHTML = Z.map(([id, n]) => `<button type="button" data-zona="${id}">${esc(n)}</button>`).join("");
   $("#vTabs").querySelectorAll("button").forEach(b => b.addEventListener("click", () => setZona(b.dataset.zona)));
 
   setZona(zona);
@@ -85,7 +85,7 @@ function setMedida(id) {
   const now = $("#vNow"); if (now) now.innerHTML = `<b>${esc(m.nombre)}</b><i class="mono">${fmt(m)}</i>`;
   const d = $("#vDetail"); d.hidden = false;
   d.innerHTML = `
-    <div class="visor-detail-top"><p class="label">${esc(ZONAS.find(z => z[0] === m.zona)[1])}</p><span class="status ${cls}">${txt}</span></div>
+    <div class="visor-detail-top"><p class="label">${esc((Z.find(z => z[0] === m.zona) || ["", ""])[1])}</p><span class="status ${cls}">${txt}</span></div>
     <h2 class="visor-detail-h">${esc(m.nombre)}</h2>
     <p class="mono visor-detail-v">${fmt(m)}<span> · referencia ${lo}${m.unidad || ""} a ${hi}${m.unidad || ""}</span></p>
     <div class="visor-range" aria-hidden="true"><i></i><b style="left:${pos}%"></b></div>

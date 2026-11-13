@@ -230,7 +230,7 @@ export async function analizarPerfil(image, sexo) {
     que: "El ángulo entre la frente, la base de la nariz y el mentón. 180 sería un perfil totalmente recto.",
     significa: "Un perfil ligeramente convexo es lo más común y armónico. Muy bajo, mentón retraído o tercio medio adelantado; muy alto, perfil plano o mentón adelantado." });
   add({ id: "mentolabial", zona: "menton", nombre: "Ángulo mentolabial", unidad: "°",
-    valor: angleAt(B, Li, Pog), rango: [105, 130],
+    valor: angleAt(B, Li, Pog), rango: [110, 140],
     lineas: [[Li, B], [B, Pog]],
     que: "El ángulo del pliegue entre el labio inferior y el mentón.",
     significa: "Cerrado marca un pliegue profundo; abierto, una transición plana entre labio y mentón." });
@@ -241,7 +241,7 @@ export async function analizarPerfil(image, sexo) {
     significa: "Un mentón un poco detrás de esa vertical es lo esperado. Mucho más atrás se percibe como mentón débil; delante, como mentón prominente." });
 
   if (Ne) add({ id: "cervicomental", zona: "cuello", nombre: "Ángulo cervicomental", unidad: "°",
-    valor: angleAt(C, Me, Ne), rango: [100, 120],
+    valor: angleAt(C, Me, Ne), rango: [100, 125],
     lineas: [[Me, C], [C, Ne]],
     que: "El ángulo entre la parte de abajo del mentón y el cuello.",
     significa: "Es lo que hace ver una mandíbula definida de perfil. Cerrado y marcado se ve definido; abierto, el contorno se pierde entre mentón y cuello." });

@@ -53,6 +53,15 @@
         que: x.que, significa: x.significa, lineas: (x.lineas || []).map(l => l.map(p => ({ x: p1(p.x), y: p1(p.y) }))) }))
     };
   }
+  function compactarPerfil(r) {
+    const p1 = v => Math.round(v * 10) / 10, pt = p => ({ x: p1(p.x), y: p1(p.y) });
+    return {
+      ancho: r.ancho, alto: r.alto, mira: r.mira, resumen: r.resumen, avisos: r.avisos, zonas: r.zonas,
+      caja: { x0: p1(r.caja.x0), y0: p1(r.caja.y0), x1: p1(r.caja.x1), y1: p1(r.caja.y1) },
+      medidas: r.medidas.map(x => ({ id: x.id, nombre: x.nombre, zona: x.zona, valor: x.valor, unidad: x.unidad, rango: x.rango, estado: x.estado, puntaje: x.puntaje,
+        que: x.que, significa: x.significa, lineas: (x.lineas || []).map(l => l.map(pt)) }))
+    };
+  }
   // Only allow redirects to pages of this site.
   const safePath = (p, fallback) => (typeof p === "string" && /^\/(?!\/)/.test(p) ? p : fallback);
   // A saved session that no longer works would bounce between pages, so clear it before sending to sign-in.
@@ -293,10 +302,10 @@
       ev.preventDefault();
       const f = ev.target;
       if (!f.mayor.checked || !f.edad.value || +f.edad.value < 18) { alertInline(f, "Este servicio es solo para mayores de 18 años."); return; }
-      const answers = { edad: +f.edad.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: f.objetivo.value, notas: f.notas.value.trim() };
+      const answers = { edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: f.objetivo.value, notas: f.notas.value.trim() };
       if (!sb) { go(2); return; }
       if (order) {
-        await sb.from("orders").update({ answers }).eq("id", order.id);
+        await sb.from("orders").update({ answers }).eq("id", order.id); order.answers = answers;
       } else {
         const { data, error } = await sb.from("orders").insert({ user_id: user.id, answers, tier: plan }).select().single();
         if (error) { alertInline(f, "No pudimos guardar tus datos. Inténtalo de nuevo."); return; }
@@ -310,6 +319,7 @@
     }
 
     import("/assets/js/medidas.js?v=15").then(m => m.precargar()).catch(() => {});
+    import("/assets/js/perfil.js?v=16").then(m => m.precargarPerfil()).catch(() => {});
 
     const grid = $("#photoGrid");
     SLOTS.forEach(([key, title, sub]) => {
@@ -343,6 +353,25 @@
       }
       el.classList.add("done"); uploaded.add(key); check();
       if (key === "frente") medir(blob, m);
+      if (key === "perfil_izq" || key === "perfil_der") medirPerfil(key, blob);
+    }
+
+    // Everything measured so far for this order. Saved whole each time so one photo never erases another.
+    const M = { frente: null, perfil: {} };
+    async function guardarMedidas() {
+      if (!M.frente) return;
+      const perfil = M.perfil.perfil_izq || M.perfil.perfil_der || null;
+      const medidas = perfil ? { ...M.frente, perfil: { ...perfil, foto: M.perfil.perfil_izq ? "perfil_izq" : "perfil_der" } } : M.frente;
+      const { error } = await sb.from("orders").update({ medidas }).eq("id", order.id);
+      if (error) console.warn(error);
+    }
+    async function medirPerfil(key, blob) {
+      if (!sb || !order) return;
+      try {
+        const { analizarPerfil } = await import("/assets/js/perfil.js?v=16");
+        const r = await analizarPerfil(await createImageBitmap(blob), (order.answers || {}).sexo);
+        M.perfil[key] = compactarPerfil(r); await guardarMedidas();
+      } catch (e) { delete M.perfil[key]; console.warn("perfil", e && e.message); }
     }
 
     // The front photo is measured here, in the browser, and the numbers travel with the order.
@@ -352,9 +381,8 @@
       try {
         const { analizar } = await import("/assets/js/medidas.js?v=15");
         const bmp = await createImageBitmap(blob);
-        const medidas = compactar(await analizar(bmp));
-        const { error } = await sb.from("orders").update({ medidas }).eq("id", order.id);
-        if (error) { console.warn(error); return; }
+        M.frente = compactar(await analizar(bmp));
+        await guardarMedidas();
         medidasListas = true; check();
       } catch (e) {
         medidasListas = false;
@@ -466,7 +494,7 @@
       if (!user) { await toLogin("/cuenta.html?modo=entrar&next=/panel.html"); return; }
       $("#who").textContent = (user.user_metadata && user.user_metadata.full_name) || user.email;
 
-      const { data: orders } = await sb.from("orders").select("id,status,tier,created_at,paid_at,medidas").order("created_at", { ascending: false });
+      const { data: orders } = await sb.from("orders").select("id,status,tier,created_at,paid_at,medidas,answers").order("created_at", { ascending: false });
       const box = $("#orders");
       if (!orders || !orders.length) {
         box.innerHTML = '<p class="hint" style="padding:18px 0">Todavía no tienes análisis. <a href="/analisis.html">Empieza el tuyo</a>.</p>';
@@ -540,6 +568,18 @@
       ]);
       return compactar(await analizar(img));
     }
+    const cargarFoto = async (o, key) => {
+      const { data: s } = await sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/${key}.jpg`, 3600);
+      if (!s) throw new Error("sin_foto");
+      return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = s.signedUrl; });
+    };
+    async function medirPerfilGuardado(o) {
+      const { analizarPerfil } = await import("/assets/js/perfil.js?v=16");
+      for (const key of ["perfil_izq", "perfil_der"]) {
+        try { return { ...compactarPerfil(await analizarPerfil(await cargarFoto(o, key), (o.answers || {}).sexo)), foto: key }; } catch (e) {}
+      }
+      return null;
+    }
 
     async function generar(o) {
       const id = o.id;
@@ -547,6 +587,7 @@
       try {
         const body = { order_id: id };
         if (!o.medidas || !o.medidas.medidas) { body.medidas = await medirGuardada(o); o.medidas = body.medidas; }
+        if (!o.medidas.perfil) { const pf = await medirPerfilGuardado(o).catch(() => null); if (pf) { o.medidas.perfil = pf; body.perfil = pf; if (body.medidas) body.medidas.perfil = pf; } }
         let r = await fnCall("generar-reporte", body);
         // another tab may be writing it already: wait for that one
         for (let i = 0; r.generando && i < 30; i++) {
@@ -611,11 +652,19 @@
       $("#repResumen").textContent = r.resumen || "";
 
       if (o.medidas && o.medidas.medidas) {
-        const [{ montar }, foto] = await Promise.all([
-          import("/assets/js/visor-ui.js?v=15"),
-          sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/frente.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "")
-        ]);
-        montar(o.medidas, foto, { scroll: false });
+        const firmar = k => sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/${k}.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "");
+        const pf = o.medidas.perfil;
+        const [{ montar }, foto, fotoP] = await Promise.all([import("/assets/js/visor-ui.js?v=16"), firmar("frente"), pf ? firmar(pf.foto || "perfil_izq") : ""]);
+        const vistas = $("#vVistas");
+        const ver = (v) => {
+          $$("#vVistas button").forEach(b => b.classList.toggle("active", b.dataset.v === v));
+          if (v === "perfil") montar(pf, fotoP, { scroll: false }); else montar(o.medidas, foto, { scroll: false });
+        };
+        vistas.hidden = !pf;
+        $$("#vVistas button").forEach(b => { b.onclick = () => ver(b.dataset.v); });
+        ver("frente");
+        const n = o.medidas.medidas.length + (pf ? pf.medidas.length : 0);
+        $("#repCuenta").textContent = n + " medidas tomadas en " + (pf ? "frente y perfil" : "tu foto de frente");
       }
 
       $("#repFortalezas").innerHTML = (r.fortalezas || []).map(f => `<div class="rep-item"><b>${esc(f.titulo)}</b><p class="hint">${esc(f.texto)}</p></div>`).join("");
@@ -627,6 +676,10 @@
         return `<div class="card rep-zona"><div class="rep-zona-top"><b>${esc(s ? s.nombre : z.id)}</b>${s ? `<span class="mono">${s.puntaje}</span>` : ""}</div><p class="hint">${esc(z.lectura)}</p><ul class="rep-list">${li(z.acciones)}</ul></div>`;
       }).join("");
 
+      const bloque = (x) => x && x.lectura ? `<p class="hint">${esc(x.lectura)}</p><ul class="rep-list">${li(x.acciones)}</ul>` : "";
+      const extra = [["Perfil", r.perfil], ["Sonrisa", r.sonrisa], ["Tres cuartos", r.tres_cuartos]].filter(x => x[1] && x[1].lectura);
+      $("#repAngulos").innerHTML = extra.map(([t, x]) => `<div class="card rep-zona"><div class="rep-zona-top"><b>${t}</b></div>${bloque(x)}</div>`).join("");
+      $("#repAngulosH").hidden = !extra.length;
       const piel = r.piel || {};
       $("#repPiel").innerHTML = `<p class="hint">${esc(piel.lectura)}</p><ul class="rep-list">${li(piel.acciones)}</ul>`;
 
