@@ -848,3 +848,10 @@ body[data-page=index] .frame>section.notes{padding:24px 40px 40px}
 .upsell .btn{width:100%;justify-content:center;margin-top:16px}
 .upsell-no{display:block;margin:14px auto 0;background:none;border:0;padding:6px 10px;font:inherit;font-size:14px;color:var(--ink-muted);text-decoration:underline;cursor:pointer}
 .upsell-price{margin:0 0 10px;font-size:20px}.upsell-price s{color:var(--ink-muted);margin-right:8px}
+
+/* v10: smoother navigation */
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.2s}
+@keyframes stepIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.wstep.active{animation:stepIn .25s ease both}
+@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}.wstep.active{animation:none}}
