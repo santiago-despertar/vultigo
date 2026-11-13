@@ -1616,3 +1616,26 @@ g.esc3d-marcas{opacity:0;transition:opacity .3s}
 @media (max-width:760px){.onb-reset{top:12px;right:10px}}
 .conf-box{color:var(--ink,#16191D)}
 .order .status{white-space:nowrap}
+
+/* v38 mobile menu: animated burger, menu slides in, closes on outside tap */
+.burger{position:relative;display:block;width:22px;height:22px}
+.burger i{position:absolute;left:3px;width:16px;height:1.6px;border-radius:2px;background:currentColor;transition:transform .3s cubic-bezier(.4,0,.2,1),top .3s cubic-bezier(.4,0,.2,1)}
+.burger i:first-child{top:6.2px}
+.burger i:last-child{top:14.2px}
+.menu-btn[aria-expanded="true"] .burger i:first-child{top:10.2px;transform:rotate(45deg)}
+.menu-btn[aria-expanded="true"] .burger i:last-child{top:10.2px;transform:rotate(-45deg)}
+@media (max-width:860px){
+  .site-header .nav-links,.site-header .nav-links.open{display:flex;position:absolute;top:64px;left:0;right:0;flex-direction:column;align-items:flex-start;gap:18px;padding:24px;border:0;border-radius:20px;background:#4A5866!important;backdrop-filter:none;box-shadow:0 18px 40px rgba(0,0,0,.18)}
+  .site-header .nav-links{opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-10px) scale(.98);transform-origin:top center;transition:opacity .22s ease,transform .26s cubic-bezier(.4,0,.2,1),visibility 0s linear .26s}
+  .site-header .nav-links.open{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition:opacity .22s ease,transform .26s cubic-bezier(.4,0,.2,1)}
+  .site-header .nav-links a{opacity:0;transform:translateY(-6px);transition:opacity .2s ease,transform .2s ease}
+  .site-header .nav-links.open a{opacity:1;transform:none}
+  .site-header .nav-links.open a:nth-child(1){transition-delay:.04s}
+  .site-header .nav-links.open a:nth-child(2){transition-delay:.08s}
+  .site-header .nav-links.open a:nth-child(3){transition-delay:.12s}
+  .site-header .nav-links.open a:nth-child(4){transition-delay:.16s}
+  .site-header .nav-links.open a:nth-child(5){transition-delay:.2s}
+  .site-header .nav-links .menu-only{display:block;padding-top:14px;border-top:1px solid rgba(255,255,255,.18);width:100%}
+  html.menu-abierto,html.menu-abierto body{overflow:hidden}
+}
+@media (prefers-reduced-motion:reduce){.burger i,.site-header .nav-links,.site-header .nav-links a{transition:none!important}}
