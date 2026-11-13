@@ -1080,3 +1080,15 @@ html.authed [data-auth="out"]{display:none!important}
 .sim-row b{text-align:right;font-weight:500}
 #simZonas .visor-zone{cursor:default}
 @media (max-width:900px){.sim-orig{height:32px;font-size:12px;left:6px;right:6px;bottom:6px}}
+
+/* v19: roomier score cards, profile simulator */
+.dash .visor-score{grid-template-columns:minmax(0,1fr);gap:18px}
+.dash .visor-zones{gap:2px}
+.dash .visor-zone{grid-template-columns:minmax(110px,1fr) minmax(60px,1.4fr) 36px;white-space:nowrap}
+.dash .visor-zone span{overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+.sim-pre-l{margin:4px 0 8px}
+.sim-pres{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.sim-pre{border:1px solid var(--line);cursor:pointer;font:inherit;font-size:13px;padding:7px 14px;background:var(--surface-raised);color:var(--ink)}
+.sim-pre:hover{border-color:var(--slate)}
+.sim-cargando{opacity:.5;pointer-events:none;transition:opacity .2s}
+#simVistas{margin-bottom:16px}
