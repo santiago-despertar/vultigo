@@ -101,6 +101,8 @@
     if (/Invalid login/i.test(m)) return "Correo o contraseña incorrectos.";
     if (/already registered|already exists/i.test(m)) return "Ya existe una cuenta con ese correo.";
     if (/Email not confirmed/i.test(m)) return "Confirma tu correo: te mandamos un enlace al registrarte.";
+    if (/different from the old|same_password/i.test(m) || (e && e.code === "same_password")) return "Usa una contraseña distinta a la anterior.";
+    if (/Auth session missing|session.*expired|invalid.*token/i.test(m)) return "Este enlace ya caducó. Pide uno nuevo desde Entrar.";
     if (/Password/i.test(m)) return "La contraseña debe tener al menos 8 caracteres.";
     if (/rate limit|too many/i.test(m)) return "Demasiados intentos. Espera un minuto e inténtalo de nuevo.";
     if (/Manual linking|linking is disabled/i.test(m)) return "No pudimos conectar Google. Crea una contraseña.";
@@ -272,11 +274,40 @@
       tabs.forEach(b => b.classList.toggle("active", b.dataset.tab === t));
       $$("[data-pane]").forEach(p => (p.hidden = p.dataset.pane !== t));
       const gb = $("#googleBox"), s1 = document.querySelector('.su-step[data-s="1"]');
-      if (gb) gb.hidden = t === "signup" && !!s1 && !s1.classList.contains("on");
+      if (gb) gb.hidden = t === "nueva" || (t === "signup" && !!s1 && !s1.classList.contains("on"));
     }
     tabs.forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
     $$("[data-go]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); show(a.dataset.go); }));
     if (params.get("modo") === "entrar") show("login");
+
+    // Password reset: the email link lands here with a recovery session, and they pick the new password.
+    const esRecuperacion = params.get("modo") === "nueva" || /type=recovery/.test(location.hash);
+    if (esRecuperacion) show("nueva");
+    if (sb && sb.auth.onAuthStateChange) sb.auth.onAuthStateChange(ev => { if (ev === "PASSWORD_RECOVERY") show("nueva"); });
+    const npF = $("#newPassForm");
+    if (npF) {
+      $("#np-ver").addEventListener("change", e => { npF.password.type = npF.password2.type = e.target.checked ? "text" : "password"; });
+      npF.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const m = $("#newPassMsg"), b = npF.querySelector('button[type="submit"]'); clearMsg(m);
+        const p1 = npF.password.value, p2 = npF.password2.value;
+        if (p1.length < 8) return msg(m, "Usa al menos 8 caracteres.");
+        if (p1 !== p2) return msg(m, "Las dos contraseñas no son iguales.");
+        if (!sb) return notReady(m);
+        b.disabled = true; b.textContent = "Guardando…";
+        // the link's session can take a moment to be read from the address
+        let sesion = null;
+        for (let i = 0; i < 10 && !sesion; i++) { sesion = (await sb.auth.getSession()).data.session; if (!sesion) await new Promise(r => setTimeout(r, 300)); }
+        if (!sesion) {
+          b.disabled = false; b.textContent = "Guardar mi contraseña";
+          return msg(m, "Este enlace ya caducó o ya se usó. Pide uno nuevo desde Entrar, en ¿Olvidaste tu contraseña?");
+        }
+        const { error } = await sb.auth.updateUser({ password: p1, data: { sin_clave: false } });
+        if (error) { b.disabled = false; b.textContent = "Guardar mi contraseña"; return msg(m, errES(error)); }
+        msg(m, "Listo, tu contraseña quedó guardada. Te llevamos a tu cuenta…", "ok");
+        setTimeout(() => { location.href = next; }, 1200);
+      });
+    }
 
     $$("[data-google]").forEach(btn => btn.addEventListener("click", async () => {
       const m = $("#googleMsg"); clearMsg(m);
@@ -356,7 +387,7 @@
       const m = $("#loginMsg"), id = $("#li-email").value.trim();
       if (!id.includes("@")) return msg(m, "Escribe tu correo arriba y vuelve a dar clic.");
       if (!sb) return notReady(m);
-      await sb.auth.resetPasswordForEmail(id, { redirectTo: location.origin + "/cuenta.html" });
+      await sb.auth.resetPasswordForEmail(id, { redirectTo: location.origin + "/cuenta.html?modo=nueva" });
       msg(m, "Si el correo existe, te mandamos un enlace para cambiar tu contraseña.", "ok");
     });
   }
