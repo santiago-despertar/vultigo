@@ -181,6 +181,27 @@ Deno.serve(async (req) => {
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const ahora = new Date().toISOString();
 
+    // The customer moved landmarks by hand: keep the new measurements and update the harmony score.
+    if (body.accion === "ajustar") {
+      const vista = body.vista === "perfil" ? "perfil" : "frente", m = body.datos;
+      const ok = m && Array.isArray(m.medidas) && m.medidas.length > 3 && m.medidas.length < 80 && m.resumen && m.caja && JSON.stringify(m).length < 150000
+        && m.medidas.every((x: Obj) => x && typeof x.id === "string" && typeof x.puntaje === "number" && x.puntaje >= 0 && x.puntaje <= 100);
+      if (!ok || !order.medidas?.medidas) return json({ error: "datos" }, 400);
+      const nuevas: Obj = vista === "perfil" ? { ...order.medidas, perfil: m } : { ...m, perfil: order.medidas.perfil };
+      if (!nuevas.perfil) delete nuevas.perfil;
+      nuevas.ajustado = ahora;
+      await admin.from("orders").update({ medidas: nuevas }).eq("id", order.id);
+      const { data: rp } = await admin.from("reports").select("data").eq("order_id", order.id).maybeSingle();
+      if (rp?.data?.puntajes) {
+        const pz: Obj = { ...rp.data.puntajes, armonia: armonia(nuevas) };
+        const vals = ["armonia", "angularidad", "dimorfismo", "rasgos"].map((k) => pz[k]).filter((x) => typeof x === "number" && x > 0) as number[];
+        pz.general = vals.length ? dec(Math.pow(vals.reduce((s2, x) => s2 * x, 1), 1 / vals.length)) : pz.general;
+        await admin.from("reports").update({ data: { ...rp.data, puntajes: pz } }).eq("order_id", order.id);
+        return json({ ok: true, puntajes: pz });
+      }
+      return json({ ok: true });
+    }
+
     // Already written for this plan and this version: hand it back instead of paying for it twice.
     const { data: previo } = await admin.from("reports").select("data").eq("order_id", order.id).maybeSingle();
     const pd = previo?.data ?? null;
