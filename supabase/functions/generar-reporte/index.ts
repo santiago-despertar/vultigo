@@ -1,5 +1,8 @@
-// Writes the facial analysis report for a paid order, using the measurements taken in the browser
-// plus the customer's photos. Secrets: ANTHROPIC_API_KEY, optional ANTHROPIC_MODEL, SITE_URL.
+// Writes the facial analysis for a paid order. Three requests run at the same time over the six photos
+// and the measurements taken in the browser: the scored evaluation (angularity, dimorphism, features),
+// the main report, and the detail sections. The work continues after the response is sent, so the
+// panel asks again until the report is there.
+// Secrets: ANTHROPIC_API_KEY, optional ANTHROPIC_MODEL, SITE_URL.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const cors = {
@@ -9,111 +12,87 @@ const cors = {
 };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
-const MODELO = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-5-5";
-// All six angles go to the model: structure from the front, projection from the profiles, volume from the three-quarter views.
+const MODELO = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-opus-5-5";
+const VERSION = 2;
 const FOTOS: [string, string][] = [
   ["frente", "de frente, cara relajada"], ["sonrisa", "de frente sonriendo"],
   ["perfil_izq", "perfil izquierdo"], ["perfil_der", "perfil derecho"],
   ["tres_cuartos_izq", "tres cuartos izquierdo"], ["tres_cuartos_der", "tres cuartos derecho"]
 ];
 
-const esquema = {
-  type: "object",
-  required: ["resumen", "fortalezas", "prioridades", "zonas", "piel", "color", "cabello_barba", "plan"],
-  properties: {
-    resumen: { type: "string", description: "Dos o tres frases sobre la cara en conjunto. Directo y respetuoso." },
-    fortalezas: {
-      type: "array", minItems: 3, maxItems: 4,
-      items: { type: "object", required: ["titulo", "texto"], properties: { titulo: { type: "string" }, texto: { type: "string" } } }
-    },
-    prioridades: {
-      type: "array", minItems: 3, maxItems: 4,
-      description: "Lo que más cambia la percepción si se trabaja, ordenado por impacto.",
-      items: {
-        type: "object", required: ["titulo", "texto", "impacto", "esfuerzo"],
-        properties: {
-          titulo: { type: "string" }, texto: { type: "string" },
-          impacto: { type: "string", enum: ["alto", "medio", "bajo"] },
-          esfuerzo: { type: "string", enum: ["bajo", "medio", "alto"] }
-        }
-      }
-    },
-    zonas: {
-      type: "array", minItems: 6, maxItems: 6,
-      description: "Una entrada por zona, en este orden: proporciones, ojos, nariz, boca, mandibula, simetria.",
-      items: {
-        type: "object", required: ["id", "lectura", "acciones"],
-        properties: {
-          id: { type: "string", enum: ["proporciones", "ojos", "nariz", "boca", "mandibula", "simetria"] },
-          lectura: { type: "string", description: "Qué dicen las medidas de esa zona, en lenguaje claro." },
-          acciones: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } }
-        }
-      }
-    },
-    piel: {
-      type: "object", required: ["lectura", "acciones"],
-      properties: {
-        lectura: { type: "string", description: "Tono, textura, zonas de rojez, brillo y ojeras visibles en la foto." },
-        acciones: { type: "array", minItems: 2, maxItems: 5, items: { type: "string" } }
-      }
-    },
-    color: {
-      type: "object", required: ["subtono", "lectura", "paleta", "evitar"],
-      properties: {
-        subtono: { type: "string", enum: ["cálido", "frío", "neutro"] },
-        lectura: { type: "string" },
-        paleta: { type: "array", minItems: 5, maxItems: 8, items: { type: "object", required: ["nombre", "hex"], properties: { nombre: { type: "string" }, hex: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" } } } },
-        evitar: { type: "array", minItems: 2, maxItems: 4, items: { type: "object", required: ["nombre", "hex"], properties: { nombre: { type: "string" }, hex: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" } } } }
-      }
-    },
-    cabello_barba: {
-      type: "object", required: ["cortes", "barba", "cejas"],
-      properties: {
-        cortes: { type: "array", minItems: 2, maxItems: 4, items: { type: "string" } },
-        barba: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } },
-        cejas: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } }
-      }
-    },
-    perfil: {
-      type: "object", required: ["lectura", "acciones"],
-      description: "Lectura del perfil: nariz, labios, mentón, cuello y línea de la mandíbula, con las medidas de perfil y lo que se ve en las dos fotos de lado.",
-      properties: { lectura: { type: "string" }, acciones: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } } }
-    },
-    sonrisa: {
-      type: "object", required: ["lectura", "acciones"],
-      description: "Lectura de la foto sonriendo: cuánto diente y encía se ve, simetría de la sonrisa, color y alineación visibles, cómo cambian mejillas y ojos.",
-      properties: { lectura: { type: "string" }, acciones: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } } }
-    },
-    tres_cuartos: {
-      type: "object", required: ["lectura", "acciones"],
-      description: "Lectura de las fotos de tres cuartos: pómulos, volumen de mejillas, definición de la mandíbula, ojeras y surcos que no se ven de frente.",
-      properties: { lectura: { type: "string" }, acciones: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } } }
-    },
-    plan: {
-      type: "array", minItems: 3, maxItems: 3,
-      description: "Fases: 0 a 4 semanas, 1 a 3 meses, 3 a 12 meses.",
-      items: {
-        type: "object", required: ["fase", "pasos"],
-        properties: {
-          fase: { type: "string" },
-          pasos: {
-            type: "array", minItems: 2, maxItems: 5,
-            items: { type: "object", required: ["accion", "porque"], properties: { accion: { type: "string" }, porque: { type: "string" } } }
-          }
-        }
-      }
-    },
-    avanzado: {
-      type: "array", maxItems: 5,
-      description: "Solo para el plan completo: procedimientos que suelen considerarse para este tipo de rostro.",
-      items: {
-        type: "object", required: ["nombre", "que_hace", "considerar"],
-        properties: { nombre: { type: "string" }, que_hace: { type: "string" }, considerar: { type: "string" } }
-      }
-    }
-  }
+// Everything the evaluation scores from the photos, grouped the way the panel shows it.
+const CATALOGO: Record<string, { titulo: string; pilar: string; items: Record<string, string> }> = {
+  angularidad: { titulo: "Angularidad", pilar: "angularidad", items: {
+    ang_pomulos: "Prominencia de pómulos", ang_mandibula: "Definición de la mandíbula", ang_mejillas: "Mejillas sin exceso de volumen",
+    ang_menton: "Definición del mentón", ang_submenton: "Definición bajo el mentón" } },
+  tres_cuartos: { titulo: "Estructura en tres cuartos", pilar: "angularidad", items: {
+    tq_pomulo: "Proyección del pómulo de lado", tq_hueco: "Sombra bajo el pómulo", tq_linea: "Línea de la mandíbula de lado" } },
+  dimorfismo: { titulo: "Dimorfismo", pilar: "dimorfismo", items: {
+    dim_mandibula: "Mandíbula", dim_arco: "Arco de la ceja", dim_cejas: "Grosor de cejas", dim_ojos: "Ojos", dim_forma: "Forma de la cara",
+    dim_vello: "Vello facial", dim_cabello: "Cabello", dim_linea: "Línea del cabello", dim_labios: "Labios", dim_nariz: "Nariz" } },
+  piel: { titulo: "Piel", pilar: "rasgos", items: {
+    piel_acne: "Acné y granitos", piel_marcas: "Cicatrices y marcas", piel_manchas: "Manchas", piel_rojez: "Rojez", piel_textura: "Textura y poros",
+    piel_brillo: "Brillo y grasa", piel_tono: "Tono uniforme", piel_lineas: "Líneas finas", piel_surcos: "Surcos de nariz a boca", piel_firmeza: "Firmeza" } },
+  ojos: { titulo: "Zona de ojos", pilar: "rasgos", items: {
+    ojo_ojeras: "Ojeras (color)", ojo_hundido: "Hundimiento bajo el ojo", ojo_bolsas: "Bolsas", ojo_blanco: "Blanco del ojo",
+    ojo_parpado_sup: "Párpado superior", ojo_parpado_inf: "Párpado inferior", ojo_pestanas: "Pestañas", ojo_soporte: "Soporte bajo el ojo" } },
+  cejas: { titulo: "Cejas", pilar: "rasgos", items: { ceja_densidad: "Densidad", ceja_forma: "Forma", ceja_pareja: "Parejas entre sí" } },
+  nariz: { titulo: "Nariz", pilar: "rasgos", items: { nar_dorso: "Dorso", nar_punta: "Punta", nar_alas: "Alas" } },
+  cabello: { titulo: "Cabello", pilar: "rasgos", items: { cab_densidad: "Densidad", cab_linea: "Línea frontal", cab_salud: "Salud y brillo", cab_corte: "Corte actual para tu cara" } },
+  labios: { titulo: "Labios", pilar: "rasgos", items: { lab_definicion: "Definición del contorno", lab_hidratacion: "Hidratación" } },
+  sonrisa: { titulo: "Sonrisa", pilar: "rasgos", items: {
+    son_dientes: "Cuánto diente se ve", son_encia: "Encía visible", son_simetria: "Simetría de la sonrisa", son_alineacion: "Alineación", son_color: "Color de los dientes" } },
+  conjunto: { titulo: "Conjunto", pilar: "rasgos", items: { con_simetria: "Simetría a la vista" } },
 };
+const IDS = Object.values(CATALOGO).flatMap((g) => Object.keys(g.items));
 
+const texto = { type: "string" };
+const lista = (min: number, max: number) => ({ type: "array", minItems: min, maxItems: max, items: texto });
+const lectura = (d: string) => ({ type: "object", required: ["lectura", "acciones"], description: d, properties: { lectura: texto, acciones: lista(1, 4) } });
+const muestra = { type: "object", required: ["nombre", "hex"], properties: { nombre: texto, hex: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" } } };
+
+const T_EVAL = {
+  name: "evaluacion", description: "Entrega la calificación de cada rasgo.",
+  input_schema: { type: "object", required: ["evaluaciones"], properties: { evaluaciones: {
+    type: "array", minItems: IDS.length, maxItems: IDS.length,
+    items: { type: "object", required: ["id", "puntaje", "nota"], properties: {
+      id: { type: "string", enum: IDS }, puntaje: { type: "number", minimum: 0, maximum: 10 },
+      nota: { type: "string", description: "Una frase corta, máximo 18 palabras, con lo que se ve en sus fotos." } } } } } }
+};
+const T_PRINCIPAL = {
+  name: "reporte", description: "Entrega la parte principal del reporte.",
+  input_schema: { type: "object", required: ["resumen", "fortalezas", "prioridades", "plan"], properties: {
+    resumen: { type: "string", description: "Tres o cuatro frases sobre la cara en conjunto. Directo y respetuoso." },
+    arquetipo: { type: "object", required: ["nombre", "texto"], description: "El tipo de cara en dos o tres palabras descriptivas (por ejemplo: anguloso y serio, suave y juvenil) y a qué estilo le favorece.", properties: { nombre: texto, texto } },
+    fortalezas: { type: "array", minItems: 3, maxItems: 5, items: { type: "object", required: ["titulo", "texto"], properties: { titulo: texto, texto } } },
+    prioridades: { type: "array", minItems: 4, maxItems: 6, description: "Lo que más cambia la percepción si se trabaja, ordenado por impacto.",
+      items: { type: "object", required: ["titulo", "texto", "impacto", "esfuerzo"], properties: { titulo: texto, texto,
+        impacto: { type: "string", enum: ["alto", "medio", "bajo"] }, esfuerzo: { type: "string", enum: ["bajo", "medio", "alto"] } } } },
+    plan: { type: "array", minItems: 3, maxItems: 3, description: "Fases: 0 a 4 semanas, 1 a 3 meses, 3 a 12 meses.",
+      items: { type: "object", required: ["fase", "pasos"], properties: { fase: texto,
+        pasos: { type: "array", minItems: 3, maxItems: 6, items: { type: "object", required: ["accion", "porque"], properties: { accion: texto, porque: texto } } } } } },
+    avanzado: { type: "array", maxItems: 6, description: "Solo plan completo: procedimientos que suelen considerarse para este rostro.",
+      items: { type: "object", required: ["nombre", "que_hace", "considerar"], properties: { nombre: texto, que_hace: texto, considerar: texto } } }
+  } }
+};
+const T_DETALLE = {
+  name: "detalle", description: "Entrega las secciones de detalle del reporte.",
+  input_schema: { type: "object", required: ["zonas", "perfil", "sonrisa", "tres_cuartos", "piel", "color", "cabello_barba"], properties: {
+    zonas: { type: "array", minItems: 6, maxItems: 6, description: "Una por zona, en este orden: proporciones, ojos, nariz, boca, mandibula, simetria.",
+      items: { type: "object", required: ["id", "lectura", "acciones"], properties: {
+        id: { type: "string", enum: ["proporciones", "ojos", "nariz", "boca", "mandibula", "simetria"] }, lectura: texto, acciones: lista(1, 3) } } },
+    perfil: lectura("Nariz, labios, mentón, cuello y mandíbula de lado, con las medidas de perfil."),
+    sonrisa: lectura("Dientes, encía, simetría y cómo cambia la cara al sonreír."),
+    tres_cuartos: lectura("Pómulos, volumen de mejillas, mandíbula, ojeras y surcos vistos de tres cuartos."),
+    piel: lectura("Tono, textura, rojez, brillo, marcas y ojeras. Con una rutina concreta de mañana y noche en las acciones."),
+    color: { type: "object", required: ["subtono", "lectura", "paleta", "evitar"], properties: {
+      subtono: { type: "string", enum: ["cálido", "frío", "neutro"] }, contraste: { type: "string", enum: ["alto", "medio", "bajo"] }, lectura: texto,
+      paleta: { type: "array", minItems: 6, maxItems: 8, items: muestra }, evitar: { type: "array", minItems: 2, maxItems: 4, items: muestra } } },
+    cabello_barba: { type: "object", required: ["cortes", "barba", "cejas"], properties: {
+      cortes: lista(2, 4), barba: lista(1, 3), cejas: lista(1, 3), lentes: lista(0, 3) },
+      description: "barba: para mujeres úsalo para maquillaje de contorno. lentes: formas de armazón que favorecen." }
+  } }
+};
 
 // The model sometimes hands back a section as a JSON string (with stray text after it). Recover the object.
 function parsear(v: unknown): unknown {
@@ -131,40 +110,41 @@ function parsear(v: unknown): unknown {
   }
   return v;
 }
-const lista = (x: unknown) => Array.isArray(x) && x.length > 0;
 function limpiar(r: Record<string, unknown>) {
   const o: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(r)) o[k] = parsear(v);
   return o;
 }
-// Every section the panel shows has to be there and in the right shape.
-function completo(r: Record<string, any>) {
-  return typeof r.resumen === "string" && r.resumen.length > 20
-    && lista(r.fortalezas) && lista(r.prioridades) && lista(r.zonas) && lista(r.plan)
-    && r.piel && typeof r.piel.lectura === "string" && lista(r.piel.acciones)
-    && r.color && typeof r.color.lectura === "string" && lista(r.color.paleta)
-    && r.cabello_barba && lista(r.cabello_barba.cortes);
-}
+const hay = (x: unknown) => Array.isArray(x) && x.length > 0;
+// deno-lint-ignore no-explicit-any
+type Obj = Record<string, any>;
+const okEval = (r: Obj) => hay(r.evaluaciones) && r.evaluaciones.length >= IDS.length * 0.8;
+const okPrincipal = (r: Obj) => typeof r.resumen === "string" && r.resumen.length > 20 && hay(r.fortalezas) && hay(r.prioridades) && hay(r.plan);
+const okDetalle = (r: Obj) => hay(r.zonas) && r.piel?.lectura && hay(r.piel.acciones) && r.color?.lectura && hay(r.color.paleta) && hay(r.cabello_barba?.cortes) && r.perfil?.lectura;
 
-function instrucciones(tier: string, a: Record<string, unknown>) {
-  const edad = `${a.sexo ?? "sexo no indicado"}, ${a.edad ? `${a.edad} años` : "edad no indicada"}`;
-  return `Eres el analista de Resalta, un servicio de análisis de estética facial para México y Latinoamérica.
-Escribes el reporte que recibe un cliente que ya pagó. Tu trabajo es leer sus medidas y sus fotos y decirle qué tiene a favor, qué le conviene trabajar y en qué orden.
+const dec = (v: number) => Math.round(v * 10) / 10;
+const prom = (a: number[]) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+// Proportion alone says little about how a face is perceived, so the curve is strict: an ordinary set of ratios lands near 5.5.
+const armonia = (m: Obj) => {
+  const ps = [...(m.medidas ?? []), ...(m.perfil?.medidas ?? [])].map((x: Obj) => x.puntaje).filter((x: unknown) => typeof x === "number");
+  return ps.length ? dec(10 * Math.pow((prom(ps) as number) / 100, 2.2)) : null;
+};
 
-Datos del cliente: ${edad}, país ${a.pais ?? "no indicado"}, objetivo declarado: ${a.objetivo ?? "no indicado"}.${a.notas ? ` Notas suyas: ${a.notas}` : ""}
+function estilo(tier: string, a: Obj) {
+  const datos = Object.entries(a).filter(([, v]) => v !== null && v !== "" && v !== undefined).map(([k, v]) => `${k}: ${v}`).join("; ");
+  return `Eres el analista de Resalta, un servicio de análisis de estética facial para México y Latinoamérica. Escribes para un cliente que ya pagó, a partir de sus seis fotos y de sus medidas.
+
+Datos que dio el cliente: ${datos || "ninguno"}. Plan contratado: ${tier === "hard" ? "completo" : "esencial"}.
 
 Cómo escribir:
 - Español de México, de tú, claro y directo. Nada de relleno ni de frases motivacionales.
 - Nunca uses guiones largos. Usa comas o reescribe la frase.
 - Que no suene a texto escrito por una máquina. Frases normales, como las diría una persona que sabe del tema.
 - Habla de lo que de verdad se ve en sus fotos y en sus números, no de generalidades. Cita medidas concretas cuando apoyen lo que dices.
-- Honesto y respetuoso. Puedes decir qué está fuera de rango sin insultar ni dramatizar.
-- Si falta alguna foto o las medidas de perfil, llena esa sección con lo que sí se puede ver y dilo en una frase.
+- Honesto y respetuoso. Puedes decir qué está fuera de rango sin insultar ni dramatizar. No infles: decirle a alguien que todo está bien cuando no lo está no le sirve.
+- Ajusta las recomendaciones a lo que el cliente dijo de su presupuesto, su tiempo y si le interesan procedimientos.
 - Las medidas vienen de fotos de celular, así que son estimaciones. Si una foto está girada o inclinada, dilo en vez de sacar conclusiones.
-- No diagnostiques ni recetes. Nada de medicamentos con nombre ni dosis.
-${tier === "hard"
-  ? "- Llena también el campo avanzado: procedimientos estéticos que se suelen considerar para un rostro con estas proporciones, qué hace cada uno y qué hay que pensar antes. Preséntalo como información general que debe evaluar un médico certificado, no como una recomendación tuya."
-  : "- No llenes el campo avanzado. Este cliente tiene el plan esencial, que no incluye la parte de procedimientos."}`;
+- No diagnostiques ni recetes. Nada de medicamentos con nombre ni dosis.`;
 }
 
 Deno.serve(async (req) => {
@@ -186,108 +166,132 @@ Deno.serve(async (req) => {
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const ahora = new Date().toISOString();
 
-    // Already written for this plan: hand it back instead of paying for it twice.
-    // A report written before an upgrade to the full plan is written again so it gains the advanced part.
+    // Already written for this plan and this version: hand it back instead of paying for it twice.
     const { data: previo } = await admin.from("reports").select("data").eq("order_id", order.id).maybeSingle();
     const pd = previo?.data ?? null;
-    const vigente = pd?.resumen && !(order.tier === "hard" && pd.tier !== "hard");
+    const vigente = pd?.resumen && pd.v === VERSION && !(order.tier === "hard" && pd.tier !== "hard");
     if (vigente && pd.estado !== "generando") return json({ ok: true, data: pd });
-    if (pd?.estado === "generando" && Date.now() - Date.parse(pd.desde) < 180000) return json({ ok: true, generando: true, data: pd.resumen ? pd : null });
+    if (pd?.estado === "generando" && Date.now() - Date.parse(pd.desde) < 200000) return json({ ok: true, generando: true });
 
     // Orders paid before measuring existed can send the measurements now, once.
     if (!order.medidas?.medidas?.length) {
       const m = body.medidas;
-      const valido = m && Array.isArray(m.medidas) && m.medidas.length > 5 && m.medidas.length < 40 && m.resumen?.zonas && m.caja && JSON.stringify(m).length < 60000;
+      const valido = m && Array.isArray(m.medidas) && m.medidas.length > 5 && m.medidas.length < 80 && m.resumen?.zonas && m.caja && JSON.stringify(m).length < 150000;
       if (!valido) return json({ error: "sin_medidas" }, 400);
       await admin.from("orders").update({ medidas: m }).eq("id", order.id);
       order.medidas = m;
     }
-
     if (!order.medidas.perfil && body.perfil) {
       const pf = body.perfil;
-      if (Array.isArray(pf.medidas) && pf.medidas.length > 3 && pf.medidas.length < 40 && pf.caja && JSON.stringify(pf).length < 40000) {
+      if (Array.isArray(pf.medidas) && pf.medidas.length > 3 && pf.medidas.length < 60 && pf.caja && JSON.stringify(pf).length < 80000) {
         order.medidas = { ...order.medidas, perfil: pf };
         await admin.from("orders").update({ medidas: order.medidas }).eq("id", order.id);
       }
     }
 
     // Claim the job so two open tabs don't each pay for a report.
+    const viejo = pd?.resumen ? pd : null;
+    const marca = { ...(viejo ?? {}), estado: "generando", desde: ahora };
     if (!previo) {
-      const { error } = await admin.from("reports").insert({ order_id: order.id, user_id: order.user_id, data: { estado: "generando", desde: ahora } });
+      const { error } = await admin.from("reports").insert({ order_id: order.id, user_id: order.user_id, data: marca });
       if (error) return json({ ok: true, generando: true });
     } else {
-      await admin.from("reports").update({ data: { ...pd, estado: "generando", desde: ahora } }).eq("order_id", order.id);
+      await admin.from("reports").update({ data: marca }).eq("order_id", order.id);
     }
-    const soltar = async () => {
-      if (pd) await admin.from("reports").update({ data: { ...pd, estado: null } }).eq("order_id", order.id);
-      else await admin.from("reports").delete().eq("order_id", order.id);
-    };
+    const fallar = (motivo: string) => admin.from("reports").update({ data: { ...(viejo ?? {}), estado: "error", motivo, desde: new Date().toISOString() } }).eq("order_id", order.id);
 
-    const imagenes = [], vistas: string[] = [];
-    for (const [slot, etiqueta] of FOTOS) {
-      const { data: file } = await admin.storage.from("fotos").download(`${order.user_id}/${order.id}/${slot}.jpg`);
-      if (!file) continue;
-      vistas.push(etiqueta);
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      let bin = ""; for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
-      imagenes.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: btoa(bin) } });
-    }
-    if (!imagenes.length) { await soltar(); return json({ error: "No encontramos tus fotos" }, 400); }
+    const trabajo = (async () => {
+      try {
+        const imagenes: unknown[] = [], vistas: string[] = [];
+        await Promise.all(FOTOS.map(async ([slot, etiqueta], i) => {
+          const { data: file } = await admin.storage.from("fotos").download(`${order.user_id}/${order.id}/${slot}.jpg`);
+          if (!file) return;
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          let bin = ""; for (let j = 0; j < bytes.length; j += 8192) bin += String.fromCharCode(...bytes.subarray(j, j + 8192));
+          imagenes[i] = { type: "image", source: { type: "base64", media_type: "image/jpeg", data: btoa(bin) } }; vistas[i] = etiqueta;
+        }));
+        const fotos = imagenes.filter(Boolean), nombres = vistas.filter(Boolean);
+        if (!fotos.length) { await fallar("sin_fotos"); return; }
 
-    const m = order.medidas;
-    const tabla = m.medidas.map((x: Record<string, unknown>) =>
-      `${x.nombre} (${x.zona}): ${x.valor}${x.unidad ?? ""} | referencia ${(x.rango as number[])[0]} a ${(x.rango as number[])[1]} | ${x.estado} | puntaje ${x.puntaje}`).join("\n");
-    const fila = (x: Record<string, unknown>) =>
-      `${x.nombre} (${x.zona}): ${x.valor}${x.unidad ?? ""} | referencia ${(x.rango as number[])[0]} a ${(x.rango as number[])[1]} | ${x.estado} | puntaje ${x.puntaje}`;
-    const perfilTxt = m.perfil?.medidas?.length
-      ? `\n\nMedidas de perfil (puntaje de perfil ${m.perfil.resumen?.general}/100, tomadas de la silueta de la foto de ${m.perfil.foto === "perfil_der" ? "perfil derecho" : "perfil izquierdo"}; los milímetros son aproximados):\n${m.perfil.medidas.map(fila).join("\n")}`
-      : "\n\nNo hay medidas de perfil para este pedido.";
-    const zonas = m.resumen.zonas.map((z: Record<string, unknown>) => `${z.nombre}: ${z.puntaje}`).join(", ");
+        const m = order.medidas;
+        const fila = (x: Obj) => `${x.nombre} (${x.zona}): ${x.valor}${x.unidad ?? ""} | referencia ${x.rango[0]} a ${x.rango[1]} | ${x.estado} | ${dec(x.puntaje / 10)}/10`;
+        const datos = `Fotos, en este orden: ${nombres.join("; ")}.
 
-    const cuerpo = {
-        model: MODELO,
-        max_tokens: 10000,
-        system: instrucciones(order.tier, order.answers ?? {}),
-        tools: [{ name: "reporte", description: "Entrega el reporte de análisis facial.", input_schema: esquema }],
-        tool_choice: { type: "auto" },
-        messages: [{
-          role: "user",
-          content: [
-            ...imagenes,
-            { type: "text", text: `Fotos, en este orden: ${vistas.join("; ")}.\n\nPuntaje general de frente: ${m.resumen.general}/100.\nPuntajes por zona: ${zonas}.\n\nMedidas de frente:\n${tabla}${perfilTxt}\n${m.avisos?.length ? `\nAvisos de calidad de la foto: ${m.avisos.join(" ")}` : ""}\n\nEntrega el reporte llamando a la herramienta reporte, con todas sus secciones. No escribas nada fuera de la herramienta.` }
-          ]
-        }]
-      };
-    const pedir = async () => {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify(cuerpo)
-      });
-      if (!r.ok) { console.error("anthropic", r.status, (await r.text()).slice(0, 500)); return null; }
-      const resp = await r.json();
-      const bloque = (resp.content ?? []).find((c: Record<string, unknown>) => c.type === "tool_use");
-      if (bloque) return { input: limpiar(bloque.input), usage: resp.usage ?? null };
-      // some models answer with the JSON as text instead of calling the tool
-      const texto = (resp.content ?? []).filter((c: Record<string, unknown>) => c.type === "text").map((c: Record<string, unknown>) => c.text).join("");
-      const desde = texto.indexOf("{");
-      const obj = desde >= 0 ? parsear(texto.slice(desde)) : null;
-      if (obj && typeof obj === "object") return { input: limpiar(obj as Record<string, unknown>), usage: resp.usage ?? null };
-      console.error("sin tool_use", resp.stop_reason, JSON.stringify(resp).slice(0, 500)); return null;
-    };
-    // one retry if a section came back missing or malformed
-    let res = await pedir();
-    if (res && !completo(res.input as Record<string, any>)) { console.warn("reporte incompleto, reintento"); const otro = await pedir(); if (otro && completo(otro.input as Record<string, any>)) res = otro; }
-    if (!res || !completo(res.input as Record<string, any>)) { await soltar(); return json({ error: "No pudimos generar tu reporte en este momento" }, 502); }
-    const data = { ...res.input, tier: order.tier, modelo: MODELO, generado: new Date().toISOString(), uso: res.usage };
-    if (order.tier !== "hard") delete data.avanzado;
-    await admin.from("reports").update({ data }).eq("order_id", order.id);
-    await admin.from("orders").update({ status: "listo", delivered_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pagado");
-    return json({ ok: true, data });
+Medidas de frente:
+${m.medidas.map(fila).join("\n")}
+${m.perfil?.medidas?.length ? `\nMedidas de perfil (tomadas de la silueta; los milímetros son aproximados):\n${m.perfil.medidas.map(fila).join("\n")}` : "\nNo hay medidas de perfil para este pedido."}
+${m.avisos?.length ? `\nAvisos de calidad de la foto de frente: ${m.avisos.join(" ")}` : ""}`;
+
+        const sistema = estilo(order.tier, order.answers ?? {});
+        const pedir = async (tool: Obj, instruccion: string, valido: (r: Obj) => boolean, max: number) => {
+          for (let intento = 0; intento < 2; intento++) {
+            const r = await fetch("https://api.anthropic.com/v1/messages", {
+              method: "POST",
+              headers: { "content-type": "application/json", "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!, "anthropic-version": "2023-06-01" },
+              body: JSON.stringify({
+                model: MODELO, max_tokens: max, system: sistema, tools: [tool], tool_choice: { type: "auto" },
+                messages: [{ role: "user", content: [...fotos, { type: "text", text: `${datos}\n\n${instruccion}\n\nEntrega el resultado llamando a la herramienta ${tool.name}. No escribas nada fuera de la herramienta.` }] }]
+              })
+            });
+            if (!r.ok) { console.error("anthropic", tool.name, r.status, (await r.text()).slice(0, 400)); continue; }
+            const resp = await r.json();
+            const bloque = (resp.content ?? []).find((c: Obj) => c.type === "tool_use");
+            let input: Obj | null = bloque ? limpiar(bloque.input) : null;
+            if (!input) { // some models answer with the JSON as text instead of calling the tool
+              const t = (resp.content ?? []).filter((c: Obj) => c.type === "text").map((c: Obj) => c.text).join("");
+              const obj = t.indexOf("{") >= 0 ? parsear(t.slice(t.indexOf("{"))) : null;
+              if (obj && typeof obj === "object") input = limpiar(obj as Obj);
+            }
+            if (input && valido(input)) return { input, usage: resp.usage ?? null };
+            console.warn("respuesta incompleta", tool.name, resp.stop_reason);
+          }
+          return null;
+        };
+
+        const [ev, pr, de] = await Promise.all([
+          pedir(T_EVAL, `Califica de 0 a 10 cada uno de estos rasgos a partir de las fotos, uno por cada id, sin saltarte ninguno:
+${Object.values(CATALOGO).map((g) => `${g.titulo}: ${Object.entries(g.items).map(([id, n]) => `${id} (${n})`).join(", ")}`).join("\n")}
+
+Escala: 5 es una persona promedio de su edad y sexo. La mayoría de la gente queda entre 4 y 6. Un 7 ya es claramente por encima del promedio, un 8 es poco común y un 9 es nivel de modelo profesional. Sé estricto y usa decimales; no regales puntos. Más alto siempre es mejor (por ejemplo, en acné un 9 es piel limpia).
+En dimorfismo, califica qué tanto ese rasgo se acerca a lo que se percibe como atractivo para su sexo. Si un rasgo no aplica o no se alcanza a ver (por ejemplo vello facial en una mujer, o cabello tapado), pon 5 y dilo en la nota.`, okEval, 6000),
+          pedir(T_PRINCIPAL, `Escribe la parte principal del reporte: resumen, arquetipo, fortalezas, prioridades y plan por fases.${order.tier === "hard"
+            ? " Incluye también avanzado: procedimientos estéticos que se suelen considerar para un rostro con estas proporciones, qué hace cada uno y qué pensar antes. Preséntalo como información general que debe evaluar un médico certificado, no como una recomendación tuya, y di cuando algo no parece indicado."
+            : " No llenes avanzado, este cliente tiene el plan esencial."}`, okPrincipal, 6000),
+          pedir(T_DETALLE, "Escribe las secciones de detalle: zona por zona, perfil, sonrisa, tres cuartos, piel, color personal y cabello, barba, cejas y lentes.", okDetalle, 6000),
+        ]);
+        if (!pr || !de) { await fallar("modelo"); return; }
+
+        // group the scored items and work out the pillars
+        const porId: Obj = {};
+        for (const e of (ev?.input.evaluaciones ?? [])) if (e && IDS.includes(e.id) && typeof e.puntaje === "number") porId[e.id] = e;
+        const grupos = Object.entries(CATALOGO).map(([id, g]) => {
+          const items = Object.entries(g.items).filter(([k]) => porId[k]).map(([k, nombre]) => ({ id: k, nombre, puntaje: dec(Math.max(0, Math.min(10, porId[k].puntaje))), nota: String(porId[k].nota ?? "") }));
+          return { id, titulo: g.titulo, pilar: g.pilar, puntaje: items.length ? dec(prom(items.map((x) => x.puntaje)) as number) : null, items };
+        }).filter((g) => g.items.length);
+        const pilar = (p: string) => { const xs = grupos.filter((g) => g.pilar === p).flatMap((g) => g.items.map((x) => x.puntaje)); return xs.length ? dec(prom(xs) as number) : null; };
+        const puntajes: Obj = { armonia: armonia(m), angularidad: pilar("angularidad"), dimorfismo: pilar("dimorfismo"), rasgos: pilar("rasgos") };
+        const vals = Object.values(puntajes).filter((x) => typeof x === "number" && x > 0) as number[];
+        // close to a geometric mean: the weakest pillar pulls the total down
+        puntajes.general = vals.length ? dec(Math.pow(vals.reduce((s, x) => s * x, 1), 1 / vals.length)) : null;
+        const nMedidas = (m.medidas?.length ?? 0) + (m.perfil?.medidas?.length ?? 0);
+
+        const data: Obj = { ...pr.input, ...de.input, grupos, puntajes, evaluaciones: nMedidas + Object.keys(porId).length,
+          v: VERSION, tier: order.tier, modelo: MODELO, generado: new Date().toISOString(), uso: [ev?.usage, pr.usage, de.usage] };
+        if (order.tier !== "hard") delete data.avanzado;
+        await admin.from("reports").update({ data }).eq("order_id", order.id);
+        await admin.from("orders").update({ status: "listo", delivered_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pagado");
+      } catch (e) {
+        console.error(e);
+        await fallar("excepcion");
+      }
+    })();
+
+    // deno-lint-ignore no-explicit-any
+    const rt = (globalThis as any).EdgeRuntime;
+    if (rt?.waitUntil) { rt.waitUntil(trabajo); return json({ ok: true, generando: true }); }
+    await trabajo;
+    const { data: fin } = await admin.from("reports").select("data").eq("order_id", order.id).maybeSingle();
+    return fin?.data?.resumen && fin.data.estado !== "error" ? json({ ok: true, data: fin.data }) : json({ error: "No pudimos generar tu reporte en este momento" }, 502);
   } catch (e) {
     console.error(e);
     return json({ error: "No pudimos generar tu reporte en este momento" }, 500);
