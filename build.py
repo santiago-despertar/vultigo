@@ -103,6 +103,7 @@ PAGES = [
     ("privacidad.html", "Aviso de privacidad · Resalta", "Aviso de privacidad integral de Resalta.", ""),
     ("terminos.html", "Términos y condiciones · Resalta", "Términos y condiciones de Resalta.", ""),
     ("calificacion.html", "Calificación facial gratis · Resalta", "Descubre tu puntaje de armonía facial del 0 al 100, gratis. Tu foto se analiza en tu dispositivo.", ""),
+    ("visor.html", "Tu cara, medida · Resalta", "Vista previa del visor de medidas de Resalta.", ""),
     ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
 ]
 
