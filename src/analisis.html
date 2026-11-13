@@ -16,25 +16,25 @@
           <div class="q"><h2>¿Eres hombre o mujer?</h2><p class="hint">Las proporciones ideales cambian entre hombres y mujeres.</p>
             <select id="q-sex" name="sexo" required><option value="" disabled selected>Elige</option><option value="hombre">Hombre</option><option value="mujer">Mujer</option></select></div>
           <div class="q"><h2>¿En qué país vives?</h2>
-            <select id="q-country" name="pais" required><option>México</option><option>Colombia</option><option>Argentina</option><option>Chile</option><option>Perú</option><option>España</option><option>Estados Unidos</option><option>Otro</option></select></div>
+            <select id="q-country" name="pais" required><option value="" disabled selected hidden>Elige</option><option>México</option><option>Colombia</option><option>Argentina</option><option>Chile</option><option>Perú</option><option>España</option><option>Estados Unidos</option><option>Otro</option></select></div>
           <div class="q"><h2>¿Cuánto mides y cuánto pesas?</h2><p class="hint">Opcional. Nos ayuda a estimar cuánto te puede afinar la cara bajar grasa.</p>
             <div class="grid-2" style="gap:12px"><input id="q-height" name="estatura" type="number" inputmode="numeric" min="140" max="220" placeholder="Estatura (cm)"><input id="q-weight" name="peso" type="number" inputmode="numeric" min="40" max="200" placeholder="Peso (kg)"></div></div>
           <div class="q"><h2>¿Qué te gustaría mejorar?</h2><p class="hint">Elige todas las que quieras.</p>
             <select id="q-goal" name="objetivo" multiple required><option>Verme mejor en general</option><option>Verme más joven</option><option>Mandíbula y perfil</option><option>Piel</option><option>Cabello</option><option>Cejas y vello facial</option><option>Ojos y mirada</option><option>Salir mejor en fotos</option></select></div>
           <div class="q"><h2>¿Cómo es tu piel?</h2>
-            <select id="q-skin" name="piel"><option>Normal</option><option>Grasa</option><option>Seca</option><option>Mixta</option><option>Sensible</option><option>No sé</option></select></div>
+            <select id="q-skin" name="piel" required><option value="" disabled selected hidden>Elige</option><option>Normal</option><option>Grasa</option><option>Seca</option><option>Mixta</option><option>Sensible</option><option>No sé</option></select></div>
           <div class="q"><h2>¿Cuál es tu rutina de piel hoy?</h2>
-            <select id="q-routine" name="rutina"><option>Ninguna</option><option>Solo me lavo la cara</option><option>Limpiador, crema y protector solar</option><option>Rutina completa con activos</option></select></div>
+            <select id="q-routine" name="rutina" required><option value="" disabled selected hidden>Elige</option><option>Ninguna</option><option>Solo me lavo la cara</option><option>Limpiador, crema y protector solar</option><option>Rutina completa con activos</option></select></div>
           <div class="q"><h2>¿Usas lentes?</h2><p class="hint">Si usas, te decimos qué forma de armazón le va a tu cara. Si no, lo saltamos.</p>
-            <select id="q-glasses" name="lentes"><option>No</option><option>Sí, a diario</option><option>Solo a veces</option></select></div>
+            <select id="q-glasses" name="lentes" required><option value="" disabled selected hidden>Elige</option><option>No</option><option>Sí, a diario</option><option>Solo a veces</option></select></div>
           <div class="q"><h2>¿Qué tan lejos quieres llegar?</h2><p class="hint">Softmaxing es todo lo que mejora sin procedimientos. Hardmaxing suma tratamientos médicos.</p>
-            <select id="q-proc" name="procedimientos"><option>Solo cambios sin procedimientos</option><option>Abierto a procedimientos sin cirugía</option><option>Abierto a todo, incluida cirugía</option></select></div>
+            <select id="q-proc" name="procedimientos" required><option value="" disabled selected hidden>Elige</option><option>Solo cambios sin procedimientos</option><option>Abierto a procedimientos sin cirugía</option><option>Abierto a todo, incluida cirugía</option></select></div>
           <div class="q" data-cond="proc"><h2>¿Cuánto podrías invertir en procedimientos?</h2><p class="hint">En total, no al mes. Así solo te recomendamos opciones que estén a tu alcance.</p>
-            <select id="q-procbudget" name="presupuesto_procedimientos"><option>Menos de $10,000 MXN</option><option>$10,000 a $30,000 MXN</option><option>$30,000 a $80,000 MXN</option><option>Más de $80,000 MXN</option><option>Todavía no sé</option></select></div>
+            <select id="q-procbudget" name="presupuesto_procedimientos" required><option value="" disabled selected hidden>Elige</option><option>Menos de $10,000 MXN</option><option>$10,000 a $30,000 MXN</option><option>$30,000 a $80,000 MXN</option><option>Más de $80,000 MXN</option><option>Todavía no sé</option></select></div>
           <div class="q"><h2>¿Cuánto podrías invertir al mes en tu cuidado diario?</h2><p class="hint">Productos de piel, corte de pelo, barbería y cosas así.</p>
-            <select id="q-budget" name="presupuesto"><option>Menos de $500 MXN</option><option>$500 a $2,000 MXN</option><option>$2,000 a $5,000 MXN</option><option>Más de $5,000 MXN</option></select></div>
+            <select id="q-budget" name="presupuesto" required><option value="" disabled selected hidden>Elige</option><option>Menos de $500 MXN</option><option>$500 a $2,000 MXN</option><option>$2,000 a $5,000 MXN</option><option>Más de $5,000 MXN</option></select></div>
           <div class="q"><h2>¿Cuánto tiempo al día le puedes dedicar?</h2>
-            <select id="q-time" name="tiempo"><option>5 minutos</option><option>15 minutos</option><option>30 minutos o más</option></select></div>
+            <select id="q-time" name="tiempo" required><option value="" disabled selected hidden>Elige</option><option>5 minutos</option><option>15 minutos</option><option>30 minutos o más</option></select></div>
           <div class="q"><h2>¿Algo más que debamos saber?</h2><p class="hint">Opcional. Por ejemplo: tengo acné, me corté el pelo hace poco, me quiero dejar barba.</p>
             <textarea id="q-notes" name="notas" maxlength="600" placeholder="Escribe aquí"></textarea>
             <label class="check" style="margin-top:14px"><input type="checkbox" name="mayor" required> <span>Confirmo que tengo 18 años o más.</span></label></div>
