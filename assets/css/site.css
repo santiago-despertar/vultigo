@@ -1124,3 +1124,5 @@ html.authed [data-auth="out"]{display:none!important}
   .prog-pils{grid-template-columns:repeat(2,auto)}
   .prog-now{font-size:38px}
 }
+.prog-tip{margin-top:14px;font-size:13px}
+.prog-link{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--ink-muted);text-decoration:underline;cursor:pointer;align-self:center}
