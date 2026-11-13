@@ -159,7 +159,7 @@ let resultado = null;
 function bloquear(m) {
   resultado = m;
   $("#rScore").textContent = String(Math.max(10, m.score)).replace(/\d/g, "8");
-  $("#rRows").innerHTML = m.parts.map(p => `<div class="report-row"><span>${p.k}</span><b class="mono">88</b></div>`).join("");
+  $("#rRows").innerHTML = m.parts.map(p => `<div class="report-row"><span>${p.k}</span><b class="mono cal-borroso">88</b></div>`).join("");
   ir("bloqueado");
 }
 
