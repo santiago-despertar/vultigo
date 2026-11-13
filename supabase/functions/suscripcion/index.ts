@@ -1,5 +1,7 @@
 // Monthly follow-up plan: one full rescan per billing period, progress and compare.
-// Actions: estado, suscribir, usar (spend this month's rescan on a draft order), cancelar, reactivar.
+// Actions: estado, activar (one click after a purchase, on the card just used), suscribir (checkout),
+// usar (spend this month's rescan on a draft order), cancelar, reactivar.
+// The first month is free: the analysis they just bought covers it, so billing starts 30 days later.
 // Secrets: STRIPE_SECRET_KEY, STRIPE_PRICE_SUB, SITE_URL
 import Stripe from "npm:stripe@16.12.0";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
@@ -13,6 +15,17 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!);
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const ACTIVAS = ["active", "trialing"];
+const PRUEBA_DIAS = 30;
+
+async function guardarFila(userId: string, sub: Stripe.Subscription) {
+  const customer = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+  await admin.from("suscripciones").upsert({
+    user_id: userId, stripe_customer: customer, stripe_subscription: sub.id, estado: sub.status,
+    periodo_inicio: new Date(sub.current_period_start * 1000).toISOString(),
+    periodo_fin: new Date(sub.current_period_end * 1000).toISOString(),
+    cancela: sub.cancel_at_period_end, actualizado: new Date().toISOString(),
+  }, { onConflict: "user_id" });
+}
 
 // Reads the subscription from Stripe so the answer never depends on a missed webhook.
 async function leer(userId: string) {
@@ -48,16 +61,66 @@ Deno.serve(async (req) => {
     const accion = body.accion ?? "estado";
     const site = Deno.env.get("SITE_URL") ?? "https://resalta.co";
 
+    // One click right after paying for an analysis: subscribe on the card saved at that checkout,
+    // free for the first month. Falls back to a checkout page (still with the free month) if there is no saved card.
+    if (accion === "activar") {
+      const { row, sub } = await leer(user.id);
+      if (sub && ACTIVAS.includes(sub.status)) return json({ ya: true });
+      const nuevo = !row?.stripe_subscription;
+      const { data: order } = await supabase.from("orders").select("id,status,stripe_session_id").eq("id", body.order_id).single();
+      let customer: string | undefined, pm: string | undefined;
+      if (order?.stripe_session_id) {
+        const session = await stripe.checkout.sessions.retrieve(order.stripe_session_id, { expand: ["payment_intent", "payment_intent.payment_method"] });
+        customer = typeof session.customer === "string" ? session.customer : session.customer?.id;
+        const pi = session.payment_intent as Stripe.PaymentIntent | null;
+        const met = pi?.payment_method as Stripe.PaymentMethod | string | null | undefined;
+        const metodo = typeof met === "string" ? await stripe.paymentMethods.retrieve(met) : met;
+        // only a card that was saved to the customer can be charged later
+        if (metodo && metodo.type === "card" && metodo.customer) pm = metodo.id;
+      }
+      if (customer && pm) {
+        try {
+          const nueva = await stripe.subscriptions.create({
+            customer,
+            items: [{ price: Deno.env.get("STRIPE_PRICE_SUB")! }],
+            default_payment_method: pm,
+            ...(nuevo ? { trial_period_days: PRUEBA_DIAS } : {}),
+            metadata: { user_id: user.id, origen: "upsell" },
+            // free month: nothing to charge now. Returning subscribers are charged right away on the saved card.
+            ...(nuevo ? { payment_behavior: "default_incomplete" as const } : { payment_behavior: "error_if_incomplete" as const, off_session: true }),
+          }, { idempotencyKey: `sub-${user.id}-${order!.id}` });
+          if (ACTIVAS.includes(nueva.status)) {
+            await guardarFila(user.id, nueva);
+            return json({ ok: true, prueba: nuevo, primer_cobro: new Date(nueva.current_period_end * 1000).toISOString() });
+          }
+          await stripe.subscriptions.cancel(nueva.id).catch(() => {});
+        } catch (e) { console.error("one-click subscription failed, sending to checkout", e); }
+      }
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: Deno.env.get("STRIPE_PRICE_SUB")!, quantity: 1 }],
+        ...(row?.stripe_customer ? { customer: row.stripe_customer } : customer ? { customer } : { customer_email: user.email }),
+        client_reference_id: user.id,
+        metadata: { user_id: user.id, tipo: "suscripcion" },
+        subscription_data: { metadata: { user_id: user.id }, ...(nuevo ? { trial_period_days: PRUEBA_DIAS } : {}) },
+        locale: "es-419",
+        success_url: `${site}/panel.html?suscripcion=ok`,
+        cancel_url: `${site}/gracias.html?pedido=${body.order_id ?? ""}`,
+      });
+      return json({ url: session.url });
+    }
+
     if (accion === "suscribir") {
       const { row, sub } = await leer(user.id);
       if (sub && ACTIVAS.includes(sub.status)) return json({ ya: true });
+      const nuevo = !row?.stripe_subscription;
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         line_items: [{ price: Deno.env.get("STRIPE_PRICE_SUB")!, quantity: 1 }],
         ...(row?.stripe_customer ? { customer: row.stripe_customer } : { customer_email: user.email }),
         client_reference_id: user.id,
         metadata: { user_id: user.id, tipo: "suscripcion" },
-        subscription_data: { metadata: { user_id: user.id } },
+        subscription_data: { metadata: { user_id: user.id }, ...(nuevo ? { trial_period_days: PRUEBA_DIAS } : {}) },
         locale: "es-419",
         success_url: `${site}/panel.html?suscripcion=ok`,
         cancel_url: `${site}/panel.html`,
@@ -73,12 +136,16 @@ Deno.serve(async (req) => {
         activa,
         periodo_fin: row?.periodo_fin ?? null,
         cancela: row?.cancela ?? false,
-        disponible: activa ? !(await usado(user.id, row!.periodo_inicio)) : false,
+        prueba: sub?.status === "trialing",
+        // the free month is covered by the analysis they bought; the first monthly rescan opens when billing starts
+        disponible: activa && sub?.status !== "trialing" ? !(await usado(user.id, row!.periodo_inicio)) : false,
+        nuevo: !row?.stripe_subscription,
       });
     }
 
     if (accion === "usar") {
       if (!activa) return json({ error: "Sin suscripción activa" }, 400);
+      if (sub?.status === "trialing") return json({ error: "Tu primer escaneo del seguimiento se libera al terminar el mes gratis" }, 400);
       if (await usado(user.id, row!.periodo_inicio)) return json({ error: "Ya usaste el escaneo de este mes" }, 400);
       const { data: order } = await supabase.from("orders").select("id,status,photos_consent_at").eq("id", body.order_id).single();
       if (!order || order.status !== "borrador") return json({ error: "Pedido no válido" }, 400);
