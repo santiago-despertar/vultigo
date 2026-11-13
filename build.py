@@ -127,6 +127,10 @@ for f in sorted((SRC / "blog").glob("*.html")):
         continue
     meta = json.loads(m.group(1)); meta["slug"] = f.stem
     POSTS.append(meta)
+# Posts can be written ahead: a post only goes live once its date arrives (Mexico City time).
+import datetime as _dt
+_HOY_MX = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=6)).strftime("%Y-%m-%d")
+POSTS = [p for p in POSTS if p["fecha"] <= _HOY_MX]
 POSTS.sort(key=lambda x: x["fecha"], reverse=True)
 for meta in POSTS:
     PAGES.append((f"blog/{meta['slug']}.html", f"{meta['titulo']} · Resalta", meta["descripcion"], ""))
@@ -138,7 +142,7 @@ CARDS = "\n".join(
       <p>{_html.escape(p['resumen'])}</p>
       <span class="blog-meta">{int(p.get('minutos') or 5)} min de lectura</span>
     </a>""" for p in POSTS)
-_hoy = time.strftime("%Y-%m-%d")
+_hoy = _HOY_MX
 _urls = [("", "1.0", _hoy), ("blog", "0.7", POSTS[0]["fecha"] if POSTS else _hoy)] + [(f"blog/{p['slug']}", "0.7", p["fecha"]) for p in POSTS] + [("calificacion", "0.9", _hoy), ("privacidad", "0.2", _hoy), ("terminos", "0.2", _hoy)]
 (ROOT / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(f"  <url><loc>https://resalta.co/{u}</loc><lastmod>{d}</lastmod><priority>{pr}</priority></url>\n" for u, pr, d in _urls) + "</urlset>\n", encoding="utf-8")
 
