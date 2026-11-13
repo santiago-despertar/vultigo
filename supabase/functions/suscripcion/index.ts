@@ -104,8 +104,8 @@ Deno.serve(async (req) => {
         metadata: { user_id: user.id, tipo: "suscripcion" },
         subscription_data: { metadata: { user_id: user.id }, ...(nuevo ? { trial_period_days: PRUEBA_DIAS } : {}) },
         locale: "es-419",
-        success_url: `${site}/panel.html?suscripcion=ok`,
-        cancel_url: `${site}/gracias.html?pedido=${body.order_id ?? ""}`,
+        success_url: `${site}/panel?suscripcion=ok`,
+        cancel_url: `${site}/gracias?pedido=${body.order_id ?? ""}`,
       });
       return json({ url: session.url });
     }
@@ -122,8 +122,8 @@ Deno.serve(async (req) => {
         metadata: { user_id: user.id, tipo: "suscripcion" },
         subscription_data: { metadata: { user_id: user.id }, ...(nuevo ? { trial_period_days: PRUEBA_DIAS } : {}) },
         locale: "es-419",
-        success_url: `${site}/panel.html?suscripcion=ok`,
-        cancel_url: `${site}/panel.html`,
+        success_url: `${site}/panel?suscripcion=ok`,
+        cancel_url: `${site}/panel`,
       });
       return json({ url: session.url });
     }
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
         status: "pagado", tier: "hard", origen: "suscripcion", amount_mxn: 0, paid_at: new Date().toISOString(),
       }).eq("id", order.id).eq("status", "borrador");
       if (error) throw error;
-      return json({ url: `${site}/panel.html` });
+      return json({ url: `${site}/panel` });
     }
 
     if (accion === "cancelar" || accion === "reactivar") {
