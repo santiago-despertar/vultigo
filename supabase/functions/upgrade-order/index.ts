@@ -51,6 +51,15 @@ Deno.serve(async (req) => {
         if (charge.status === "succeeded") {
           await admin.from("orders").update({ tier: "hard", amount_mxn: (order.amount_mxn ?? 0) + Math.round(diff / 100) })
             .eq("id", order.id).eq("tier", "soft");
+          // Affiliate commission on the upgrade too (unique per order, so it is never counted twice).
+          const { data: o } = await admin.from("orders").select("afiliado_id,user_id").eq("id", order.id).single();
+          if (o?.afiliado_id) {
+            const { data: a } = await admin.from("afiliados").select("id,comision_pct,activo,user_id").eq("id", o.afiliado_id).single();
+            if (a && a.activo && a.user_id !== o.user_id) {
+              const venta = Math.round(diff / 100);
+              await admin.from("comisiones").insert({ afiliado_id: a.id, order_id: order.id, concepto: "mejora", venta_mxn: venta, comision_mxn: Math.round(venta * Number(a.comision_pct) / 100) });
+            }
+          }
           return json({ ok: true });
         }
       } catch (e) {
