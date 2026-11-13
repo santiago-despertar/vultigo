@@ -1,73 +1,77 @@
-<main class="app-main">
-  <div class="wrap" style="max-width:980px">
-    <div style="text-align:center;margin-bottom:36px">
-      <span class="tag">Gratis · 30 segundos</span>
-      <h1 class="h-xl" style="margin-top:18px">Calificación facial <span class="muted">gratis</span></h1>
-      <p class="lead" style="max-width:560px;margin:14px auto 0">Sube una foto de frente y recibe tu puntaje de armonía del 0 al 100. Tu foto se analiza en tu propio dispositivo y nunca se sube a internet.</p>
-    </div>
+<main class="app-main onb cal">
+  <div class="onb-bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <a class="onb-back" href="/"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg>Salir</a>
+  <div class="wrap">
+    <div class="panel cal-panel">
+      <img class="onb-mark" src="/assets/img/mark-white.svg" alt="Resalta">
 
-    <div class="panel wide" id="rateStart">
-      <div class="grid-2" style="gap:28px;align-items:center">
-        <label class="slot" style="aspect-ratio:4/5;cursor:pointer" id="rateDrop">
+      <!-- 1. photo -->
+      <section class="cal-paso on" data-p="foto">
+        <h1 class="onb-title">¿Qué tan armónica<br><span>es tu cara?</span></h1>
+        <p class="onb-sub">Sube una foto de frente y en 30 segundos medimos tus proporciones y te damos tu puntaje del 0 al 100. Es gratis.</p>
+        <label class="cal-foto" id="rateDrop">
+          <span class="slot-guia" style="background-image:url(https://jxluabbugwdonqchbaxm.supabase.co/storage/v1/object/public/publico/poses/frente.png)"></span>
           <b>Sube tu foto de frente</b><small>o tómala con tu cámara</small>
           <input type="file" accept="image/*" id="rateFile" aria-label="Foto de frente">
         </label>
-        <div>
-          <p class="label" style="margin-bottom:12px">Para un resultado preciso</p>
-          <ul class="checklist" style="margin:0 0 20px">
-            <li>Mira directo a la cámara, cara relajada</li>
-            <li>Luz de frente, sin sombras fuertes</li>
-            <li>Sin lentes, gorra ni filtros</li>
-            <li>Cámara a la altura de tus ojos</li>
-          </ul>
-          <label class="check"><input type="checkbox" id="rateAdult"> <span>Tengo 18 años o más y la foto es mía.</span></label>
-          <div class="msg" id="rateMsg"></div>
-          <button class="btn btn-primary btn-block" id="rateGo" disabled>Calcular mi puntaje</button>
-        </div>
-      </div>
-    </div>
+        <ul class="cal-tips"><li>Mira directo a la cámara</li><li>Luz de frente</li><li>Sin lentes ni filtros</li></ul>
+        <label class="check"><input type="checkbox" id="rateAdult"> <span>Tengo 18 años o más y la foto es mía.</span></label>
+        <div class="msg" id="rateMsg"></div>
+        <button class="btn btn-primary btn-block" id="rateGo" disabled>Calcular mi puntaje</button>
+        <p class="hint cal-priv">Tu foto se analiza en tu celular y nunca se sube a internet.</p>
+      </section>
 
-    <div id="rateResult" hidden>
-      <div class="split" style="border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-raised);overflow:hidden">
-        <div style="padding:0;position:relative;background:var(--slate)">
-          <canvas id="rateCanvas" style="width:100%;height:auto;display:block"></canvas>
-        </div>
-        <div style="padding:36px">
-          <span class="tag">Tu resultado</span>
-          <p style="margin-top:16px;color:var(--ink-muted)">Armonía facial</p>
-          <p class="mono" style="font-size:84px;line-height:1;letter-spacing:-.02em;margin:6px 0 4px"><span id="rScore">0</span><span style="font-size:24px;color:var(--ink-muted)"> / 100</span></p>
-          <p class="hint" id="rVerdict"></p>
-          <div style="margin-top:22px" id="rRows"></div>
-          <div class="card" style="margin-top:22px;background:var(--surface)">
-            <p class="label">Lo que puedes mejorar primero</p>
-            <p style="margin-top:8px" id="rWeak"></p>
-            <p class="hint" style="margin-top:6px">El plan exacto para mejorarlo está en tu análisis completo.</p>
-          </div>
-        </div>
-      </div>
+      <!-- 2. processing -->
+      <section class="cal-paso" data-p="proceso">
+        <div class="cal-scan"><canvas id="scanCanvas"></canvas><i class="cal-linea"></i></div>
+        <ul class="cal-pasos" id="calPasos">
+          <li>Detectando 478 puntos de tu cara</li>
+          <li>Midiendo tus tercios y quintos faciales</li>
+          <li>Revisando tu simetría</li>
+          <li>Comparando con proporciones de referencia</li>
+          <li>Calculando tu puntaje</li>
+        </ul>
+      </section>
 
-      <div class="cta" style="margin-top:28px;text-align:left;display:grid;grid-template-columns:1.3fr 1fr;gap:28px;align-items:center">
-        <div>
-          <h2 style="margin:0 0 12px;text-align:left">Desbloquea tus más de 110 evaluaciones y tu plan.</h2>
-          <p style="margin:0;color:#EEF1F3">Tu puntaje mide 6 proporciones de frente. El análisis completo usa tus fotos de frente, sonriendo y de perfil, revisa cada rasgo y te dice exactamente qué hacer y en qué orden.</p>
+      <!-- 3. locked result -->
+      <section class="cal-paso" data-p="bloqueado">
+        <p class="label">Tu resultado está listo</p>
+        <div class="cal-res">
+          <canvas id="rateCanvas"></canvas>
+          <div class="cal-res-num"><span class="mono cal-borroso" id="rScore">00</span><small>/ 100</small><p class="cal-borroso" id="rVerdict">Tu nivel de armonía facial</p></div>
         </div>
-        <div style="text-align:center">
-          <a class="btn btn-light" href="/analisis.html">Quiero mi análisis completo</a>
-        </div>
-      </div>
-
-      <div class="panel" style="margin-top:28px;max-width:none">
-        <p class="label">Guarda tu resultado</p>
-        <p class="hint" style="margin:8px 0 16px">Te mandamos tu puntaje y una guía gratis para empezar a mejorar tu cara esta semana.</p>
-        <form id="leadForm" style="display:flex;gap:10px;flex-wrap:wrap">
-          <input type="email" name="email" required placeholder="tu@correo.com" style="flex:1;min-width:220px;height:48px;padding:0 14px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);font:16px var(--font-sans)">
-          <button class="btn btn-primary" type="submit">Enviarme mi resultado</button>
+        <div class="cal-filas cal-borroso" id="rRows"></div>
+        <form class="cal-gate" id="leadForm" novalidate>
+          <h2 class="su-h">¿A dónde te mandamos tu resultado?</h2>
+          <p class="hint">Te llega tu puntaje completo, tus 6 medidas y lo primero que puedes mejorar.</p>
+          <div class="field"><label for="lead-name">Tu nombre</label><input id="lead-name" name="nombre" type="text" autocomplete="given-name" maxlength="60" placeholder="Tu nombre" required></div>
+          <div class="field"><label for="lead-email">Correo</label><input id="lead-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="tu@correo.com" required></div>
+          <div class="msg" id="leadMsg"></div>
+          <button class="btn btn-primary btn-block" type="submit">Enviarme mi resultado</button>
+          <p class="hint cal-priv">Solo guardamos tu correo y tu puntaje, nunca tu foto. <a href="/privacidad.html">Aviso de privacidad</a>.</p>
         </form>
-        <div class="msg" id="leadMsg"></div>
-        <p class="hint" style="margin-top:10px">Solo guardamos tu correo y tu puntaje, nunca tu foto. <a href="/privacidad.html">Aviso de privacidad</a>.</p>
-      </div>
-      <p style="text-align:center;margin-top:20px"><button class="btn btn-ghost" id="rateAgain">Probar con otra foto</button></p>
-      <p class="hint" style="text-align:center;margin-top:12px">Puntaje estético y educativo basado en proporciones medidas en una foto. No es un juicio sobre tu valor ni un diagnóstico.</p>
+      </section>
+
+      <!-- 4. thanks + offer -->
+      <section class="cal-paso" data-p="gracias">
+        <h1 class="onb-title">Listo, <span data-cal-nombre></span>.<br><span>Revisa tu correo.</span></h1>
+        <p class="onb-sub">Tu resultado te llega en unos 5 minutos a <b data-cal-email></b>. Si no lo ves, revisa promociones o spam y márcanos como seguro para que te lleguen los siguientes.</p>
+        <div class="cal-video" id="calVideo">
+          <span class="label">Mientras llega</span>
+          <h2>Lo que tu puntaje gratis no te dice</h2>
+          <p>Tu puntaje mide 6 proporciones de tu cara de frente. Es un buen comienzo, pero no te dice <b>qué hacer</b>. El análisis completo revisa más de 110 rasgos con tus fotos de frente, sonriendo y de perfil, y te da un plan en orden: qué cambiar primero, qué no vale la pena y cómo te verías.</p>
+          <ul class="checks">
+            <li>Más de 110 evaluaciones de tu cara</li>
+            <li>Tu proyección: cómo te verías con tu plan</li>
+            <li>Tu edad visual contra tu edad real</li>
+            <li>Plan por fases: piel, cabello, barba, cejas y estilo</li>
+          </ul>
+          <a class="btn btn-primary btn-block" id="calCta" href="/cuenta.html?next=/analisis.html">Quiero mi análisis completo</a>
+          <p class="hint cal-priv">Listo en unos minutos. Lo ves en tu cuenta y en PDF.</p>
+        </div>
+      </section>
+
+      <p class="hint cal-legal">Puntaje estético y educativo basado en proporciones medidas en una foto. No es un juicio sobre tu valor ni un diagnóstico.</p>
     </div>
   </div>
 </main>
