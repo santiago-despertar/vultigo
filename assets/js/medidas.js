@@ -60,7 +60,7 @@ export function medir(L) {
   const P = (i) => L[i];
   const out = [];
   const add = (m) => {
-    m.valor = round(m.valor, m.unidad === "°" ? 1 : 2);
+    m.valor = round(m.valor, m.unidad === "°" ? 1 : m.unidad === "%" ? 1 : m.rango[1] < 0.5 ? 3 : 2);
     m.estado = estado(m.valor, m.rango[0], m.rango[1]);
     m.puntaje = puntaje(m.valor, m.rango[0], m.rango[1], m.tipo);
     out.push(m);
@@ -200,6 +200,79 @@ export function medir(L) {
     que: "Ancho del mentón dividido entre el ancho de la boca.",
     significa: "Dice si el mentón se ve ancho y cuadrado o angosto y en punta respecto a la boca." });
 
+  // ---------- cejas y más proporciones
+  const bLi = P(107), bLo = P(70), bRi = P(336), bRo = P(300), bLp = P(105), bRp = P(334);
+  add({ id: "ceja_inclinacion", zona: "ojos", nombre: "Inclinación de las cejas",
+    valor: (tilt(bLi, bLo) + tilt(bRi, bRo)) / 2, unidad: "°", rango: [4, 12],
+    lineas: [[bLi, bLo], [bRi, bRo]],
+    que: "Ángulo de cada ceja, del extremo interno al externo. Positivo cuando la cola queda más alta que el inicio.",
+    significa: "Una ceja que sube un poco hacia afuera abre la mirada. Plana o caída hace ver el ojo cansado." });
+  add({ id: "ceja_altura", zona: "ojos", nombre: "Altura de la ceja sobre el ojo",
+    valor: (down(bLp, P(159)) + down(bRp, P(386))) / 2 / eyeW, unidad: "", rango: [0.55, 0.8],
+    lineas: [[bLp, P(159)], [bRp, P(386)]],
+    que: "Distancia de la ceja al párpado superior, en proporción al ancho del ojo.",
+    significa: "Cejas bajas dan una mirada más intensa y marcada; cejas altas, una expresión más abierta y suave." });
+  add({ id: "ceja_largo", zona: "ojos", nombre: "Largo de la ceja contra el ojo",
+    valor: (dist(bLi, bLo) + dist(bRi, bRo)) / 2 / eyeW, unidad: "", rango: [1.25, 1.55],
+    lineas: [[bLi, bLo], [bRi, bRo], [eyeLo, eyeLi], [eyeRi, eyeRo]],
+    que: "Largo de la ceja dividido entre el ancho del ojo.",
+    significa: "La ceja debe pasar al ojo por los dos lados. Corta, la mirada pierde marco; se corrige con diseño o maquillaje de cejas." });
+  add({ id: "entrecejo", zona: "ojos", nombre: "Separación entre cejas",
+    valor: dist(bLi, bRi) / dist(eyeLi, eyeRi), unidad: "", rango: [0.6, 0.85],
+    lineas: [[bLi, bRi], [eyeLi, eyeRi]],
+    que: "Espacio entre las dos cejas dividido entre el espacio entre los lagrimales.",
+    significa: "Cejas muy juntas endurecen la expresión; muy separadas hacen ver la nariz más ancha." });
+  add({ id: "ojo_cara", zona: "ojos", nombre: "Ancho del ojo contra ancho de cara",
+    valor: eyeW / bizy, unidad: "", rango: [0.185, 0.225],
+    lineas: [[eyeLo, eyeLi], [zyL, zyR]],
+    que: "Ancho de un ojo dividido entre el ancho de pómulos.",
+    significa: "La regla de los quintos dice que un ojo ocupa cerca de un quinto del ancho de la cara." });
+  add({ id: "bitemporal", zona: "proporciones", nombre: "Ancho de sienes contra pómulos",
+    valor: dist(P(21), P(251)) / bizy, unidad: "", rango: [0.78, 0.9],
+    lineas: [[P(21), P(251)], [zyL, zyR]],
+    que: "Ancho de la frente a la altura de las sienes dividido entre el ancho de pómulos.",
+    significa: "Dice si la parte alta de la cara es más angosta o más ancha que los pómulos. Ayuda a elegir corte de cabello." });
+  add({ id: "ojos_boca", zona: "proporciones", nombre: "Distancia de ojos a boca contra alto de cara",
+    valor: down(mid(pupL, pupR), stom) / down(P(10), ment), unidad: "", rango: [0.34, 0.38],
+    lineas: [[mid(pupL, pupR), stom], [P(10), ment]],
+    que: "Distancia vertical de los ojos a la boca dividida entre el alto de la cara.",
+    significa: "En estudios de percepción, las caras con esta proporción cerca de 36% se califican como más atractivas." });
+  add({ id: "nariz_alto_ancho", zona: "nariz", nombre: "Ancho contra largo de la nariz",
+    valor: noseW / down(P(168), subn), unidad: "", rango: [0.62, 0.8],
+    lineas: [[alaL, alaR], [P(168), subn]],
+    que: "Ancho de la base de la nariz dividido entre su largo, del entrecejo a la base.",
+    significa: "Valores altos dan una nariz ancha y corta; valores bajos, una nariz larga y angosta." });
+  add({ id: "nariz_cara", zona: "nariz", nombre: "Ancho de nariz contra ancho de cara",
+    valor: noseW / bizy, unidad: "", rango: [0.23, 0.28],
+    lineas: [[alaL, alaR], [zyL, zyR]],
+    que: "Ancho de la nariz dividido entre el ancho de pómulos.",
+    significa: "Dice qué tanto espacio ocupa la nariz en el ancho total de la cara." });
+  add({ id: "filtrum", zona: "boca", nombre: "Espacio nariz-boca en el tercio inferior",
+    valor: down(subn, stom) / down(subn, ment), unidad: "", rango: [0.3, 0.36],
+    lineas: [[subn, stom], [subn, ment]],
+    que: "Distancia de la base de la nariz a la línea de la boca, como parte del tercio inferior.",
+    significa: "La referencia es un tercio. Más que eso, el labio superior se ve largo y la cara envejece; menos, el mentón domina." });
+  add({ id: "labios_grosor", zona: "boca", nombre: "Grosor de labios contra ancho de boca",
+    valor: down(P(0), P(17)) / mouthW, unidad: "", rango: [0.3, 0.42],
+    lineas: [[P(0), P(17)], [mouthL, mouthR]],
+    que: "Alto total de los dos labios dividido entre el ancho de la boca.",
+    significa: "Valores altos dan labios gruesos; bajos, labios delgados. Cambia mucho si la boca está apretada." });
+  add({ id: "boca_mandibula", zona: "boca", nombre: "Ancho de boca contra mandíbula",
+    valor: mouthW / bigo, unidad: "", rango: [0.4, 0.5],
+    lineas: [[mouthL, mouthR], [goL, goR]],
+    que: "Ancho de la boca dividido entre el ancho de la mandíbula.",
+    significa: "Relaciona el tamaño de la boca con la parte baja de la cara." });
+  add({ id: "angulo_menton", zona: "mandibula", nombre: "Ángulo frontal de la mandíbula",
+    valor: angleAt(ment, goL, goR), unidad: "°", rango: [86, 100],
+    lineas: [[goL, ment], [ment, goR]],
+    que: "Ángulo que forman las dos líneas de la mandíbula al llegar al mentón.",
+    significa: "Cerrado, la cara termina en punta, en forma de V; abierto, la mandíbula se ve ancha y cuadrada." });
+  add({ id: "afinado", zona: "mandibula", nombre: "Ancho de mentón contra mandíbula",
+    valor: chinW / bigo, unidad: "", rango: [0.2, 0.28],
+    lineas: [[P(148), P(377)], [goL, goR]],
+    que: "Ancho del mentón dividido entre el ancho de la mandíbula.",
+    significa: "Dice qué tanto se afina la cara de la mandíbula al mentón." });
+
   // ---------- simetría
   const a = P(168), b = ment;
   const pairs = [[33, 263], [133, 362], [61, 291], [234, 454], [172, 397], [70, 300], [105, 334], [50, 280], [58, 288], [129, 358]];
@@ -217,6 +290,39 @@ export function medir(L) {
     lineas: [[eyeLi, eyeLo], [eyeRi, eyeRo]],
     que: "Diferencia entre la inclinación del ojo izquierdo y la del derecho.",
     significa: "Hasta unos 2 grados es normal y casi nadie lo nota." });
+
+  const midP = mid(pupL, pupR), pct = (x) => x * 100;
+  add({ id: "sim_cejas", zona: "simetria", nombre: "Diferencia de altura entre cejas",
+    valor: pct(Math.abs(along(bLp, midP, vx, vy) - along(bRp, midP, vx, vy)) / ipd), unidad: "%", rango: [0, 3], tipo: "bajo",
+    lineas: [[bLp, bRp]],
+    que: "Qué tanto más alta queda una ceja que la otra, como porcentaje de la distancia entre pupilas.",
+    significa: "Casi todos tenemos una ceja más alta. Arriba de 3% ya se nota y se corrige con diseño de cejas." });
+  const hL = dist(P(159), P(145)), hR = dist(P(386), P(374));
+  add({ id: "sim_apertura", zona: "simetria", nombre: "Diferencia de apertura entre ojos",
+    valor: pct(Math.abs(hL - hR) / ((hL + hR) / 2)), unidad: "%", rango: [0, 10], tipo: "bajo",
+    lineas: [[P(159), P(145)], [P(386), P(374)]],
+    que: "Diferencia entre qué tan abierto está un ojo y el otro.",
+    significa: "Un ojo algo más cerrado es común. Depende de la expresión y del cansancio." });
+  add({ id: "sim_boca", zona: "simetria", nombre: "Inclinación de la boca",
+    valor: Math.abs(deg(Math.atan2(along(mouthR, mouthL, vx, vy), Math.abs(along(mouthR, mouthL, ux, uy))))), unidad: "°", rango: [0, 2], tipo: "bajo",
+    lineas: [[mouthL, mouthR], [pupL, pupR]],
+    que: "Ángulo de la línea de la boca contra la línea de los ojos.",
+    significa: "Hasta 2 grados no se percibe. Más que eso, una comisura queda visiblemente más alta." });
+  add({ id: "sim_nariz", zona: "simetria", nombre: "Desviación de la nariz",
+    valor: pct(Math.abs(along(P(1), midP, ux, uy)) / ipd), unidad: "%", rango: [0, 4], tipo: "bajo",
+    lineas: [[midP, ment], [midP, P(1)]],
+    que: "Qué tanto se sale la punta de la nariz de la línea media de la cara.",
+    significa: "Si la cabeza está girada en la foto este número sube. Con la foto bien de frente, indica una nariz desviada." });
+  add({ id: "sim_menton", zona: "simetria", nombre: "Desviación del mentón",
+    valor: pct(Math.abs(along(ment, midP, ux, uy)) / ipd), unidad: "%", rango: [0, 5], tipo: "bajo",
+    lineas: [[midP, { x: midP.x + vx * down(midP, ment), y: midP.y + vy * down(midP, ment) }], [midP, ment]],
+    que: "Qué tanto se sale el mentón de la línea media de la cara.",
+    significa: "Un mentón desviado suele venir de la mandíbula o de la mordida. Una desviación chica es normal." });
+  add({ id: "sim_mandibula", zona: "simetria", nombre: "Diferencia entre lados de la mandíbula",
+    valor: pct(Math.abs(dist(goL, ment) - dist(goR, ment)) / ((dist(goL, ment) + dist(goR, ment)) / 2)), unidad: "%", rango: [0, 6], tipo: "bajo",
+    lineas: [[goL, ment], [goR, ment]],
+    que: "Diferencia de largo entre el lado izquierdo y el derecho de la mandíbula.",
+    significa: "Diferencias chicas son normales. Las grandes suelen venir de masticar más de un lado o de la postura." });
 
   return out;
 }

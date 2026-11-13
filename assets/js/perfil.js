@@ -262,6 +262,63 @@ export async function analizarPerfil(image, sexo) {
     que: "Largo del dorso de la nariz, del entrecejo a la punta, contra la altura de la cara.",
     significa: "Arriba del rango la nariz se percibe larga; abajo, corta." });
 
+  add({ id: "convexidad_total", zona: "menton", nombre: "Convexidad total (con nariz)", unidad: "°",
+    valor: angleAt(Prn, G, Pog), rango: [135, 145],
+    lineas: [[G, Prn], [Prn, Pog]],
+    que: "El ángulo entre la frente, la punta de la nariz y el mentón.",
+    significa: "Incluye a la nariz en el balance del perfil. Bajo, la nariz sobresale mucho respecto a frente y mentón; alto, la nariz es discreta." });
+  const labio = fwd(Ls, Li) >= 0 ? Ls : Li;
+  add({ id: "angulo_z", zona: "menton", nombre: "Ángulo Z", unidad: "°",
+    valor: 90 - deg(Math.atan2(fwd(labio, Pog), Math.abs(Pog.y - labio.y))), rango: [70, 80],
+    lineas: [[Pog, labio], [Pog, { x: Pog.x - d * Math.abs(Pog.y - labio.y) * 0.8, y: Pog.y }]],
+    que: "El ángulo entre la horizontal y la línea que va del mentón al labio más salido. Supone la cabeza derecha.",
+    significa: "Resume el balance entre mentón y labios. Bajo, el mentón queda muy atrás de los labios; alto, el mentón domina." });
+  add({ id: "meridiano", zona: "menton", nombre: "Mentón contra la vertical de la frente", unidad: " mm",
+    valor: fwd(Pog, N) * mm, rango: mujer ? [-8, -2] : [-6, 0],
+    lineas: [[N, { x: N.x, y: Pog.y }], [{ x: N.x, y: Pog.y }, Pog]],
+    que: "Cuánto queda el mentón por delante o por detrás de una vertical que baja del entrecejo. Supone la cabeza derecha.",
+    significa: "Es la referencia clásica de proyección del mentón. Muy atrás de la línea, el mentón se percibe corto." });
+  add({ id: "s_superior", zona: "labios", nombre: "Labio superior contra la línea S", unidad: " mm",
+    valor: lado(Ls, Cm, Pog, d) * mm, rango: [-2, 2],
+    lineas: [[Cm, Pog], [Ls, Ls]],
+    que: "Distancia del labio superior a la línea que va de la mitad de la base de la nariz al mentón.",
+    significa: "En un perfil balanceado los labios tocan esta línea. Delante, labios protruidos; detrás, labios retraídos." });
+  add({ id: "s_inferior", zona: "labios", nombre: "Labio inferior contra la línea S", unidad: " mm",
+    valor: lado(Li, Cm, Pog, d) * mm, rango: [-2, 2],
+    lineas: [[Cm, Pog], [Li, Li]],
+    que: "Distancia del labio inferior a la misma línea S.",
+    significa: "Igual que el superior: lo esperado es que quede sobre la línea o muy cerca." });
+  add({ id: "b_superior", zona: "labios", nombre: "Labio superior contra la línea de Burstone", unidad: " mm",
+    valor: lado(Ls, Sn, Pog, d) * mm, rango: [2, 5],
+    lineas: [[Sn, Pog], [Ls, Ls]],
+    que: "Distancia del labio superior a la línea que va de la base de la nariz al mentón.",
+    significa: "La referencia es que el labio quede unos 3.5 mm por delante de esta línea." });
+  add({ id: "b_inferior", zona: "labios", nombre: "Labio inferior contra la línea de Burstone", unidad: " mm",
+    valor: lado(Li, Sn, Pog, d) * mm, rango: [0.5, 4],
+    lineas: [[Sn, Pog], [Li, Li]],
+    que: "Distancia del labio inferior a la línea de la base de la nariz al mentón.",
+    significa: "La referencia es que quede unos 2 mm por delante." });
+  add({ id: "labio_vertical", zona: "labios", nombre: "Labio superior contra la vertical de la nariz", unidad: " mm",
+    valor: fwd(Ls, Sn) * mm, rango: [0, 3],
+    lineas: [[Sn, { x: Sn.x, y: Ls.y }], [{ x: Sn.x, y: Ls.y }, Ls]],
+    que: "Cuánto sale el labio superior respecto a una vertical que baja de la base de la nariz.",
+    significa: "Lo esperado es que salga 1 a 2 mm. Detrás de la vertical, el labio se ve hundido." });
+  add({ id: "altura_labial", zona: "proporciones", nombre: "Labio superior contra labio inferior y mentón", unidad: "",
+    valor: Math.abs(Sto.y - Sn.y) / Math.abs(Me.y - Sto.y), rango: [0.43, 0.55],
+    lineas: [[Sn, Sto], [Sto, Me]],
+    que: "Altura de la base de la nariz a la boca dividida entre la altura de la boca al mentón.",
+    significa: "La referencia es 1 a 2. Por arriba, el labio superior es largo o el mentón corto." });
+  // forehead: follow the bare skin up from the brow until the hair starts
+  let yTr = yG; for (let y = yG; y >= 0 && frente[y] !== null; y--) { const c2 = at(Math.max(0, Math.min(mw - 1, frente[y] - d)), y); if (c2 === 3) yTr = y; else if (yG - y > 2 && c2 !== 3 && yTr - y > 3) break; }
+  if (yG - yTr > 0.3 * Lf) {
+    const Tr = P(yTr);
+    add({ id: "frente_inclinacion", zona: "proporciones", nombre: "Inclinación de la frente", unidad: "°",
+      valor: deg(Math.atan2(fwd(G, Tr), Math.abs(G.y - Tr.y))), rango: mujer ? [3, 14] : [8, 20],
+      lineas: [[G, Tr], [G, { x: G.x, y: Tr.y }]],
+      que: "Qué tanto se inclina la frente hacia atrás, de la ceja a donde empieza el cabello.",
+      significa: "Una frente más vertical se percibe más suave; una más inclinada, con arco de ceja marcado, más angulosa." });
+  }
+
   const puntos = { G, N, Prn, Cm, Sn, Ls, Sto, Li, B, Pog, Me, C, Ne };
   const ps = Object.values(puntos).filter(Boolean);
   const xs = ps.map(p => p.x), ys = ps.map(p => p.y);
