@@ -494,7 +494,8 @@
     });
 
     // 3D scan: a slow head turn read on the device; the mesh at each angle is saved next to the photos.
-    let escaneo = false;
+    // the 3D scan was taken out of the purchase flow; the code stays for a later optional extra
+    let escaneo = true;
     const e3 = { btn: $("#esc3dBtn"), no: $("#esc3dNo"), txt: $("#esc3dEstado"), card: $("#esc3dCta") };
     function escaneoListo(como) {
       escaneo = como; check();
