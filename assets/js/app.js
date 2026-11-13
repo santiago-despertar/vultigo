@@ -355,9 +355,11 @@
         const medidas = compactar(await analizar(bmp));
         const { error } = await sb.from("orders").update({ medidas }).eq("id", order.id);
         if (error) { console.warn(error); return; }
-        medidasListas = true;
+        medidasListas = true; check();
       } catch (e) {
         medidasListas = false;
+        const slot = document.querySelector('.slot[data-key="frente"]'); if (slot) slot.classList.remove("done");
+        uploaded.delete("frente"); check();
         const texto = e && e.message === "varias_caras"
           ? "En la foto de frente aparece más de una cara. Sube una donde salgas solo."
           : "No pudimos leer bien tu cara en la foto de frente. Prueba con otra de frente, con buena luz y sin lentes.";
@@ -491,6 +493,20 @@
       const { data } = await sb.from("reports").select("data").eq("order_id", id).maybeSingle();
       return data ? data.data : null;
     }
+    // a section saved as text instead of an object still displays
+    function parsear(v) {
+      if (typeof v !== "string") return v;
+      const t = v.trim(); try { return JSON.parse(t); } catch (e) {}
+      if (t[0] !== "{" && t[0] !== "[") return v;
+      let d = 0, str = false, es = false;
+      for (let i = 0; i < t.length; i++) {
+        const c = t[i];
+        if (str) { if (es) es = false; else if (c === "\\") es = true; else if (c === '"') str = false; continue; }
+        if (c === '"') str = true; else if (c === "{" || c === "[") d++;
+        else if (c === "}" || c === "]") { d--; if (!d) { try { return JSON.parse(t.slice(0, i + 1)); } catch (e) { return v; } } }
+      }
+      return v;
+    }
     const completo = (r, o) => r && r.resumen && !(o.tier === "hard" && r.tier !== "hard");
 
     async function abrir(o, scroll) {
@@ -551,20 +567,46 @@
         if (abierto !== id) return;
         esperando(false);
         $("#repStatus").textContent = "Pendiente"; $("#repStatus").className = "status paid";
-        const t = e.message === "sin_foto" || e.message === "No encontramos tus fotos"
-          ? "No encontramos tu foto de frente. Si borraste tus fotos, escríbenos a contacto@resalta.co y lo resolvemos."
-          : "Tu reporte está tardando más de lo normal. Vuelve a intentarlo en un momento.";
-        const m = $("#repMsg"); msg(m, t);
+        const m = $("#repMsg");
+        if (["sin_cara", "varias_caras", "sin_iris", "sin_foto", "No encontramos tus fotos"].includes(e.message)) {
+          fotoNueva(o, e.message === "varias_caras"
+            ? "En tu foto de frente aparece más de una cara. Sube una donde salgas solo y armamos tu reporte."
+            : "No pudimos leer bien tu cara en la foto de frente. Sube otra de frente, con buena luz y sin lentes, y armamos tu reporte.");
+          return;
+        }
+        msg(m, "Tu reporte está tardando más de lo normal. Vuelve a intentarlo en un momento.");
         const b = document.createElement("button"); b.className = "btn btn-ghost"; b.style.cssText = "height:38px;margin-top:10px;display:flex";
         b.textContent = "Intentar de nuevo"; b.onclick = () => generar(o); m.appendChild(b);
       }
+    }
+
+    // Lets the customer replace an unreadable front photo from the panel and try again.
+    function fotoNueva(o, texto) {
+      const m = $("#repMsg"); msg(m, texto);
+      const lab = document.createElement("label"); lab.className = "btn btn-primary"; lab.style.cssText = "height:40px;margin-top:12px;display:inline-flex;cursor:pointer";
+      lab.innerHTML = '<span>Subir foto de frente</span><input type="file" accept="image/*" hidden>';
+      m.appendChild(lab);
+      lab.querySelector("input").addEventListener("change", async ev => {
+        const f = ev.target.files[0]; if (!f) return;
+        lab.querySelector("span").textContent = "Subiendo…";
+        try {
+          const img = await createImageBitmap(f), s2 = Math.min(1, 1600 / Math.max(img.width, img.height));
+          const c = document.createElement("canvas"); c.width = Math.round(img.width * s2); c.height = Math.round(img.height * s2);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          const blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.9));
+          const { error } = await sb.storage.from("fotos").upload(`${user.id}/${o.id}/frente.jpg`, blob, { upsert: true, contentType: "image/jpeg" });
+          if (error) throw error;
+          o.medidas = null; clearMsg(m); generar(o);
+        } catch (err) { lab.querySelector("span").textContent = "Subir foto de frente"; msg(m, "No se pudo subir la foto. Revisa tu conexión e inténtalo de nuevo."); m.appendChild(lab); }
+      });
     }
 
     const li = arr => (arr || []).map(x => `<li>${esc(x)}</li>`).join("");
     const NIVEL = { alto: "Impacto alto", medio: "Impacto medio", bajo: "Impacto bajo" };
     const ESF = { bajo: "poco esfuerzo", medio: "esfuerzo medio", alto: "mucho esfuerzo" };
 
-    async function pintar(r, o) {
+    async function pintar(r0, o) {
+      const r = {}; Object.keys(r0 || {}).forEach(k => { r[k] = parsear(r0[k]); });
       $("#repBody").hidden = false;
       $("#repResumen").textContent = r.resumen || "";
 
