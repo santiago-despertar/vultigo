@@ -1497,3 +1497,8 @@ html:has(main.onb){background:#56636E}
 .esc3d-marcas line.ok{stroke:#7fb895}
 .esc3d.circulo .esc3d-anillo .base{stroke:rgba(255,255,255,.15)}
 .esc3d.circulo.mal .esc3d-anillo .base{stroke:#e0675a}
+.esc3d-marcas,.esc3d-anillo{max-width:none!important;max-height:none!important}
+.esc3d-marcas line{stroke:rgba(255,255,255,.55);stroke-width:5}
+.esc3d-marcas line.ok{stroke:#34e07a;filter:drop-shadow(0 0 4px rgba(52,224,122,.9))}
+.esc3d.bien .esc3d-anillo .base{stroke:#34e07a}
+.esc3d.circulo.bien .esc3d-anillo .base{stroke:rgba(52,224,122,.45)}
