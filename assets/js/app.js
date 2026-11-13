@@ -407,9 +407,27 @@
       return payReady[p];
     }
 
+    // Subscribers spend their monthly rescan here instead of paying.
+    let mensual = null;
+    const subEstado = sb ? fnCall("suscripcion", { accion: "estado" }).catch(() => ({})) : Promise.resolve({});
+    async function modoMensual() {
+      const st = await subEstado;
+      if (!st.activa || !st.disponible) return false;
+      mensual = st;
+      $$("[data-plan-name]").forEach(e => { e.textContent = "Escaneo del mes"; });
+      $$('[data-price="plan"]').forEach(e => { e.textContent = "Incluido"; });
+      const sum = document.querySelector("#payBtn").closest(".wstep").querySelector(".summary b"); if (sum) sum.innerHTML = '<span data-price="plan">Incluido</span>';
+      const bp = $("#bumpHard"); if (bp) bp.closest("label").hidden = true;
+      $("#payBtn").textContent = "Usar mi escaneo del mes";
+      const h = document.querySelector('[data-step="3"] h2'); if (h) h.textContent = "Confirma tu escaneo";
+      const hint = document.querySelector('[data-step="3"] h2 + .hint'); if (hint) hint.textContent = "Tus fotos ya están guardadas. Este escaneo viene incluido en tu seguimiento mensual y lleva el reporte completo.";
+      return true;
+    }
+
     $("#toPay").addEventListener("click", async () => {
       if (sb && order) await sb.from("orders").update({ photos_consent_at: new Date().toISOString() }).eq("id", order.id);
       go(3);
+      if (await modoMensual()) return;
       const w = warmPay(); if (w) w.catch(() => {});
     });
 
@@ -434,6 +452,12 @@
     $("#payBtn").addEventListener("click", async () => {
       const m = $("#payMsg"), b = $("#payBtn"); clearMsg(m);
       if (!sb || !order) return notReady(m);
+      if (mensual) {
+        b.disabled = true; b.textContent = "Preparando tu escaneo…";
+        try { const { url } = await fnCall("suscripcion", { accion: "usar", order_id: order.id }); location.href = url; }
+        catch (e) { b.disabled = false; b.textContent = "Usar mi escaneo del mes"; msg(m, e.message === "Ya usaste el escaneo de este mes" ? "Ya usaste el escaneo de este mes. Puedes pagar este escaneo por separado." : "No pudimos usar tu escaneo del mes. Inténtalo de nuevo en un momento."); }
+        return;
+      }
       b.disabled = true; b.textContent = "Abriendo el pago…";
       try {
         const { url } = await warmPay();
@@ -516,6 +540,10 @@
       }
       const pagado = orders.find(o => o.status === "pagado" || o.status === "listo");
       if (pagado) abrir(pagado, false);
+      if (pagado && new URLSearchParams(location.search).get("suscripcion") === "ok") {
+        history.replaceState(null, "", "/panel.html");
+        setTimeout(() => { irA("progreso"); msg($("#subMsg"), "Listo, tu seguimiento mensual está activo. Ya puedes hacer tu escaneo de este mes.", "ok"); }, 300);
+      }
     })();
 
     async function leerReporte(id) {
@@ -660,6 +688,7 @@
     const corta = d => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
     const sg1 = x => (x > 0 ? "+" : "") + x.toFixed(1);
     function progreso() {
+      suscripcionUI();
       if (!prog) prog = cargarProgreso().catch(e => { prog = null; $("#progNota").textContent = "No pudimos cargar tu historial. Vuelve a intentarlo en un momento."; });
       return prog;
     }
@@ -680,6 +709,50 @@
         ? `${serie.length} escaneos desde el ${corta(pri.t)}.`
         : "Este es tu punto de partida. Cuando hagas otro escaneo, aquí vas a ver la línea de tu avance y podrás comparar las dos fotos.";
       if (serie.length > 1) comparar(serie);
+    }
+    let subCargando = false;
+    async function suscripcionUI(forzar) {
+      if (subCargando && !forzar) return; subCargando = true;
+      const box = $("#progAccion"), precio = C.SUB_PRICE || "$349";
+      $$("[data-sub-price]").forEach(e => { e.textContent = precio; });
+      const boton = (txt, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = txt; b.onclick = fn; box.appendChild(b); return b; };
+      const enlace = (txt, href, cls) => { const a = document.createElement("a"); a.className = cls; a.href = href; a.textContent = txt; box.appendChild(a); };
+      let st;
+      try { st = await fnCall("suscripcion", { accion: "estado" }); }
+      catch (e) { st = { activa: false }; }
+      box.innerHTML = "";
+      const fin = st.periodo_fin ? new Date(st.periodo_fin).toLocaleDateString("es-MX", { day: "numeric", month: "long" }) : "";
+      const accion = async (b, a, ok) => {
+        const t = b.textContent; b.disabled = true; b.textContent = "Un momento…"; clearMsg($("#subMsg"));
+        try { const r = await fnCall("suscripcion", { accion: a }); if (r.url) { location.href = r.url; return; } if (ok) ok(r); suscripcionUI(true); }
+        catch (e) { b.disabled = false; b.textContent = t; msg($("#subMsg"), "No se pudo completar. Inténtalo de nuevo en un momento."); }
+      };
+      if (!st.activa) {
+        $("#subL").textContent = "Seguimiento mensual"; $("#subT").textContent = "Mide tu avance cada mes";
+        $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu línea de progreso y la comparación entre fotos. <b class="mono">${esc(precio)}</b> MXN al mes y cancelas cuando quieras.`;
+        boton("Activar seguimiento", "btn btn-primary", function () { accion(this, "suscribir"); });
+        enlace("Un escaneo suelto", "/analisis.html", "btn btn-ghost");
+      } else {
+        $("#subL").textContent = "Tu seguimiento mensual";
+        if (st.disponible) {
+          $("#subT").textContent = "Tu escaneo de este mes está disponible";
+          $("#subX").textContent = "Sube tus fotos nuevas y te armamos un reporte completo para comparar con el anterior.";
+          enlace("Hacer mi escaneo del mes", "/analisis.html?seguimiento=1", "btn btn-primary");
+        } else {
+          $("#subT").textContent = "Ya hiciste tu escaneo de este mes";
+          $("#subX").textContent = st.cancela ? `Tu suscripción termina el ${fin}.` : `El siguiente se libera el ${fin}, cuando se renueva tu suscripción.`;
+        }
+        if (st.cancela) {
+          if (st.disponible) $("#subX").textContent += ` Tu suscripción termina el ${fin}.`;
+          boton("Seguir con mi suscripción", "btn btn-ghost", function () { accion(this, "reactivar"); });
+        } else {
+          boton("Cancelar suscripción", "prog-link", function () {
+            if (this.dataset.ok !== "1") { this.dataset.ok = "1"; this.textContent = `Confirmar: cancelar al terminar el periodo (${fin})`; return; }
+            accion(this, "cancelar");
+          });
+        }
+      }
+      subCargando = false;
     }
     function grafica(serie) {
       const W = Math.max(300, Math.min(760, $("#progChart").clientWidth || 640)), H = W < 500 ? 180 : 210, pl = 30, pr = 22, pt = 18, pb = 26;
