@@ -680,6 +680,7 @@
       scrollTo({ top: $("#reportArea").getBoundingClientRect().top + scrollY - 84 });
       if (tab === "simular") abrirSim();
       if (tab === "progreso") progreso();
+      if (tab === "chat") abrirChat();
       const ab = $("#dashNav button.active"); if (ab && ab.scrollIntoView && innerWidth <= 900) ab.scrollIntoView({ inline: "nearest", block: "nearest" });
     }
 
@@ -710,6 +711,43 @@
         : "Este es tu punto de partida. Cuando hagas otro escaneo, aquí vas a ver la línea de tu avance y podrás comparar las dos fotos.";
       if (serie.length > 1) comparar(serie);
     }
+    // ---- chat about the customer's own results
+    let chatDe = null, chatOcupado = false;
+    // the assistant may answer with **bold** and "- " lists: show those, escape everything else
+    const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/^\s*[-*•] /gm, "• ").replace(/^#+ /gm, "");
+    const poner = (d, t, quien) => { if (quien.startsWith("re")) d.innerHTML = md(t); else d.textContent = t; };
+    const burbuja = (t, quien) => { const d = document.createElement("div"); d.className = "chat-m " + quien; poner(d, t, quien); $("#chatLog").appendChild(d); $("#chatLog").scrollTop = 1e6; return d; };
+    async function abrirChat() {
+      if (chatDe === abierto) return;
+      chatDe = abierto; $("#chatLog").innerHTML = "";
+      try {
+        const { mensajes } = await fnCall("chat", { order_id: abierto, accion: "historial" });
+        if (chatDe !== abierto) return;
+        (mensajes || []).forEach(m => burbuja(m.texto, m.rol === "user" ? "yo" : "re"));
+        $("#chatSug").hidden = (mensajes || []).length > 0;
+      } catch (e) {}
+    }
+    async function preguntar(texto) {
+      texto = (texto || "").trim(); if (!texto || chatOcupado || !abierto) return;
+      chatOcupado = true; $("#chatBtn").disabled = true; $("#chatSug").hidden = true;
+      burbuja(texto, "yo"); $("#chatIn").value = ""; $("#chatIn").style.height = "";
+      const espera = burbuja("Pensando…", "re pensando");
+      try {
+        const r = await fnCall("chat", { order_id: abierto, mensaje: texto });
+        espera.classList.remove("pensando"); poner(espera, r.respuesta, "re");
+      } catch (e) {
+        espera.classList.remove("pensando");
+        espera.textContent = /l[ií]mite/i.test(e.message) || e.message === "limite" ? "Llegaste al límite de preguntas por hoy. Mañana puedes seguir." : "No pude responder ahorita. Inténtalo de nuevo en un momento.";
+      }
+      $("#chatLog").scrollTop = 1e6; chatOcupado = false; $("#chatBtn").disabled = false;
+    }
+    if ($("#chatForm")) {
+      $("#chatForm").addEventListener("submit", ev => { ev.preventDefault(); preguntar($("#chatIn").value); });
+      $("#chatIn").addEventListener("keydown", ev => { if (ev.key === "Enter" && !ev.shiftKey && innerWidth > 900) { ev.preventDefault(); preguntar($("#chatIn").value); } });
+      $("#chatIn").addEventListener("input", () => { const t = $("#chatIn"); t.style.height = ""; t.style.height = Math.min(140, t.scrollHeight) + "px"; });
+      $$("#chatSug button").forEach(b => b.addEventListener("click", () => preguntar(b.textContent)));
+    }
+
     let subCargando = false;
     async function suscripcionUI(forzar) {
       if (subCargando && !forzar) return; subCargando = true;
