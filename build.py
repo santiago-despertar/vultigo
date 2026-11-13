@@ -41,6 +41,7 @@ HEADER = """<header class="site-header">
       <a href="/#por-que">Por qué Resalta</a>
       <a href="/calificacion.html">Calificación gratis</a>
       <a href="/#preguntas">Preguntas</a>
+      <a href="/blog.html">Blog</a>
       <a href="/cuenta.html" class="menu-only">Entrar / Mi cuenta</a>
     </nav>
     <div class="nav-cta">
@@ -65,6 +66,7 @@ FOOTER = """<footer class="site-footer">
         <a href="/#como-funciona">Cómo funciona</a>
         <a href="/#precio">Planes</a>
         <a href="/#preguntas">Preguntas frecuentes</a>
+        <a href="/blog.html">Blog</a>
         <a href="/cuenta.html">Entrar</a>
       </div>
       <div>
@@ -107,6 +109,8 @@ PAGES = [
     ("reporte.html", "Tu reporte · Resalta", "Tu análisis facial para leer y descargar.", '<script src="/assets/js/reporte.js?v=__V__"></script>'),
     ("visor.html", "Tu cara, medida · Resalta", "Vista previa del visor de medidas de Resalta.", ""),
     ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
+    ("blog.html", "Blog · Resalta", "Simetría, proporciones, mandíbula y procedimientos: lo que hay que saber de tu cara, explicado claro y con medidas.", ""),
+    ("blog/simetria-facial.html", "Simetría facial: qué es, cómo se mide y cuánto importa · Resalta", "Qué es la simetría facial, cómo se mide en una foto, qué la afecta y cuánto importa realmente para verte bien.", ""),
 ]
 
 # Runs before the page paints, so signed-out visitors go straight to sign-in (and signed-in ones skip it)
@@ -122,7 +126,7 @@ GATES = {
 
 for fname, title, desc, extra in PAGES:
     body = (SRC / fname).read_text(encoding="utf-8")
-    page = fname.replace(".html", "")
+    page = fname.replace(".html", "").replace("/", "-")
     html = HEAD.format(title=title, desc=desc, path="" if fname == "index.html" else fname, page=page, extra_head=GATES.get(page, ""))
     html += HEADER + body + FOOTER + SCRIPTS.format(extra_scripts=extra)
     html = html.replace("__V__", str(int(time.time())))
