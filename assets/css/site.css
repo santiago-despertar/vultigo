@@ -1266,3 +1266,46 @@ html.esc-on,html.esc-on body{overflow:hidden}
 .esc-acc .btn-primary{background:#fff;color:#111;border-color:#fff}
 .trio.dos{grid-template-columns:repeat(2,minmax(0,320px));justify-content:center}
 @media (max-width:900px){.trio.dos{grid-template-columns:1fr 1fr}.trio.dos figcaption span{display:block;font-size:12px}}
+/* v26 protocol card in the panel (same pieces as the home page sample) */
+.proto-live{margin:0 0 16px}
+.rp.rp-live{width:auto;font-size:11px;grid-template-columns:minmax(0,1fr) 26em;border-radius:16px;padding:1.4em;box-shadow:none}
+.rp-live .rp-main{border-radius:1em;padding:1.8em 2em 1.6em}
+.rp-live .rp-cols b{color:var(--ink);font-weight:500}
+.rp-live .rp-ages.three{grid-template-columns:repeat(3,1fr)}
+.rp-live .rp-ages div{border-radius:.5em;padding:.8em 1em}
+.rp-live .rp-pend{display:grid;place-items:center;background:#F4F6F7;aspect-ratio:1/1.05}
+.rp-live .rp-pend div{padding:1.2em;text-align:center}
+.rp-live .rp-pend b{display:block;font-weight:500;font-size:1.25em}
+.rp-live .rp-pend span{display:block;font-size:1.1em;color:var(--ink-muted);margin-top:.4em}
+.rp-live dd{white-space:normal}
+.rp-live h4{font-size:1.6em}
+@media (max-width:900px){
+  .rp.rp-live{grid-template-columns:1fr;font-size:11px;padding:10px;border-radius:14px}
+  .rp-live .rp-main{padding:1.6em 1.4em 1.4em}
+  .rp-live .rp-cols{grid-template-columns:1fr}
+  .rp-live dl{grid-template-columns:10em 1fr}
+}
+.rp-live .radar .t2 text{font-size:8.5px}
+.rp.rp-hard{grid-template-columns:1fr;max-width:620px;margin:0 0 18px}
+.doc-fotos figure{margin:0;position:relative}
+.doc-fotos figcaption{position:absolute;top:8px;left:8px;font:10px var(--font-mono,monospace);letter-spacing:.08em;color:#fff;background:rgba(40,52,62,.55);padding:3px 6px;border-radius:4px}
+.doc-muted{color:#8E9DAA}
+.doc-edades{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
+.doc-edades div{background:#F4F6F7;border-radius:8px;padding:10px 12px}
+.doc-edades div:last-child{background:linear-gradient(100deg,#4A5866,#8E9DAA);color:#fff}
+.doc-edades span{display:block;font-size:12px;opacity:.8}
+.doc-edades b{font:300 28px/1.2 var(--font-display,inherit)}
+.doc-fotos.doc-dos{grid-template-columns:1fr 1fr;max-width:460px}
+/* v27 home: visual age */
+.edad-card{border:1px solid var(--line);border-radius:12px;padding:22px;background:#F8F9FA;max-width:440px;margin:0 auto}
+.edad-card small{font:11px var(--font-mono);letter-spacing:.08em;color:var(--ink-muted)}
+.edad-line{font-size:20px;margin:12px 0 14px;line-height:1.3}
+.edad-line span{color:#8E9DAA}
+.edad-ages{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.edad-ages div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.edad-ages .dark{background:linear-gradient(100deg,#4A5866,#8E9DAA);color:#fff;border-color:transparent}
+.edad-ages span{display:block;font-size:12px;opacity:.8}
+.edad-ages b{font:300 30px/1.15 var(--font-display)}
+.edad-rows{margin-top:16px}
+.edad-rows div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.edad-rows b{font:400 13px var(--font-mono);color:var(--ink-muted)}
