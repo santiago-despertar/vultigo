@@ -2032,7 +2032,7 @@ html.fq-abierto{overflow:hidden}
 .fx-scene.on .fx-curve{animation:fxDraw 2.4s ease .3s forwards}
 .fx-pts circle{fill:#4ADE80;stroke:#0E1114;stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
 .fx-scene.on .fx-pts circle{animation:fxPop .3s ease var(--d) forwards}
-.fx-ax text{font:11px var(--font-mono);fill:rgba(255,255,255,.4)}
+.fx-ax text{font:9px var(--font-mono);fill:rgba(255,255,255,.4)}
 .fx-mini{display:flex;flex-wrap:wrap;gap:8px}
 .fx-mini span{font-size:13px;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.06)}
 .fx-mini b{font-family:var(--font-mono);font-weight:500}
@@ -2073,6 +2073,7 @@ html.fq-abierto{overflow:hidden}
   .fx-list,.fx-edit{left:12px;right:12px;top:auto;bottom:12px;width:auto}
   .fx-edit{flex-direction:row;align-items:center;justify-content:space-between}
   .fx-list .fx-row:nth-of-type(n+3){display:none}
+  .fx-scene[data-i="1"] .fx-face{height:86%}
 }
 
 /* less empty space before the footer */
