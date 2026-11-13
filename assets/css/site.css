@@ -1490,3 +1490,10 @@ html:has(main.onb){background:#56636E}
 @keyframes fArr{0%,100%{transform:rotate(-90deg)}50%{transform:rotate(-90deg) translateX(8px)}}
 @keyframes fAba{0%,100%{transform:rotate(90deg)}50%{transform:rotate(90deg) translateX(8px)}}
 @media (max-width:560px){.esc3d-flecha.f-der{right:-50px}.esc3d-flecha.f-izq{left:-50px}.esc3d-flecha{width:36px;height:36px}}
+/* v32 Face ID style ring */
+.esc3d-marcas{position:absolute;left:-6.67%;top:-5%;width:113.34%;height:110%;overflow:visible;opacity:0;transition:opacity .3s}
+.esc3d.circulo .esc3d-marcas{opacity:1}
+.esc3d-marcas line{stroke:rgba(255,255,255,.35);stroke-width:4;stroke-linecap:round;vector-effect:non-scaling-stroke;transition:stroke .2s}
+.esc3d-marcas line.ok{stroke:#7fb895}
+.esc3d.circulo .esc3d-anillo .base{stroke:rgba(255,255,255,.15)}
+.esc3d.circulo.mal .esc3d-anillo .base{stroke:#e0675a}
