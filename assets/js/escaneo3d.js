@@ -1,7 +1,8 @@
 // Guided 3D face scan. Nothing is recorded until the face is in position: the oval is red while
 // something is off (too far, too close, off center, tilted, too dark) and turns green when it is right.
-// Then it walks through steps: hold still, turn right, back to center, turn left, back to center,
-// chin up, chin down. At each angle it keeps the 3D face mesh. Everything runs on the device.
+// Then, like Face ID: hold still a second, then move the head slowly in a small circle. Marks around the
+// oval light up for each direction the head has pointed; at each one it keeps the 3D face mesh.
+// Small movements are enough (about 10 to 15 degrees). Everything runs on the device.
 import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
 let lm = null;
@@ -58,18 +59,7 @@ export function dibujarMalla(ctx, P, aristas, ang, w, h, color = "255,255,255") 
 }
 export function aristasMalla() { return (FaceLandmarker.FACE_LANDMARKS_TESSELATION || []).map(e => [e.start, e.end]); }
 
-// The steps. "toma" lists what each step must collect before moving on.
-const PASOS = [
-  { id: "frente", pide: "Mira directo a la cámara y quédate quieto", flecha: "" },
-  { id: "der", pide: "Gira la cabeza despacio a tu derecha", flecha: "der", yaws: [-15, -25, -35, -45] },
-  { id: "c1", pide: "Regresa despacio al centro", flecha: "centro" },
-  { id: "izq", pide: "Ahora gira despacio a tu izquierda", flecha: "izq", yaws: [15, 25, 35, 45] },
-  { id: "c2", pide: "Regresa despacio al centro", flecha: "centro" },
-  { id: "arriba", pide: "Sube un poco la barbilla", flecha: "arriba" },
-  { id: "abajo", pide: "Ahora baja un poco la barbilla", flecha: "abajo" },
-];
-const TOTAL = 1 + 4 + 4 + 2;
-
+const MARCAS = 32; // marks around the oval, one per direction
 export async function escanear3d({ alTerminar }) {
   const ui = document.createElement("div");
   ui.className = "esc esc3d";
@@ -78,8 +68,8 @@ export async function escanear3d({ alTerminar }) {
     <div class="esc-stage">
       <video playsinline muted autoplay class="espejo"></video>
       <div class="esc3d-marco">
-        <svg class="esc3d-anillo" viewBox="0 0 300 400" preserveAspectRatio="none"><ellipse class="base" cx="150" cy="200" rx="146" ry="196"/><ellipse class="prog" cx="150" cy="200" rx="146" ry="196" pathLength="100"/></svg>
-        <div class="esc3d-flecha"></div>
+        <svg class="esc3d-anillo" viewBox="0 0 300 400" preserveAspectRatio="none"><ellipse class="base" cx="150" cy="200" rx="146" ry="196"/></svg>
+        <svg class="esc3d-marcas" viewBox="-170 -220 340 440">${Array.from({ length: MARCAS }, (_, i) => { const t = i / MARCAS * Math.PI * 2, c = Math.cos(t), s = Math.sin(t); return `<line data-i="${i}" x1="${(c * 156).toFixed(1)}" y1="${(s * 206).toFixed(1)}" x2="${(c * 168).toFixed(1)}" y2="${(s * 218).toFixed(1)}"/>`; }).join("")}</svg>
       </div>
       <canvas class="esc3d-malla" hidden></canvas>
     </div>
@@ -89,7 +79,7 @@ export async function escanear3d({ alTerminar }) {
     </div>`;
   document.body.appendChild(ui); document.documentElement.classList.add("esc-on");
   const $ = s => ui.querySelector(s);
-  const video = $("video"), marco = $(".esc3d-marco"), prog = $(".esc3d-anillo .prog"), flecha = $(".esc3d-flecha");
+  const video = $("video"), marco = $(".esc3d-marco"), marcas = [...ui.querySelectorAll(".esc3d-marcas line")];
   const texto = (p, h) => { $(".esc-p").textContent = p || ""; $(".esc-h").textContent = h || ""; };
   texto("Preparando la cámara", "Permite el acceso a la cámara cuando te lo pida tu navegador.");
 
@@ -134,84 +124,69 @@ export async function escanear3d({ alTerminar }) {
     } catch (e) {}
   }
 
-  const datos = { angulos: [], frente: null, base: null };
-  let paso = 0, quieto = 0, tomas = 0, inicioPaso = performance.now();
-  const hechosYaw = new Set();
+  const datos = { angulos: [], frente: null, base: null, basePitch: null, baseYaw: 0 };
+  let fase = "posicion", quieto = 0;
+  const hechas = new Set();
   function guardar(L, p, etiqueta) {
-    datos.angulos.push({ etiqueta, yaw: +p.yaw.toFixed(1), pitch: p.pitch === null || p.pitch === undefined ? null : +p.pitch.toFixed(1), puntos: L.map(q => [+q.x.toFixed(4), +q.y.toFixed(4), +q.z.toFixed(4)]) });
-    tomas++; prog.style.strokeDasharray = `${Math.min(100, tomas / TOTAL * 100)} 100`;
-    try { navigator.vibrate && navigator.vibrate(15); } catch (e) {}
+    datos.angulos.push({ etiqueta, yaw: +p.yaw.toFixed(1), pitch: p.pitch == null ? null : +p.pitch.toFixed(1), puntos: L.map(q => [+q.x.toFixed(4), +q.y.toFixed(4), +q.z.toFixed(4)]) });
+    try { navigator.vibrate && navigator.vibrate(10); } catch (e) {}
   }
-  function siguiente() { paso++; quieto = 0; inicioPaso = performance.now(); if (paso >= PASOS.length) terminar(); }
-  function pintar(ok, aviso) {
+  function pintar(ok, titulo, sub) {
     ui.classList.toggle("bien", ok); ui.classList.toggle("mal", !ok);
-    const P = PASOS[paso];
-    flecha.className = "esc3d-flecha" + (ok && P.flecha ? " f-" + P.flecha : "");
-    $(".esc3d-paso").textContent = `Paso ${Math.min(paso + 1, PASOS.length)} de ${PASOS.length}`;
-    texto(ok ? P.pide : aviso, ok ? "" : "Cuando el óvalo esté en verde, seguimos.");
+    texto(titulo, sub);
   }
 
   function ciclo() {
     if (!vivo) return;
     requestAnimationFrame(ciclo);
-    if (video.readyState < 2 || paso >= PASOS.length) return;
-    const now = performance.now(); if (now - ultimo < 45) return; ultimo = now;
+    if (video.readyState < 2 || fase === "listo") return;
+    const now = performance.now(); if (now - ultimo < 40) return; ultimo = now;
     let r; try { r = lm.detectForVideo(video, now); } catch (e) { return; }
-    const caras = r.faceLandmarks || [], W = video.videoWidth, H = video.videoHeight, P = PASOS[paso];
-    if (!caras.length) return pintar(false, P.yaws ? "Gira más despacio, te perdimos de vista" : "No vemos tu cara. Ponla dentro del óvalo");
-    if (caras.length > 1) return pintar(false, "Solo debe salir una persona");
+    const caras = r.faceLandmarks || [], W = video.videoWidth, H = video.videoHeight;
+    const enCirculo = fase === "circulo";
+    if (!caras.length) return pintar(false, enCirculo ? "Muévete más despacio, te perdimos de vista" : "No vemos tu cara", "Ponla dentro del óvalo.");
+    if (caras.length > 1) return pintar(false, "Solo debe salir una persona", "");
     const L = caras[0], p = pose(L, W, H);
     // head pitch in degrees from the face model's own 3D pose (falls back to the landmark ratio)
     const M = r.facialTransformationMatrixes && r.facialTransformationMatrixes[0] && r.facialTransformationMatrixes[0].data;
     p.pitch = M ? Math.atan2(M[6], M[10]) * 180 / Math.PI : null;
     if (now - ultLuz > 400) { ultLuz = now; medirLuz(p.caja); }
-    const girando = !!P.yaws, holgura = girando ? 0.2 : 0.12;
-    // is the face in position? one clear correction at a time
+    // in position? one correction at a time
     let aviso = "";
     if (p.alto < 0.26) aviso = "Acércate un poco a la cámara";
     else if (p.alto > 0.6) aviso = "Aléjate un poco de la cámara";
-    else if (Math.abs(p.cx - 0.5) > holgura) aviso = "Mueve tu cara al centro del óvalo";
-    else if (Math.abs(p.cy - 0.5) > 0.16) aviso = p.cy < 0.5 ? "Baja un poco el celular o tu cara al centro" : "Sube un poco el celular o tu cara al centro";
-    else if (p.roll > (girando ? 14 : 9)) aviso = "Endereza la cabeza, sin inclinarla de lado";
-    else if (luz < 0.22) aviso = "Hay muy poca luz. Ponte frente a una ventana o una lámpara";
-    if (aviso) { quieto = 0; return pintar(false, aviso); }
+    else if (Math.abs(p.cx - 0.5) > (enCirculo ? 0.18 : 0.12)) aviso = "Mueve tu cara al centro del óvalo";
+    else if (Math.abs(p.cy - 0.5) > (enCirculo ? 0.2 : 0.15)) aviso = p.cy < 0.5 ? "Baja un poco el celular" : "Sube un poco el celular";
+    else if (p.roll > (enCirculo ? 18 : 10)) aviso = "Endereza la cabeza, sin inclinarla de lado";
+    else if (luz < 0.22) aviso = "Hay muy poca luz";
+    if (aviso) { quieto = 0; return pintar(false, aviso, aviso === "Hay muy poca luz" ? "Ponte frente a una ventana o una lámpara." : "Cuando el óvalo esté en verde, seguimos."); }
 
-    // in position: work the current step
-    if (P.id === "frente") {
-      if (Math.abs(p.yaw) > 7) { quieto = 0; return pintar(false, "Mira directo a la cámara"); }
-      pintar(true);
-      if (++quieto >= 18) { datos.base = p.pitchR; datos.basePitch = p.pitch; guardar(L, p, "frente"); tomarFrente(); siguiente(); }
+    if (fase === "posicion") {
+      if (Math.abs(p.yaw) > 8) { quieto = 0; return pintar(false, "Mira directo a la cámara", "Cuando el óvalo esté en verde, seguimos."); }
+      pintar(true, "Quédate quieto un momento", "");
+      if (++quieto >= 15) {
+        datos.base = p.pitchR; datos.basePitch = p.pitch; datos.baseYaw = p.yaw;
+        guardar(L, p, "frente"); tomarFrente();
+        fase = "circulo"; ui.classList.add("circulo");
+      }
       return;
     }
-    if (P.yaws) {
-      pintar(true);
-      for (const b of P.yaws) if (!hechosYaw.has(b) && Math.abs(p.yaw - b) < 4) { hechosYaw.add(b); guardar(L, p, "yaw" + b); }
-      const faltan = P.yaws.filter(b => !hechosYaw.has(b));
-      if (!faltan.length) return siguiente();
-      // the last, widest angle can be hard to reach: after a while, three of four is enough
-      if (faltan.length === 1 && now - inicioPaso > 9000) { tomas++; return siguiente(); }
-      if (Math.sign(p.yaw) === -Math.sign(P.yaws[0]) && Math.abs(p.yaw) > 10) texto("Hacia el otro lado", P.pide);
-      return;
+    // circle: which way is the head pointing, as seen on the (mirrored) screen
+    const dx = -(p.yaw - datos.baseYaw) / 13;
+    const dy = p.pitch != null && datos.basePitch != null ? (p.pitch - datos.basePitch) / 9 : (p.pitchR - datos.base) / 0.06;
+    const fuerza = Math.hypot(dx, dy);
+    pintar(true, "Mueve la cabeza despacio en círculo", "Como si dibujaras un círculo con la nariz, hasta que se llenen todas las marcas.");
+    if (fuerza >= 1 && fuerza < 3.2) {
+      const ang = (Math.atan2(dy, dx) + Math.PI * 2) % (Math.PI * 2);
+      const i = Math.round(ang / (Math.PI * 2) * MARCAS) % MARCAS;
+      // light this mark and its neighbour so a smooth circle fills the ring without gaps
+      [i, (i + 1) % MARCAS, (i + MARCAS - 1) % MARCAS].forEach((k, n) => {
+        if (hechas.has(k) || (n > 0 && fuerza < 1.3)) return;
+        hechas.add(k); marcas[k].classList.add("ok");
+        if (n === 0) guardar(L, p, "dir" + k);
+      });
     }
-    if (P.id === "c1" || P.id === "c2") {
-      pintar(true);
-      if (Math.abs(p.yaw) < 7 && ++quieto >= 6) siguiente();
-      return;
-    }
-    // chin up / chin down, measured against the person's own front position
-    if (Math.abs(p.yaw) > 12) { quieto = 0; return pintar(false, "Mira al frente mientras mueves la barbilla"); }
-    pintar(true);
-    // chin up lowers the pitch angle; validated on test photos (about 20° up gave -20°)
-    let listo;
-    if (p.pitch !== null && datos.basePitch !== null && datos.basePitch !== undefined) {
-      const d = p.pitch - datos.basePitch;
-      listo = P.id === "arriba" ? d < -12 : d > 10;
-    } else {
-      const d = p.pitchR - datos.base;
-      listo = P.id === "arriba" ? d < -0.07 : d > 0.05;
-    }
-    if (listo && ++quieto >= 4) { guardar(L, p, P.id); siguiente(); }
-    else if (!listo) quieto = 0;
+    if (hechas.size >= MARCAS) terminar();
   }
 
   function tomarFrente() {
@@ -227,6 +202,7 @@ export async function escanear3d({ alTerminar }) {
     if (stream) stream.getTracks().forEach(t => t.stop());
     video.hidden = true; marco.hidden = true;
     const cv = $(".esc3d-malla"); cv.hidden = false;
+    fase = "listo";
     const f = datos.angulos.find(a => a.etiqueta === "frente");
     const Pm = puntos(f.puntos.map(q => ({ x: q[0], y: q[1], z: q[2] })), video.videoWidth || 1280, video.videoHeight || 720), ar = aristasMalla();
     let ang = 0, arrastre = null;
@@ -245,11 +221,10 @@ export async function escanear3d({ alTerminar }) {
     $(".esc3d-paso").textContent = "Listo";
     texto("Así se ve tu cara en 3D", "Con esto medimos tus proporciones en todos los ángulos. Arrastra para girarla.");
     $(".esc-acc").innerHTML = '<button type="button" class="btn btn-ghost esc-otra">Repetir</button><button type="button" class="btn btn-primary esc-fin">Guardar y continuar</button>';
-    $(".esc-fin").onclick = () => cerrar({ v: 2, ancho: video.videoWidth, alto: video.videoHeight, fecha: new Date().toISOString(), angulos: datos.angulos, frente: datos.frente });
+    $(".esc-fin").onclick = () => cerrar({ v: 3, ancho: video.videoWidth, alto: video.videoHeight, fecha: new Date().toISOString(), angulos: datos.angulos, frente: datos.frente });
     $(".esc-otra").onclick = () => { cerrar(null); escanear3d({ alTerminar }); };
   }
 
-  prog.style.strokeDasharray = "0 100";
-  pintar(false, "Pon tu cara dentro del óvalo");
+  pintar(false, "Pon tu cara dentro del óvalo", "Cuando el óvalo esté en verde, seguimos.");
   ciclo();
 }

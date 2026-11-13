@@ -353,11 +353,11 @@
         });
         if (!bad) return true;
         const t = bad.name === "edad" ? (bad.value && +bad.value < 18 ? "Este servicio es solo para mayores de 18 años." : "Escribe tu edad.")
-          : bad.name === "nombre" ? "Escribe tu nombre." : bad.name === "sexo" ? "Elige una opción." : bad.multiple ? "Elige por lo menos una." : "Revisa este dato.";
+          : bad.name === "nombre" ? "Escribe tu nombre." : bad.multiple ? "Elige por lo menos una." : bad.tagName === "SELECT" ? "Elige una opción." : "Revisa este dato.";
         msg(qm, t); return false;
       }
       // some questions only apply after certain answers (procedure budget only if they are open to procedures)
-      const aplica = q => q.dataset.cond !== "proc" || !/^Solo/.test(f.procedimientos.value || "Solo");
+      const aplica = q => q.dataset.cond !== "proc" || (!!f.procedimientos.value && !/^Solo/.test(f.procedimientos.value));
       const paso = (desde, d) => { let k = desde + d; while (k > 0 && k < qs.length - 1 && !aplica(qs[k])) k += d; return k; };
       function mostrar(n, sinFoco) {
         i = Math.max(0, Math.min(qs.length - 1, n));
@@ -421,7 +421,7 @@
       if (!f.sexo.value) { if (quiz) quiz.ir("sexo"); alertInline(f, "Elige si eres hombre o mujer."); return; }
       // the account keeps the name too, so the panel and the protocol greet them by it
       if (sb && nombre !== ((user && user.user_metadata) || {}).full_name) sb.auth.updateUser({ data: { full_name: nombre } }).catch(() => {});
-      const answers = { nombre, edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: [...f.objetivo.selectedOptions].map(o => o.textContent).join(", ") || "Verme mejor en general", piel: f.piel.value, lentes: f.lentes.value, procedimientos: f.procedimientos.value, presupuesto_procedimientos: /^Solo/.test(f.procedimientos.value) ? null : f.presupuesto_procedimientos.value, presupuesto: f.presupuesto.value, tiempo: f.tiempo.value, rutina: f.rutina.value, notas: f.notas.value.trim() };
+      const answers = { nombre, edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: [...f.objetivo.selectedOptions].map(o => o.textContent).join(", "), piel: f.piel.value, lentes: f.lentes.value, procedimientos: f.procedimientos.value, presupuesto_procedimientos: /^Solo/.test(f.procedimientos.value) ? null : (f.presupuesto_procedimientos.value || null), presupuesto: f.presupuesto.value, tiempo: f.tiempo.value, rutina: f.rutina.value, notas: f.notas.value.trim() };
       if (!sb) { go(2); return; }
       if (order) {
         await sb.from("orders").update({ answers }).eq("id", order.id); order.answers = answers;
@@ -465,7 +465,7 @@
       e3.btn.addEventListener("click", async () => {
         e3.btn.disabled = true;
         try {
-          const { escanear3d } = await import("/assets/js/escaneo3d.js?v=3");
+          const { escanear3d } = await import("/assets/js/escaneo3d.js?v=4");
           await escanear3d({ alTerminar: async (res) => {
             e3.btn.disabled = false;
             if (!res) return;
@@ -486,7 +486,7 @@
     // a small turning copy of the mesh on the card once the scan is done
     async function miniMalla(res) {
       try {
-        const { dibujarMalla, aristasMalla } = await import("/assets/js/escaneo3d.js?v=3");
+        const { dibujarMalla, aristasMalla } = await import("/assets/js/escaneo3d.js?v=4");
         const f = (res.angulos || []).find(a => a && Math.abs(a.yaw) < 5) || (res.angulos || [])[5]; if (!f) return;
         const W = res.ancho || 1280, H = res.alto || 720;
         let P = f.puntos.map(q => [q[0] * W, q[1] * H, q[2] * W]);
