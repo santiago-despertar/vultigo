@@ -46,15 +46,18 @@
       <!-- Paso 2 -->
       <section class="wstep" data-step="2" style="padding:0">
         <span class="label">Tus fotos</span>
-        <h2 style="font-size:34px;margin:10px 0 8px">Sube tus 6 fotos</h2>
-        <p class="hint">Cada foto tiene un dibujo de cómo debe verse. Sigue estos tres puntos y tus medidas salen exactas:</p>
+        <h2 style="font-size:34px;margin:10px 0 8px">Sube tus fotos</h2>
+        <p class="hint">Solo necesitamos 3. Cada una tiene un dibujo de cómo debe verse. Sigue estos tres puntos y tus medidas salen exactas:</p>
         <div class="tips-foto">
           <div><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="24" cy="17" r="7"/><path d="M12 42c1.5-8 6-12 12-12s10.5 4 12 12"/><rect x="34" y="12" width="8" height="13" rx="1.5"/><path d="M31 17h3" stroke-dasharray="2 2"/></svg><b>Cámara a la altura de tus ojos</b><small>Ni desde abajo ni desde arriba. Mejor si alguien te la toma o apoyas el celular.</small></div>
           <div><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="24" cy="24" r="9"/><path d="M24 6v4M24 38v4M6 24h4M38 24h4M11 11l3 3M34 34l3 3M37 11l-3 3M14 34l-3 3"/></svg><b>Luz de frente</b><small>Frente a una ventana, sin sombras fuertes, sin lentes ni filtros.</small></div>
           <div><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="14" y="6" width="20" height="36" rx="3"/><circle cx="24" cy="21" r="5"/><path d="M17 33h14"/></svg><b>Cámara trasera con zoom 2x</b><small>A unos dos metros. De cerca y con la frontal la cara se deforma.</small></div>
         </div>
         <p class="hint" style="margin-top:6px">Cabello detrás de las orejas, boca cerrada y cabeza derecha. En las de perfil, gira hasta que ya no se vea la otra ceja.</p>
+        <p class="label fotos-t">Las 3 que necesitamos</p>
         <div class="photo-grid" id="photoGrid"></div>
+        <p class="label fotos-t">Opcionales <span class="fotos-sub">Hacen tu análisis más preciso, sobre todo pómulos y simetría</span></p>
+        <div class="photo-grid opc" id="photoGridOpc"></div>
         <label class="check"><input type="checkbox" id="consent"> <span>Autorizo a Resalta a tratar mis fotos, que pueden contener datos biométricos, únicamente para generar mi análisis, conforme al <a href="/privacidad.html" target="_blank">aviso de privacidad</a>. Puedo pedir que se borren en cualquier momento.</span></label>
         <div class="msg" id="photoMsg"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
