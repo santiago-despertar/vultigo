@@ -83,6 +83,26 @@
   // Only allow redirects to pages of this site.
   const safePath = (p, fallback) => (typeof p === "string" && /^\/(?!\/)/.test(p) ? p : fallback);
   // A saved session that no longer works would bounce between pages, so clear it before sending to sign-in.
+  // ---------- affiliate links: resalta.co/?ref=code (any page) ----------
+  // Last link wins and lasts 60 days. The code goes to checkout, where the server checks it.
+  const REF_DIAS = 60;
+  function getRef() {
+    try { const r = JSON.parse(localStorage.getItem("rs_ref") || "null"); if (r && r.c && Date.now() - r.t < REF_DIAS * 864e5) return r.c; } catch (e) {}
+    return null;
+  }
+  (function () {
+    const u = new URL(location.href);
+    const raw = u.searchParams.get("ref") || u.searchParams.get("r");
+    if (!raw) return;
+    const c = raw.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 24);
+    u.searchParams.delete("ref"); u.searchParams.delete("r");
+    try { history.replaceState(null, "", u.pathname + u.search + u.hash); } catch (e) {}
+    if (c.length < 3) return;
+    let ya = null; try { ya = JSON.parse(localStorage.getItem("rs_ref") || "null"); localStorage.setItem("rs_ref", JSON.stringify({ c, t: Date.now() })); } catch (e) {}
+    if (ya && ya.c === c && Date.now() - ya.t < 864e5) return; // one visit per person per day
+    if (C.SUPABASE_URL && C.SUPABASE_ANON_KEY) fetch(`${C.SUPABASE_URL}/functions/v1/afiliados`, { method: "POST", headers: { "Content-Type": "application/json", apikey: C.SUPABASE_ANON_KEY }, body: JSON.stringify({ accion: "clic", codigo: c }), keepalive: true }).catch(() => {});
+  })();
+
   async function toLogin(url) { try { await sb.auth.signOut({ scope: "local" }); } catch (e) {} location.replace(url); }
   // Load the next page in the background as soon as someone points at or touches a link.
   const warmed = new Set();
@@ -270,6 +290,11 @@
 
   // ---------- cuenta ----------
   if (page === "cuenta") {
+    if (/^\/afiliados/.test(new URLSearchParams(location.search).get("next") || "")) {
+      const t = $("#signupForm .onb-title"), sub = $("#signupForm .onb-sub");
+      if (t) t.innerHTML = "Crea tu link<br><span>de afiliado</span>";
+      if (sub) sub.textContent = "Gana 30% por cada análisis que recomiendes. Primero, ¿cómo te llamas?";
+    }
     const params = new URLSearchParams(location.search);
     const next = safePath(params.get("next"), "/panel");
     const tabs = $$(".tabs button");
@@ -331,7 +356,7 @@
       $$(".su-step", suF).forEach(st => st.classList.toggle("on", +st.dataset.s === n));
       $$("[data-su-name]").forEach(e => { e.textContent = suF.nombre.value.trim().split(/\s+/)[0] || ""; });
       suF.querySelector('[data-su="atras"]').hidden = n === 1;
-      suF.querySelector('[data-su="sig"]').textContent = n === 2 ? "Empezar mi análisis" : "Continuar";
+      suF.querySelector('[data-su="sig"]').textContent = n === 2 ? (next.startsWith("/afiliados") ? "Crear mi link" : "Empezar mi análisis") : "Continuar";
       const gb = $("#googleBox"); if (gb) gb.hidden = n !== 1;
       clearMsg($("#signupMsg"));
       const inp = suF.querySelector(`.su-step[data-s="${n}"] input`);
@@ -346,7 +371,7 @@
     // a lead is kept as soon as we have the email, even if they stop right after
     function guardarLead(email, nombre) {
       if (!sb) return;
-      try { sb.from("leads").insert({ email, nombre, source: "registro" }).then(() => {}, () => {}); } catch (e) {}
+      try { sb.from("leads").insert({ email, nombre, source: next.startsWith("/afiliados") ? "afiliado" : "registro" }).then(() => {}, () => {}); } catch (e) {}
     }
     suF.addEventListener("submit", async (ev) => {
       ev.preventDefault();
@@ -357,7 +382,7 @@
       if (!sb) return notReady(m);
       guardarLead(email, nombre);
       const b = f.querySelector('[data-su="sig"]'); b.disabled = true; b.textContent = "Un momento…";
-      const listo = () => { b.disabled = false; b.textContent = "Empezar mi análisis"; };
+      const listo = () => { b.disabled = false; b.textContent = next.startsWith("/afiliados") ? "Crear mi link" : "Empezar mi análisis"; };
       try {
         const { error } = await sb.auth.signInAnonymously({ options: { data: { full_name: nombre, sin_clave: true } } });
         if (error) throw error;
@@ -398,6 +423,13 @@
 
   // ---------- analisis ----------
   if (page === "analisis") {
+    // Came from an affiliate link: say so and show the discount that checkout will apply.
+    if (getRef() && C.SUPABASE_URL) fetch(`${C.SUPABASE_URL}/functions/v1/afiliados`, { method: "POST", headers: { "Content-Type": "application/json", apikey: C.SUPABASE_ANON_KEY }, body: JSON.stringify({ accion: "info", codigo: getRef() }) })
+      .then(r => r.json()).then(j => {
+        const n = $("#refNota"); if (!n || !j.valido || !(j.descuento > 0)) return;
+        n.innerHTML = `<b>${j.descuento}% de descuento</b>${j.nombre ? ` por la invitación de ${j.nombre.replace(/[<>&"]/g, "")}` : " por invitación"}. Se aplica al pagar.`;
+        n.hidden = false;
+      }).catch(() => {});
     // The first three are required; the other three are optional and only add precision.
     const SLOTS = [
       ["frente", "Frente", "Cara relajada, boca cerrada"],
@@ -691,7 +723,7 @@
     function warmPay() {
       if (!sb || !order) return null;
       const p = plan;
-      if (!payReady[p]) payReady[p] = fnCall("create-checkout", { order_id: order.id, tier: p }).catch(e => { delete payReady[p]; throw e; });
+      if (!payReady[p]) payReady[p] = fnCall("create-checkout", { order_id: order.id, tier: p, ref: getRef() }).catch(e => { delete payReady[p]; throw e; });
       return payReady[p];
     }
 
@@ -878,6 +910,124 @@
         }
       });
     })();
+  }
+
+  if (page === "afiliados") {
+    const box = $("#afApp");
+    const e = v => String(v ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const mx = n => "$" + Math.round(n || 0).toLocaleString("es-MX");
+    const fecha = d => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+    // what an affiliate earns per plan, from the prices shown on the site (10% buyer discount, 30% commission)
+    $$("[data-af-gana]").forEach(b => { const p = precio(b.dataset.afGana); if (p) b.textContent = mx(p * 0.9 * 0.3); });
+    const ESTADOS = { pendiente: ["Por liberar", ""], aprobada: ["Por pagar", "paid"], pagada: ["Pagada", "ready"], cancelada: ["Cancelada", ""] };
+    const slug = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 16);
+    const pagoCampos = a => `
+      <div class="field"><label for="af-met">Cómo quieres cobrar</label><select id="af-met" name="pago_metodo"><option value="paypal">PayPal</option><option value="transferencia">Transferencia bancaria</option><option value="otro">Otro</option></select></div>
+      <div class="field"><label for="af-dat">Tus datos de pago</label><input id="af-dat" name="pago_datos" maxlength="200" placeholder="Tu correo de PayPal o tu CLABE y banco" value="${e(a && a.pago_datos)}"><span class="hint">Los usamos solo para pagarte. Puedes cambiarlos cuando quieras.</span></div>`;
+
+    function sinSesion() {
+      box.innerHTML = `<div class="card af-card"><h2 class="af-h">Crea tu link de afiliado</h2><p class="hint" style="margin:8px 0 18px">Entra con tu correo o con Google. Toma un minuto.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn btn-primary" href="/cuenta?next=/afiliados">Crear mi link</a><a class="btn btn-ghost" href="/cuenta?modo=entrar&next=/afiliados">Ya tengo cuenta</a></div></div>`;
+    }
+
+    function unirme(d) {
+      const u = d.usuario || {};
+      box.innerHTML = `<form class="card af-card" id="afJoin" novalidate><h2 class="af-h">Crea tu link</h2><p class="hint" style="margin:8px 0 18px">Entraste como ${e(d.email)}.</p>
+        <div class="field"><label for="af-nom">Tu nombre o el de tu marca</label><input id="af-nom" name="nombre" maxlength="80" required value="${e(u.nombre)}"></div>
+        <div class="field"><label for="af-cod">Tu código</label><input id="af-cod" name="codigo" maxlength="24" required autocapitalize="none" spellcheck="false" value="${e(slug(u.nombre))}"><span class="hint">Tu link: <b class="mono" id="afPrev">resalta.co/?ref=${e(slug(u.nombre))}</b></span></div>
+        <div class="field"><label for="af-red">Dónde vas a compartirlo <span class="muted">(opcional)</span></label><input id="af-red" name="redes" maxlength="300" placeholder="@tucuenta en TikTok, Instagram, YouTube…"></div>
+        ${pagoCampos(null)}
+        <div class="msg" id="afMsg"></div>
+        <button class="btn btn-primary" type="submit">Crear mi link</button>
+        <p class="hint" style="margin-top:14px">Al crearlo aceptas las reglas del programa de abajo y los <a href="/terminos">términos</a>.</p></form>`;
+      const f = $("#afJoin"), cod = f.codigo;
+      cod.addEventListener("input", () => { cod.value = cod.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""); $("#afPrev").textContent = "resalta.co/?ref=" + cod.value; });
+      f.addEventListener("submit", async ev => {
+        ev.preventDefault(); const m = $("#afMsg"); clearMsg(m);
+        if (!f.nombre.value.trim()) return msg(m, "Escribe tu nombre.");
+        if (cod.value.length < 3) return msg(m, "Tu código necesita al menos 3 letras o números.");
+        const b = f.querySelector('[type="submit"]'); b.disabled = true; b.textContent = "Creando…";
+        try {
+          await fnCall("afiliados", { accion: "unirme", nombre: f.nombre.value, codigo: cod.value, redes: f.redes.value, pago_metodo: f.pago_metodo.value, pago_datos: f.pago_datos.value });
+          track("afiliado_alta"); cargar();
+        } catch (err) { b.disabled = false; b.textContent = "Crear mi link"; msg(m, err.message); }
+      });
+    }
+
+    function panelAfiliado(d) {
+      const a = d.afiliado, link = `https://resalta.co/?ref=${a.codigo}`;
+      const filas = (d.lista || []).map(c => {
+        const [t, cls] = ESTADOS[c.estado] || [c.estado, ""];
+        return `<div class="order"><div><b>${c.concepto === "mejora" ? "Subió a plan Completo" : "Venta"}</b><p class="hint">${fecha(c.created_at)} · venta de ${mx(c.venta_mxn)}${c.estado === "pendiente" ? ` · se libera el ${fecha(c.disponible_at)}` : ""}</p></div><div class="af-row-r"><b class="mono">${mx(c.comision_mxn)}</b><span class="status ${cls}">${t}</span></div></div>`;
+      }).join("");
+      box.innerHTML = `
+        ${a.activo ? "" : `<div class="card af-card"><p class="hint">Tu link está en pausa. Escríbenos si crees que es un error.</p></div>`}
+        <div class="card af-card"><p class="label">Tu link</p>
+          <div class="af-link"><input readonly value="${e(link)}" aria-label="Tu link de afiliado"><button class="btn btn-primary" type="button" id="afCopy">Copiar</button></div>
+          <p class="hint" style="margin-top:10px">También funciona en cualquier página: agrega <span class="mono">?ref=${e(a.codigo)}</span> al final, por ejemplo resalta.co/calificacion?ref=${e(a.codigo)}</p></div>
+        <div class="strip af-strip af-kpis">
+          <div class="stat"><b>${(a.clics || 0).toLocaleString("es-MX")}</b><span>visitas con tu link</span></div>
+          <div class="stat"><b>${d.ventas || 0}</b><span>ventas</span></div>
+          <div class="stat"><b>${mx(d.pendiente)}</b><span>por liberar</span></div>
+          <div class="stat"><b>${mx(d.por_pagar)}</b><span>listo para pago</span></div>
+          <div class="stat"><b>${mx(d.pagado)}</b><span>pagado</span></div>
+        </div>
+        <div class="card af-card"><p class="label" style="margin-bottom:6px">Tus comisiones</p>${filas || `<p class="hint" style="padding:14px 0">Aún no hay ventas. En cuanto alguien compre con tu link aparece aquí.</p>`}</div>
+        <form class="card af-card" id="afEdit" novalidate><p class="label" style="margin-bottom:12px">Tus datos de pago</p>
+          <div class="field"><label for="af-nom">Nombre</label><input id="af-nom" name="nombre" maxlength="80" value="${e(a.nombre)}"></div>
+          <div class="field"><label for="af-red">Dónde lo compartes</label><input id="af-red" name="redes" maxlength="300" value="${e(a.redes)}"></div>
+          ${pagoCampos(a)}
+          <div class="msg" id="afMsg"></div><button class="btn btn-ghost" type="submit">Guardar</button></form>`;
+      const f = $("#afEdit"); if (a.pago_metodo) f.pago_metodo.value = a.pago_metodo;
+      $("#afCopy").onclick = async () => {
+        try { await navigator.clipboard.writeText(link); } catch (err) { const i = box.querySelector(".af-link input"); i.select(); document.execCommand("copy"); }
+        $("#afCopy").textContent = "Copiado"; setTimeout(() => { const c = $("#afCopy"); if (c) c.textContent = "Copiar"; }, 1800);
+      };
+      f.addEventListener("submit", async ev => {
+        ev.preventDefault(); const m = $("#afMsg"); clearMsg(m);
+        try { await fnCall("afiliados", { accion: "editar", nombre: f.nombre.value, redes: f.redes.value, pago_metodo: f.pago_metodo.value, pago_datos: f.pago_datos.value }); msg(m, "Guardado.", "ok"); }
+        catch (err) { msg(m, err.message); }
+      });
+    }
+
+    async function admin() {
+      const sec = document.createElement("div"); sec.className = "card af-card af-admin"; sec.innerHTML = `<p class="label">Administrar afiliados</p><p class="hint">Solo tú ves esta parte.</p><div id="afAdm"><p class="hint" style="padding:14px 0">Cargando…</p></div>`;
+      box.appendChild(sec);
+      const pintar = async () => {
+        const { afiliados = [] } = await fnCall("afiliados", { accion: "admin_lista" });
+        const total = afiliados.reduce((t, a) => t + a.por_pagar, 0);
+        $("#afAdm").innerHTML = `<p style="margin:10px 0 4px"><b>${mx(total)}</b> <span class="hint">listos para pagar en total</span></p>` + (afiliados.map(a => `
+          <div class="order"><div><b>${e(a.nombre || a.codigo)}</b> <span class="mono hint">?ref=${e(a.codigo)}</span>
+            <p class="hint">${e(a.email)}${a.redes ? " · " + e(a.redes) : ""}</p>
+            <p class="hint">${a.clics} visitas · ${a.ventas} ventas · ${a.comision_pct}% · por liberar ${mx(a.pendiente)} · pagado ${mx(a.pagado)}</p>
+            <p class="hint">Cobro: ${e(a.pago_metodo || "sin elegir")}${a.pago_datos ? " · " + e(a.pago_datos) : ""}</p></div>
+            <div class="af-row-r"><b class="mono">${mx(a.por_pagar)}</b>
+              ${a.por_pagar > 0 ? `<button class="btn btn-primary" data-pagar="${a.id}" data-monto="${a.por_pagar}" data-nom="${e(a.nombre || a.codigo)}">Marcar pagado</button>` : ""}
+              <button class="btn btn-ghost" data-activo="${a.id}" data-v="${a.activo ? 0 : 1}">${a.activo ? "Pausar" : "Activar"}</button></div></div>`).join("") || `<p class="hint" style="padding:14px 0">Aún no hay afiliados.</p>`);
+      };
+      sec.addEventListener("click", async ev => {
+        const p = ev.target.closest("[data-pagar]"), t = ev.target.closest("[data-activo]");
+        if (p) {
+          if (!(await confirmar({ titulo: `¿Ya le pagaste a ${p.dataset.nom}?`, texto: `Marcamos ${mx(+p.dataset.monto)} como pagados. Hazlo después de mandar el pago.`, boton: "Sí, ya pagué" }))) return;
+          p.disabled = true; await fnCall("afiliados", { accion: "admin_pagar", afiliado_id: p.dataset.pagar }).catch(() => {}); pintar();
+        }
+        if (t) { t.disabled = true; await fnCall("afiliados", { accion: "admin_estado", afiliado_id: t.dataset.activo, activo: t.dataset.v === "1" }).catch(() => {}); pintar(); }
+      });
+      pintar().catch(() => { $("#afAdm").innerHTML = `<p class="hint">No se pudo cargar.</p>`; });
+    }
+
+    async function cargar() {
+      if (!sb) return sinSesion();
+      const u = await getUser();
+      if (!u) return sinSesion();
+      let d;
+      try { d = await fnCall("afiliados", { accion: "panel" }); }
+      catch (err) { return sinSesion(); }
+      d.usuario = { nombre: (u.user_metadata || {}).full_name || "" };
+      if (d.afiliado) panelAfiliado(d); else unirme(d);
+      if (d.admin) admin();
+    }
+    cargar();
   }
 
   if (page === "panel") {
