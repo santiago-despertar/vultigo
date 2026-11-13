@@ -68,8 +68,7 @@ export async function escanear3d({ alTerminar }) {
     <div class="esc-stage">
       <video playsinline muted autoplay class="espejo"></video>
       <div class="esc3d-marco">
-        <svg class="esc3d-anillo" viewBox="0 0 300 400" preserveAspectRatio="none"><ellipse class="base" cx="150" cy="200" rx="146" ry="196"/></svg>
-        <svg class="esc3d-marcas" viewBox="-170 -220 340 440">${Array.from({ length: MARCAS }, (_, i) => { const t = i / MARCAS * Math.PI * 2, c = Math.cos(t), s = Math.sin(t); return `<line data-i="${i}" x1="${(c * 156).toFixed(1)}" y1="${(s * 206).toFixed(1)}" x2="${(c * 168).toFixed(1)}" y2="${(s * 218).toFixed(1)}"/>`; }).join("")}</svg>
+        <svg class="esc3d-anillo" viewBox="0 0 300 400" preserveAspectRatio="none"><ellipse class="base" cx="150" cy="200" rx="146" ry="196"/><g class="esc3d-marcas">${Array.from({ length: MARCAS }, (_, i) => { const t = i / MARCAS * Math.PI * 2, c = Math.cos(t), s = Math.sin(t); return `<line data-i="${i}" x1="${(150 + c * 146 * 1.05).toFixed(1)}" y1="${(200 + s * 196 * 1.05).toFixed(1)}" x2="${(150 + c * 146 * 1.12).toFixed(1)}" y2="${(200 + s * 196 * 1.12).toFixed(1)}"/>`; }).join("")}</g></svg>
       </div>
       <canvas class="esc3d-malla" hidden></canvas>
     </div>

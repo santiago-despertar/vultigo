@@ -465,7 +465,7 @@
       e3.btn.addEventListener("click", async () => {
         e3.btn.disabled = true;
         try {
-          const { escanear3d } = await import("/assets/js/escaneo3d.js?v=4");
+          const { escanear3d } = await import("/assets/js/escaneo3d.js?v=5");
           await escanear3d({ alTerminar: async (res) => {
             e3.btn.disabled = false;
             if (!res) return;
@@ -486,7 +486,7 @@
     // a small turning copy of the mesh on the card once the scan is done
     async function miniMalla(res) {
       try {
-        const { dibujarMalla, aristasMalla } = await import("/assets/js/escaneo3d.js?v=4");
+        const { dibujarMalla, aristasMalla } = await import("/assets/js/escaneo3d.js?v=5");
         const f = (res.angulos || []).find(a => a && Math.abs(a.yaw) < 5) || (res.angulos || [])[5]; if (!f) return;
         const W = res.ancho || 1280, H = res.alto || 720;
         let P = f.puntos.map(q => [q[0] * W, q[1] * H, q[2] * W]);
