@@ -16,7 +16,7 @@ const MODELO = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-opus-5-5";
 const VERSION = 2;
 const FOTOS: [string, string][] = [
   ["frente", "de frente, cara relajada"], ["sonrisa", "de frente sonriendo"],
-  ["perfil_izq", "perfil izquierdo"], ["perfil_der", "perfil derecho"],
+  ["perfil_izq", "de perfil"], ["perfil_der", "el otro perfil"],
   ["tres_cuartos_izq", "tres cuartos izquierdo"], ["tres_cuartos_der", "tres cuartos derecho"]
 ];
 
@@ -145,7 +145,7 @@ const armonia = (m: Obj) => {
 
 function estilo(tier: string, a: Obj) {
   const datos = Object.entries(a).filter(([, v]) => v !== null && v !== "" && v !== undefined).map(([k, v]) => `${k}: ${v}`).join("; ");
-  return `Eres el analista de Resalta, un servicio de análisis de estética facial para México y Latinoamérica. Escribes para un cliente que ya pagó, a partir de sus seis fotos y de sus medidas.
+  return `Eres el analista de Resalta, un servicio de análisis de estética facial para México y Latinoamérica. Escribes para un cliente que ya pagó, a partir de sus fotos y de sus medidas. Algunas fotos son opcionales: si falta un ángulo, no inventes lo que no se ve y dilo cuando importe.
 
 Datos que dio el cliente: ${datos || "ninguno"}. Plan contratado: ${tier === "hard" ? "completo" : "esencial"}.
 
