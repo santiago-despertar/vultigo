@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794577388">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794585017">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 
 </head>
@@ -58,6 +58,20 @@
         <p class="hint" style="margin-top:12px">Se cobra a la tarjeta que acabas de usar. Si tu banco pide confirmarlo, te llevamos a la página de pago.</p>
         <button class="upsell-no" id="upsellNo" type="button">No, gracias</button>
       </div>
+      <div class="upsell" id="upsellSub" hidden>
+        <span class="label">Para que veas tu avance</span>
+        <h2 style="font-size:26px;margin:10px 0 8px">Activa tu seguimiento mensual</h2>
+        <p class="upsell-price"><b class="mono"><span data-sub-price>$349</span> MXN</b> al mes</p>
+        <ul class="checks" style="text-align:left;max-width:420px;margin:14px auto 18px">
+          <li>Un escaneo completo cada mes, con reporte nuevo</li>
+          <li>Tu línea de progreso y el antes y después lado a lado</li>
+          <li>Ves qué está funcionando de tu plan y qué no</li>
+        </ul>
+        <div class="msg" id="subMsgG"></div>
+        <button class="btn btn-primary" id="subYes">Activar mi seguimiento</button>
+        <p class="hint" style="margin-top:12px">Lo cancelas cuando quieras desde tu cuenta.</p>
+        <button class="upsell-no" id="subNo" type="button">Ahora no</button>
+      </div>
       <div class="msg" id="upsellDone"></div>
       <a class="btn btn-primary" href="/panel.html" id="toPanel">Ir a mi cuenta</a>
     </div>
@@ -73,7 +87,7 @@
       <div>
         <p class="label" style="margin-bottom:10px">Resalta</p>
         <a href="/#como-funciona">Cómo funciona</a>
-        <a href="/#precio">Precio</a>
+        <a href="/#precio">Planes</a>
         <a href="/#preguntas">Preguntas frecuentes</a>
         <a href="/cuenta.html">Entrar</a>
       </div>
@@ -95,8 +109,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794577388"></script>
-<script src="/assets/js/app.js?v=1794577388"></script>
+<script src="/assets/js/config.js?v=1794585017"></script>
+<script src="/assets/js/app.js?v=1794585017"></script>
 
 </body>
 </html>

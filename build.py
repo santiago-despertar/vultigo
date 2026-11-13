@@ -62,7 +62,7 @@ FOOTER = """<footer class="site-footer">
       <div>
         <p class="label" style="margin-bottom:10px">Resalta</p>
         <a href="/#como-funciona">Cómo funciona</a>
-        <a href="/#precio">Precio</a>
+        <a href="/#precio">Planes</a>
         <a href="/#preguntas">Preguntas frecuentes</a>
         <a href="/cuenta.html">Entrar</a>
       </div>
@@ -95,7 +95,7 @@ SCRIPTS = """<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.4
 
 PAGES = [
     # file, title, description, extra scripts
-    ("index.html", "Resalta · Análisis facial con método", "Medimos tu rostro con más de 120 puntos de referencia y te damos un plan personalizado para mejorar tu apariencia.", ""),
+    ("index.html", "Resalta · Análisis facial con método", "Medimos tu rostro de frente y de perfil, con más de 110 evaluaciones, y te damos un plan personalizado para mejorar tu apariencia.", ""),
     ("cuenta.html", "Entrar · Resalta", "Crea tu cuenta o entra a Resalta.", ""),
     ("analisis.html", "Tu análisis · Resalta", "Sube tus fotos y recibe tu análisis facial completo.", ""),
     ("panel.html", "Mi cuenta · Resalta", "Tus análisis y reportes.", ""),
