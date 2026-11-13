@@ -1092,3 +1092,6 @@ html.authed [data-auth="out"]{display:none!important}
 .sim-pre:hover{border-color:var(--slate)}
 .sim-cargando{opacity:.5;pointer-events:none;transition:opacity .2s}
 #simVistas{margin-bottom:16px}
+/* v20 adaptive presets */
+.sim-pre.active{border-color:var(--ink);background:var(--ink);color:var(--surface-raised)}
+.sim-pre-nota{margin:6px 0 10px;font-size:13px}
