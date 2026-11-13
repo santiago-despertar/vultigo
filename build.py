@@ -44,9 +44,7 @@ HEADER = """<header class="site-header">
       <a class="btn btn-ghost" href="/cuenta.html" data-auth="out">Entrar</a>
       <a class="btn btn-ghost" href="/panel.html" data-auth="in">Mi cuenta</a>
       <a class="btn btn-primary" href="/analisis.html">Empieza tu plan</a>
-      <button class="menu-btn" aria-label="Abrir menú" onclick="document.getElementById('navLinks').classList.toggle('open')">
-        <svg width="22" height="22" viewBox="0 0 22 22" stroke="currentColor" stroke-width="1.6"><path d="M3 7h16M3 15h16"/></svg>
-      </button>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir menú" aria-controls="navLinks" aria-expanded="false"><span class="burger" aria-hidden="true"><i></i><i></i></span></button>
     </div>
   </div>
 </header>
