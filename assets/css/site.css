@@ -855,3 +855,7 @@ body[data-page=index] .frame>section.notes{padding:24px 40px 40px}
 @keyframes stepIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .wstep.active{animation:stepIn .25s ease both}
 @media (prefers-reduced-motion:reduce){@view-transition{navigation:none}.wstep.active{animation:none}}
+
+/* v11: comparison rows keep every step on the same line */
+.way{align-items:start}
+.way>b{align-self:center}
