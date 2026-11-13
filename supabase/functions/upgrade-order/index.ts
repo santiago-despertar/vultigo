@@ -66,8 +66,8 @@ Deno.serve(async (req) => {
       client_reference_id: order.id,
       metadata: { order_id: order.id, user_id: user.id, upgrade: "true" },
       locale: "es-419",
-      success_url: `${site}/gracias.html?pedido=${order.id}&mejora=1`,
-      cancel_url: `${site}/gracias.html?pedido=${order.id}`,
+      success_url: `${site}/gracias?pedido=${order.id}&mejora=1`,
+      cancel_url: `${site}/gracias?pedido=${order.id}`,
     });
     return json({ url: fallback.url });
   } catch (e) {
