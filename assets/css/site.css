@@ -1879,3 +1879,7 @@ html.fq-abierto{overflow:hidden}
 .sim-gal-i time{color:var(--ink-muted);font-size:12px}
 .chat-sim{margin-top:10px}
 .chat-sim-r img{display:block;width:100%;max-width:320px;border-radius:var(--r-sm);margin-top:8px}
+.pe .btn-ghost{color:#EEF2F5;border-color:rgba(255,255,255,.35);background:transparent}
+.pe .btn-ghost:hover{background:rgba(255,255,255,.08)}
+.pe .btn-primary{background:#EEF2F5;color:#14181C}
+.pe .btn-primary:disabled{opacity:.45}
