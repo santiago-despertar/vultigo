@@ -96,6 +96,9 @@
     const a = e.target && e.target.closest && e.target.closest("a[href]"); if (a) warmLink(a);
   }, { capture: true, passive: true }));
 
+  // analytics events (Google Analytics; the Meta pixel can hook here too)
+  const track = (nombre, datos) => { try { if (window.gtag) window.gtag("event", nombre, datos || {}); } catch (e) {} };
+  const precio = tier => Number(String((C.PRICES || {})[tier] || "").replace(/[^0-9.]/g, "")) || undefined;
   const errES = (e) => {
     const m = (e && e.message) || "";
     if (/Invalid login/i.test(m)) return "Correo o contraseña incorrectos.";
@@ -369,6 +372,7 @@
           }
           throw e2;
         }
+        track("sign_up", { method: "correo" });
         location.href = next;
       } catch (e) { listo(); msg(m, errES(e)); }
     });
@@ -774,6 +778,7 @@
     });
 
     $("#payBtn").addEventListener("click", async () => {
+      track("begin_checkout", { currency: "MXN", value: precio(plan), items: [{ item_id: plan, item_name: (C.PLAN_NAMES || {})[plan] }] });
       const m = $("#payMsg"), b = $("#payBtn"); clearMsg(m);
       if (!sb || !order) return notReady(m);
       if (mensual) {
@@ -803,6 +808,18 @@
       if (C.SUB_PRICE) $$("[data-sub-price]").forEach(e => { e.textContent = C.SUB_PRICE; });
       tarjetaAcceso($("#acceso"));
       if (!sb || !id || !(await getUser())) return;
+
+      // purchase event, once per order
+      try {
+        const k = "resalta_compra_" + id;
+        if (!localStorage.getItem(k)) {
+          const { data: od } = await sb.from("orders").select("tier,status").eq("id", id).maybeSingle();
+          if (od && (od.status === "pagado" || od.status === "listo")) {
+            track("purchase", { transaction_id: id, currency: "MXN", value: precio(od.tier), items: [{ item_id: od.tier, item_name: (C.PLAN_NAMES || {})[od.tier] }] });
+            localStorage.setItem(k, "1");
+          }
+        }
+      } catch (e) {}
 
       // Second offer: the monthly follow-up, only for people who do not have it yet.
       async function ofrecerSeguimiento() {

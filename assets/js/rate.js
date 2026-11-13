@@ -233,6 +233,7 @@ $("#leadForm").addEventListener("submit", async (ev) => {
       }),
     });
     if (!r.ok) throw new Error(String(r.status));
+    try { if (window.gtag) window.gtag("event", "generate_lead", { method: "calificacion_gratis" }); } catch (e) {}
     try { sessionStorage.setItem("resalta_lead", JSON.stringify({ nombre, email })); } catch (e) {}
     document.querySelectorAll("[data-cal-nombre]").forEach(e => { e.textContent = nombre.split(/\s+/)[0]; });
     document.querySelectorAll("[data-cal-email]").forEach(e => { e.textContent = email; });
