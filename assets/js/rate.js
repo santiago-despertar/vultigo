@@ -9,16 +9,51 @@ function say(t, type = "err") { msg.textContent = t; msg.className = "msg show "
 function ready() { go.disabled = !(img && adult.checked); }
 adult.addEventListener("change", ready);
 
+async function usar(f) {
+  img = await createImageBitmap(f);
+  const slot = $("#rateDrop");
+  let p = slot.querySelector(":scope > img"); if (!p) { p = document.createElement("img"); slot.prepend(p); }
+  p.src = URL.createObjectURL(f); slot.classList.add("done");
+  $("#camBtn").textContent = "Tomar otra con mi cámara";
+  getLandmarker().catch(() => {}); // start loading the face model while they tick the box
+  ready();
+}
+
 file.addEventListener("change", async () => {
   msg.className = "msg";
   const f = file.files[0]; if (!f) return;
   if (!/^image\//.test(f.type)) return say("Ese archivo no es una imagen.");
-  img = await createImageBitmap(f);
-  const slot = $("#rateDrop");
-  let p = slot.querySelector("img"); if (!p) { p = document.createElement("img"); slot.prepend(p); }
-  p.src = URL.createObjectURL(f); slot.classList.add("done");
-  getLandmarker().catch(() => {}); // start loading the face model while they tick the box
-  ready();
+  usar(f);
+});
+
+// webcam / front camera, so the photo can be taken from a computer too
+const camBox = $("#camBox"), camVideo = $("#camVideo");
+let camStream = null;
+function cerrarCam() {
+  if (camStream) camStream.getTracks().forEach(t => t.stop());
+  camStream = null; camBox.hidden = true; file.disabled = false;
+}
+$("#camBtn").addEventListener("click", async () => {
+  msg.className = "msg";
+  if (!navigator.mediaDevices?.getUserMedia) return say("Tu navegador no deja usar la cámara. Sube una foto.");
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 1280 } }, audio: false });
+  } catch (e) {
+    return say(e.name === "NotAllowedError" ? "Necesitamos permiso para usar tu cámara. Actívalo en tu navegador o sube una foto." : "No encontramos una cámara. Sube una foto.");
+  }
+  file.disabled = true; // so taps on the preview don't open the file picker
+  camVideo.srcObject = camStream; camBox.hidden = false;
+  await camVideo.play().catch(() => {});
+  $("#rateDrop").scrollIntoView({ behavior: "smooth", block: "center" });
+  getLandmarker().catch(() => {});
+});
+$("#camX").addEventListener("click", (e) => { e.preventDefault(); cerrarCam(); });
+$("#camShot").addEventListener("click", (e) => {
+  e.preventDefault();
+  const w = camVideo.videoWidth, h = camVideo.videoHeight; if (!w) return;
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d"); g.translate(w, 0); g.scale(-1, 1); g.drawImage(camVideo, 0, 0, w, h); // keep it as they saw it
+  c.toBlob(b => { cerrarCam(); if (b) usar(b); }, "image/jpeg", 0.92);
 });
 
 async function getLandmarker() {
