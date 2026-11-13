@@ -1095,3 +1095,32 @@ html.authed [data-auth="out"]{display:none!important}
 /* v20 adaptive presets */
 .sim-pre.active{border-color:var(--ink);background:var(--ink);color:var(--surface-raised)}
 .sim-pre-nota{margin:6px 0 10px;font-size:13px}
+/* v21 progress and compare */
+.prog-top{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:flex-end}
+.prog-now{font:400 44px/1 var(--font-mono,monospace);margin-top:6px}
+.prog-now small{font-size:15px;color:var(--ink-muted);margin-left:6px}
+.prog-pils{display:grid;grid-template-columns:repeat(4,auto);gap:4px 18px;font-size:13px}
+.prog-pils span{color:var(--ink-muted)}
+.prog-pils b{font-weight:500;font-family:var(--font-mono,monospace)}
+.prog-chart{margin:18px 0 8px}
+.prog-chart svg{width:100%;height:auto;display:block;overflow:visible}
+.prog-chart{min-height:120px}
+.prog-chart text{font:11px var(--font-sans);fill:var(--ink-muted)}
+.prog-sel{display:flex;gap:10px;align-items:center;margin:8px 0 14px}
+.prog-sel select{flex:1;font-size:14px;min-width:0;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font:inherit;background:var(--surface-raised);color:var(--ink)}
+.prog-fotos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;max-width:520px}
+.prog-fotos figure{margin:0}
+.prog-foto{aspect-ratio:4/5;border-radius:12px;background:var(--mist) center/cover no-repeat}
+.prog-fotos figcaption{margin-top:6px;text-align:center}
+.prog-rows .sim-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.prog-rows .sim-row span{min-width:0}
+.prog-rows .sim-row small{display:block;color:var(--ink-muted)}
+.prog-oferta h3{margin:6px 0 8px}
+.prog-accion{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+@media (max-width:900px){
+  .dash-nav{overflow-x:auto;scrollbar-width:none}
+  .dash-nav::-webkit-scrollbar{display:none}
+  .dash-nav button{flex:1 0 auto;min-width:62px}
+  .prog-pils{grid-template-columns:repeat(2,auto)}
+  .prog-now{font-size:38px}
+}
