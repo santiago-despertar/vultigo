@@ -247,12 +247,6 @@
       if (inp) setTimeout(() => inp.focus({ preventScroll: true }), 60);
     }
     suF.querySelector('[data-su="atras"]').addEventListener("click", () => suIr(suPaso - 1));
-    // the small back link steps back inside the form before leaving the page
-    const ob = $("#onbBack");
-    if (ob) ob.addEventListener("click", e => {
-      if (!suF.hidden && suPaso > 1) { e.preventDefault(); suIr(suPaso - 1); }
-      else if (suF.hidden && params.get("modo") !== "entrar") { e.preventDefault(); show("signup"); }
-    });
     // a lead is kept as soon as we have the email, even if they stop before the password
     function guardarLead(email, nombre) {
       if (!sb) return;
@@ -319,12 +313,6 @@
       scrollTo({ top: 0, behavior: "smooth" });
     }
     $$("[data-back]").forEach(b => b.addEventListener("click", () => go(+b.dataset.back)));
-    const ob = $("#onbBack");
-    if (ob) ob.addEventListener("click", e => {
-      const act = document.querySelector(".wstep.active"), n = act ? +act.dataset.step : 1;
-      if (n > 1) { e.preventDefault(); go(n - 1); }
-      else if (quiz && quiz.atras()) e.preventDefault();
-    });
 
     // The profile form is shown one question at a time, like a short quiz.
     const quiz = (() => {
@@ -341,6 +329,7 @@
         [...sel.options].filter(o => !o.disabled).forEach(o => {
           const b = document.createElement("button"); b.type = "button"; b.className = "opt"; b.textContent = o.textContent; b.dataset.v = o.value || o.textContent;
           b.addEventListener("click", () => {
+            if (sel.multiple) { const op = [...sel.options].find(o => (o.value || o.textContent) === b.dataset.v); op.selected = !op.selected; sel.dataset.picked = "1"; pintar(q); clearMsg(qm); return; }
             sel.value = b.dataset.v; sel.dataset.picked = "1"; pintar(q);
             setTimeout(() => { if (qs[i] === q && i < qs.length - 1) mostrar(paso(i, 1)); }, 220);
           });
@@ -350,19 +339,21 @@
       });
       function pintar(q) {
         const sel = q.querySelector("select"); if (!sel) return;
-        $$(".opt", q).forEach(b => b.classList.toggle("on", !!sel.dataset.picked && b.dataset.v === sel.value));
+        const elegidas = [...sel.selectedOptions].map(o => o.value || o.textContent);
+        $$(".opt", q).forEach(b => b.classList.toggle("on", !!sel.dataset.picked && elegidas.includes(b.dataset.v)));
       }
       function valido(q) {
         clearMsg(qm);
         const bad = [...q.querySelectorAll("input,select")].find(el => {
           if (el.type === "checkbox") return false;
+          if (el.multiple) return el.required && !el.selectedOptions.length;
           if (el.required && !String(el.value || "").trim()) return true;
           if (el.type === "number" && el.value && ((el.min && +el.value < +el.min) || (el.max && +el.value > +el.max))) return true;
           return false;
         });
         if (!bad) return true;
         const t = bad.name === "edad" ? (bad.value && +bad.value < 18 ? "Este servicio es solo para mayores de 18 años." : "Escribe tu edad.")
-          : bad.name === "nombre" ? "Escribe tu nombre." : bad.name === "sexo" ? "Elige una opción." : "Revisa este dato.";
+          : bad.name === "nombre" ? "Escribe tu nombre." : bad.name === "sexo" ? "Elige una opción." : bad.multiple ? "Elige por lo menos una." : "Revisa este dato.";
         msg(qm, t); return false;
       }
       // some questions only apply after certain answers (procedure budget only if they are open to procedures)
@@ -408,7 +399,12 @@
         order = data[0];
         const a = order.answers || {};
         const f = $("#aboutForm");
-        Object.keys(a).forEach(k => { if (f[k] && f[k].type !== "checkbox") f[k].value = a[k]; });
+        Object.keys(a).forEach(k => {
+          if (!f[k] || f[k].type === "checkbox") return;
+          if (f[k].multiple) { const v = String(a[k] || "").split(", "); [...f[k].options].forEach(o => { o.selected = v.includes(o.textContent); }); }
+          else f[k].value = a[k];
+        });
+        if (order.escaneo3d) escaneoListo("hecho");
       }
       const fn = $("#aboutForm").nombre;
       if (fn && !fn.value && user.user_metadata && user.user_metadata.full_name) fn.value = user.user_metadata.full_name;
@@ -425,7 +421,7 @@
       if (!f.sexo.value) { if (quiz) quiz.ir("sexo"); alertInline(f, "Elige si eres hombre o mujer."); return; }
       // the account keeps the name too, so the panel and the protocol greet them by it
       if (sb && nombre !== ((user && user.user_metadata) || {}).full_name) sb.auth.updateUser({ data: { full_name: nombre } }).catch(() => {});
-      const answers = { nombre, edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: f.objetivo.value, piel: f.piel.value, lentes: f.lentes.value, procedimientos: f.procedimientos.value, presupuesto_procedimientos: /^Solo/.test(f.procedimientos.value) ? null : f.presupuesto_procedimientos.value, presupuesto: f.presupuesto.value, tiempo: f.tiempo.value, rutina: f.rutina.value, notas: f.notas.value.trim() };
+      const answers = { nombre, edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: [...f.objetivo.selectedOptions].map(o => o.textContent).join(", ") || "Verme mejor en general", piel: f.piel.value, lentes: f.lentes.value, procedimientos: f.procedimientos.value, presupuesto_procedimientos: /^Solo/.test(f.procedimientos.value) ? null : f.presupuesto_procedimientos.value, presupuesto: f.presupuesto.value, tiempo: f.tiempo.value, rutina: f.rutina.value, notas: f.notas.value.trim() };
       if (!sb) { go(2); return; }
       if (order) {
         await sb.from("orders").update({ answers }).eq("id", order.id); order.answers = answers;
@@ -448,26 +444,58 @@
     SLOTS.forEach(([key, title, sub]) => {
       const el = document.createElement("label");
       el.className = "slot"; el.dataset.key = key;
-      el.innerHTML = `<b>${title}</b><small>${sub}</small><input type="file" accept="image/*" aria-label="${title}">`;
+      el.innerHTML = `<span class="slot-guia" style="background-image:url(https://jxluabbugwdonqchbaxm.supabase.co/storage/v1/object/public/publico/poses/${key}.png)"></span><b>${title}</b><small>${sub}</small><input type="file" accept="image/*" aria-label="${title}">`;
       grid.appendChild(el);
       el.querySelector("input").addEventListener("change", (e) => handleFile(el, key, e.target.files[0]));
     });
 
-    // guided scan: the photos it takes go through the same upload as a picked file
-    const escBtn = $("#escBtn");
-    if (escBtn) {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) $("#escCta").hidden = true;
-      escBtn.addEventListener("click", async () => {
-        escBtn.disabled = true;
+    // 3D scan: a slow head turn read on the device; the mesh at each angle is saved next to the photos.
+    let escaneo = false;
+    const e3 = { btn: $("#esc3dBtn"), no: $("#esc3dNo"), txt: $("#esc3dEstado"), card: $("#esc3dCta") };
+    function escaneoListo(como) {
+      escaneo = como; check();
+      if (!e3.card) return;
+      e3.card.classList.toggle("hecho", como === "hecho");
+      if (como === "hecho") { e3.txt.textContent = "Listo. Tu modelo 3D quedó guardado."; e3.btn.textContent = "Repetir escaneo"; e3.btn.className = "btn btn-ghost"; e3.no.hidden = true; }
+      if (como === "sin_camara") { e3.txt.textContent = "Sin problema, seguimos solo con tus fotos."; e3.no.hidden = true; }
+    }
+    if (e3.card) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) escaneoListo("sin_camara");
+      e3.no.addEventListener("click", () => escaneoListo("sin_camara"));
+      e3.btn.addEventListener("click", async () => {
+        e3.btn.disabled = true;
         try {
-          const { iniciar } = await import("/assets/js/escaneo.js?v=3");
-          await iniciar({
-            hechas: [...uploaded],
-            onFoto: (key, blob) => { const el = grid.querySelector(`[data-key="${key}"]`); if (el) handleFile(el, key, blob); },
-            alTerminar: () => { escBtn.disabled = false; grid.scrollIntoView({ behavior: "smooth", block: "center" }); },
-          });
-        } catch (e) { escBtn.disabled = false; msg($("#photoMsg"), "No pudimos abrir el escaneo. Sube tus fotos una por una."); }
+          const { escanear3d } = await import("/assets/js/escaneo3d.js?v=1");
+          await escanear3d({ alTerminar: async (res) => {
+            e3.btn.disabled = false;
+            if (!res) return;
+            e3.txt.textContent = "Guardando tu modelo 3D…";
+            try {
+              if (sb && order) {
+                const path = `${user.id}/${order.id}/escaneo3d.json`;
+                const { error } = await sb.storage.from("fotos").upload(path, new Blob([JSON.stringify(res)], { type: "application/json" }), { upsert: true, contentType: "application/json" });
+                if (error) throw error;
+                await sb.from("orders").update({ escaneo3d: path }).eq("id", order.id);
+              }
+              escaneoListo("hecho"); miniMalla(res);
+            } catch (e) { e3.txt.textContent = "No pudimos guardar el escaneo. Revisa tu conexión e inténtalo otra vez."; }
+          } });
+        } catch (e) { e3.btn.disabled = false; e3.txt.textContent = "No pudimos abrir el escaneo en este navegador. Prueba en Chrome o Safari actualizados."; }
       });
+    }
+    // a small turning copy of the mesh on the card once the scan is done
+    async function miniMalla(res) {
+      try {
+        const { dibujarMalla, aristasMalla } = await import("/assets/js/escaneo3d.js?v=1");
+        const f = (res.angulos || []).find(a => a && Math.abs(a.yaw) < 5) || (res.angulos || [])[5]; if (!f) return;
+        const W = res.ancho || 1280, H = res.alto || 720;
+        let P = f.puntos.map(q => [q[0] * W, q[1] * H, q[2] * W]);
+        const c = P.reduce((s, p) => [s[0] + p[0], s[1] + p[1], s[2] + p[2]], [0, 0, 0]).map(v => v / P.length);
+        P = P.map(p => [p[0] - c[0], p[1] - c[1], p[2] - c[2]]);
+        const cv = $("#esc3dMini"), ar = aristasMalla(), ctx = cv.getContext("2d");
+        const giro = t => { dibujarMalla(ctx, P, ar, Math.sin(t / 1400) * 35, cv.width, cv.height); requestAnimationFrame(giro); };
+        requestAnimationFrame(giro);
+      } catch (e) {}
     }
 
     async function resize(file) {
@@ -536,7 +564,7 @@
     }
     const consent = $("#consent");
     consent.addEventListener("change", check);
-    function check() { $("#toPay").disabled = !(uploaded.size === SLOTS.length && consent.checked); }
+    function check() { $("#toPay").disabled = !(uploaded.size === SLOTS.length && consent.checked && escaneo); }
 
     // The Stripe page is prepared as soon as the payment step opens, so clicking Pagar goes straight to it.
     const payReady = {};
