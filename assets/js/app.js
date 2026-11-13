@@ -340,14 +340,16 @@
 
   // ---------- analisis ----------
   if (page === "analisis") {
+    // The first three are required; the other three are optional and only add precision.
     const SLOTS = [
       ["frente", "Frente", "Cara relajada, boca cerrada"],
-      ["sonrisa", "Frente sonriendo", "Sonrisa natural"],
-      ["perfil_izq", "Perfil izquierdo", "90°, mirando al frente"],
-      ["perfil_der", "Perfil derecho", "90°, mirando al frente"],
-      ["tres_cuartos_izq", "Tres cuartos izq.", "Gira la cara 45°"],
-      ["tres_cuartos_der", "Tres cuartos der.", "Gira la cara 45°"]
+      ["sonrisa", "Sonriendo", "Sonrisa natural, de frente"],
+      ["perfil_izq", "Perfil", "90°, de cualquier lado"],
+      ["perfil_der", "El otro perfil", "90°, del lado contrario", true],
+      ["tres_cuartos_izq", "Tres cuartos", "Gira la cara 45°", true],
+      ["tres_cuartos_der", "Tres cuartos, otro lado", "Gira la cara 45°", true]
     ];
+    const REQUERIDAS = SLOTS.filter(s => !s[3]).map(s => s[0]);
     let user, order;
     const uploaded = new Set();
 
@@ -484,12 +486,12 @@
     import("/assets/js/medidas.js?v=18").then(m => m.precargar()).catch(() => {});
     import("/assets/js/perfil.js?v=19").then(m => m.precargarPerfil()).catch(() => {});
 
-    const grid = $("#photoGrid");
-    SLOTS.forEach(([key, title, sub]) => {
+    const grid = $("#photoGrid"), gridOpc = $("#photoGridOpc") || grid;
+    SLOTS.forEach(([key, title, sub, opcional]) => {
       const el = document.createElement("label");
       el.className = "slot"; el.dataset.key = key;
       el.innerHTML = `<span class="slot-guia" style="background-image:url(https://jxluabbugwdonqchbaxm.supabase.co/storage/v1/object/public/publico/poses/${key}.png)"></span><b>${title}</b><small>${sub}</small><input type="file" accept="image/*" aria-label="${title}">`;
-      grid.appendChild(el);
+      (opcional ? gridOpc : grid).appendChild(el);
       el.querySelector("input").addEventListener("change", (e) => handleFile(el, key, e.target.files[0]));
     });
 
@@ -609,7 +611,7 @@
     }
     const consent = $("#consent");
     consent.addEventListener("change", check);
-    function check() { $("#toPay").disabled = !(uploaded.size === SLOTS.length && consent.checked && escaneo); }
+    function check() { $("#toPay").disabled = !(REQUERIDAS.every(k => uploaded.has(k)) && consent.checked && escaneo); }
 
     // The Stripe page is prepared as soon as the payment step opens, so clicking Pagar goes straight to it.
     const payReady = {};
