@@ -6,5 +6,6 @@ Disallow: /visor
 Disallow: /gracias
 Disallow: /analisis
 Disallow: /cuenta
+Disallow: /contenido/
 
 Sitemap: https://resalta.co/sitemap.xml

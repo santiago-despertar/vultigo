@@ -114,8 +114,33 @@ PAGES = [
     ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
     ("afiliados.html", "Programa de afiliados · Resalta", "Gana 30% por cada análisis de Resalta que recomiendes con tu link.", ""),
     ("blog.html", "Blog · Resalta", "Simetría, proporciones, mandíbula y procedimientos: lo que hay que saber de tu cara, explicado claro y con medidas.", ""),
-    ("blog/simetria-facial.html", "Simetría facial: qué es, cómo se mide y cuánto importa · Resalta", "Qué es la simetría facial, cómo se mide en una foto, qué la afecta y cuánto importa realmente para verte bien.", ""),
 ]
+
+# Blog posts are discovered from src/blog/*.html. Each starts with a one-line comment:
+# <!--post {"titulo": ..., "descripcion": ..., "pilar": ..., "resumen": ..., "minutos": 6, "fecha": "YYYY-MM-DD", "imagen": "/assets/img/..."} -->
+# They get their own page, a card on /blog (newest first) and a line in sitemap.xml.
+import json, html as _html, re as _re
+POSTS = []
+for f in sorted((SRC / "blog").glob("*.html")):
+    m = _re.match(r"<!--post (\{.*?\}) -->\n?", f.read_text(encoding="utf-8"), _re.S)
+    if not m:
+        continue
+    meta = json.loads(m.group(1)); meta["slug"] = f.stem
+    POSTS.append(meta)
+POSTS.sort(key=lambda x: x["fecha"], reverse=True)
+for meta in POSTS:
+    PAGES.append((f"blog/{meta['slug']}.html", f"{meta['titulo']} · Resalta", meta["descripcion"], ""))
+CARDS = "\n".join(
+    f"""    <a class="blog-card" href="/blog/{p['slug']}">
+      <span class="blog-img"><img src="{_html.escape(p.get('imagen') or '/assets/img/analysis-face.jpg')}" alt="" loading="lazy"></span>
+      <span class="tag">{_html.escape(p['pilar'])}</span>
+      <h2>{_html.escape(p['titulo'])}</h2>
+      <p>{_html.escape(p['resumen'])}</p>
+      <span class="blog-meta">{int(p.get('minutos') or 5)} min de lectura</span>
+    </a>""" for p in POSTS)
+_hoy = time.strftime("%Y-%m-%d")
+_urls = [("", "1.0", _hoy), ("blog", "0.7", POSTS[0]["fecha"] if POSTS else _hoy)] + [(f"blog/{p['slug']}", "0.7", p["fecha"]) for p in POSTS] + [("calificacion", "0.9", _hoy), ("privacidad", "0.2", _hoy), ("terminos", "0.2", _hoy)]
+(ROOT / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(f"  <url><loc>https://resalta.co/{u}</loc><lastmod>{d}</lastmod><priority>{pr}</priority></url>\n" for u, pr, d in _urls) + "</urlset>\n", encoding="utf-8")
 
 # Runs before the page paints, so signed-out visitors go straight to sign-in (and signed-in ones skip it)
 # instead of seeing the wrong page flash for a moment. Links coming back from Google or email are left alone.
@@ -130,6 +155,9 @@ GATES = {
 
 for fname, title, desc, extra in PAGES:
     body = (SRC / fname).read_text(encoding="utf-8")
+    body = _re.sub(r"^<!--post .*? -->\n?", "", body, flags=_re.S)
+    if fname == "blog.html":
+        body = body.replace("<!--POSTS-->", CARDS)
     page = fname.replace(".html", "").replace("/", "-")
     html = HEAD.format(title=title, desc=desc, path="" if fname == "index.html" else fname[:-5], page=page, extra_head=GATES.get(page, ""))
     html += HEADER + body + FOOTER + SCRIPTS.format(extra_scripts=extra)
