@@ -98,3 +98,17 @@ create table if not exists public.suscripciones (
 alter table public.suscripciones enable row level security;
 create policy "own subscription read" on public.suscripciones for select using (auth.uid() = user_id);
 alter table public.orders add column if not exists origen text;
+
+-- Chat about the customer's results (written only by the chat function)
+create table if not exists public.chat (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users on delete cascade,
+  order_id uuid not null references public.orders on delete cascade,
+  rol text not null,
+  texto text not null,
+  creado timestamptz default now()
+);
+create index if not exists chat_orden on public.chat (order_id, creado);
+create index if not exists chat_usuario on public.chat (user_id, creado);
+alter table public.chat enable row level security;
+create policy "own chat read" on public.chat for select using (auth.uid() = user_id);
