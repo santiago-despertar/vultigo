@@ -41,13 +41,13 @@ Apply all of these improvements:
 Photorealistic, like a real photo of the same person. Customer from ${a.pais || "Latin America"}, ${a.edad || "adult"} years old. No text, no watermark, no borders.`;
 }
 
-async function editar(bytes: Uint8Array, prompt: string) {
+async function editar(bytes: Uint8Array, prompt: string, aspecto: string | null = "4:5") {
   const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": Deno.env.get("GEMINI_API_KEY")! },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ inline_data: { mime_type: "image/jpeg", data: encodeBase64(bytes) } }, { text: prompt }] }],
-      generationConfig: { responseModalities: ["IMAGE"], imageConfig: { aspectRatio: "4:5", imageSize: "1K" } },
+      generationConfig: { responseModalities: ["IMAGE"], imageConfig: aspecto ? { aspectRatio: aspecto, imageSize: "1K" } : { imageSize: "1K" } },
     }),
   });
   if (!resp.ok) { console.error("gemini", resp.status, (await resp.text()).slice(0, 500)); return null; }
@@ -82,6 +82,38 @@ Deno.serve(async (req) => {
     }
     const { data: order } = await supabase.from("orders").select("id,user_id,tier,answers,status").eq("id", String(body.order_id || "")).maybeSingle();
     if (!order || !["pagado", "listo"].includes(order.status)) return json({ error: "Pedido no válido" }, 400);
+
+    // Simulator: the changes the customer set with the sliders, rendered on their own photo so it looks real.
+    if (body.tipo === "sim") {
+      if (!Deno.env.get("GEMINI_API_KEY")) return json({ error: "no_configurado" }, 503);
+      const vista = body.vista === "perfil" ? "perfil" : "frente";
+      const cambios = (Array.isArray(body.cambios) ? body.cambios : []).slice(0, 14)
+        .map((c: Obj) => ({ que: String(c.que || "").slice(0, 60), mm: Math.max(-8, Math.min(8, Number(c.mm) || 0)), menos: String(c.menos || "").slice(0, 30), mas: String(c.mas || "").slice(0, 30) }))
+        .filter((c: Obj) => c.que && c.mm);
+      const magro = body.magro === true;
+      if (!cambios.length && !magro) return json({ error: "sin_cambios" }, 400);
+      // a daily cap per order keeps the cost bounded
+      const { data: cur } = await admin.from("reports").select("data").eq("order_id", order.id).maybeSingle();
+      const d: Obj = cur?.data || {};
+      const hoy = new Date().toISOString().slice(0, 10);
+      const uso = d.sim_uso?.dia === hoy ? d.sim_uso.n : 0;
+      if (uso >= 15) return json({ error: "limite" }, 429);
+      d.sim_uso = { dia: hoy, n: uso + 1 };
+      await admin.from("reports").update({ data: d }).eq("order_id", order.id);
+      const archivo = vista === "perfil" ? (body.foto === "perfil_der" ? "perfil_der" : "perfil_izq") : "frente";
+      const { data: foto } = await admin.storage.from("fotos").download(`${order.user_id}/${order.id}/${archivo}.jpg`);
+      if (!foto) return json({ error: "sin_foto" }, 400);
+      const lista = [...cambios.map((c: Obj) => `- ${c.que}: ${Math.abs(c.mm)} mm ${c.mm > 0 ? `(${c.mas})` : `(${c.menos})`}`),
+        ...(magro ? ["- Less facial fat: as if this person had gradually lost their excess weight and reached a lean, healthy body fat level. Less fat in the cheeks and under the chin, a sharper jawline, more visible cheekbones and a cleaner jaw-to-neck line. Natural and healthy, not gaunt or hollow."] : [])].join("\n");
+      const prompt = `Edit this ${vista === "perfil" ? "side profile" : "front"} photo of a real person to show exactly these facial changes, as a top aesthetic surgeon would achieve them (or, for fat loss, as weight loss would), with a natural, healed result (no swelling, no marks):
+${lista}
+
+The millimetres are real-world sizes on this face (an adult's pupils are about 63 mm apart): make each change exactly that big, visible side by side, no more and no less. Change nothing else: same identity, same skin, hair, beard, eyes, expression, head angle, lighting, clothing and background. Keep every other feature exactly where it is. Photorealistic, like the same photo taken after the procedure. No text, no watermark, no borders.`;
+      const out = await editar(new Uint8Array(await foto.arrayBuffer()), prompt, null); // keeps the photo's own proportions
+      if (!out) return json({ error: "No pudimos generar la imagen ahorita" }, 502);
+      return json({ imagen: `data:${out.mime};base64,${out.data}`, quedan: 15 - (uso + 1) });
+    }
+
     if (tipo === "hard" && order.tier !== "hard") return json({ error: "Solo en el plan completo" }, 403);
 
     const { data: rep } = await admin.from("reports").select("data").eq("order_id", order.id).maybeSingle();
