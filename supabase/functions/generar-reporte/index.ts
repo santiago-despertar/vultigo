@@ -10,8 +10,12 @@ const cors = {
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
 const MODELO = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-5-5";
-// Front and one profile are enough to read structure, skin and colouring without sending six photos.
-const FOTOS = ["frente", "perfil_izq"];
+// All six angles go to the model: structure from the front, projection from the profiles, volume from the three-quarter views.
+const FOTOS: [string, string][] = [
+  ["frente", "de frente, cara relajada"], ["sonrisa", "de frente sonriendo"],
+  ["perfil_izq", "perfil izquierdo"], ["perfil_der", "perfil derecho"],
+  ["tres_cuartos_izq", "tres cuartos izquierdo"], ["tres_cuartos_der", "tres cuartos derecho"]
+];
 
 const esquema = {
   type: "object",
@@ -69,6 +73,21 @@ const esquema = {
         barba: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } },
         cejas: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } }
       }
+    },
+    perfil: {
+      type: "object", required: ["lectura", "acciones"],
+      description: "Lectura del perfil: nariz, labios, mentón, cuello y línea de la mandíbula, con las medidas de perfil y lo que se ve en las dos fotos de lado.",
+      properties: { lectura: { type: "string" }, acciones: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } } }
+    },
+    sonrisa: {
+      type: "object", required: ["lectura", "acciones"],
+      description: "Lectura de la foto sonriendo: cuánto diente y encía se ve, simetría de la sonrisa, color y alineación visibles, cómo cambian mejillas y ojos.",
+      properties: { lectura: { type: "string" }, acciones: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } } }
+    },
+    tres_cuartos: {
+      type: "object", required: ["lectura", "acciones"],
+      description: "Lectura de las fotos de tres cuartos: pómulos, volumen de mejillas, definición de la mandíbula, ojeras y surcos que no se ven de frente.",
+      properties: { lectura: { type: "string" }, acciones: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } } }
     },
     plan: {
       type: "array", minItems: 3, maxItems: 3,
@@ -128,7 +147,7 @@ function completo(r: Record<string, any>) {
 }
 
 function instrucciones(tier: string, a: Record<string, unknown>) {
-  const edad = a.edad ? `${a.edad} años` : "edad no indicada";
+  const edad = `${a.sexo ?? "sexo no indicado"}, ${a.edad ? `${a.edad} años` : "edad no indicada"}`;
   return `Eres el analista de Resalta, un servicio de análisis de estética facial para México y Latinoamérica.
 Escribes el reporte que recibe un cliente que ya pagó. Tu trabajo es leer sus medidas y sus fotos y decirle qué tiene a favor, qué le conviene trabajar y en qué orden.
 
@@ -140,6 +159,7 @@ Cómo escribir:
 - Que no suene a texto escrito por una máquina. Frases normales, como las diría una persona que sabe del tema.
 - Habla de lo que de verdad se ve en sus fotos y en sus números, no de generalidades. Cita medidas concretas cuando apoyen lo que dices.
 - Honesto y respetuoso. Puedes decir qué está fuera de rango sin insultar ni dramatizar.
+- Si falta alguna foto o las medidas de perfil, llena esa sección con lo que sí se puede ver y dilo en una frase.
 - Las medidas vienen de fotos de celular, así que son estimaciones. Si una foto está girada o inclinada, dilo en vez de sacar conclusiones.
 - No diagnostiques ni recetes. Nada de medicamentos con nombre ni dosis.
 ${tier === "hard"
@@ -183,6 +203,14 @@ Deno.serve(async (req) => {
       order.medidas = m;
     }
 
+    if (!order.medidas.perfil && body.perfil) {
+      const pf = body.perfil;
+      if (Array.isArray(pf.medidas) && pf.medidas.length > 3 && pf.medidas.length < 40 && pf.caja && JSON.stringify(pf).length < 40000) {
+        order.medidas = { ...order.medidas, perfil: pf };
+        await admin.from("orders").update({ medidas: order.medidas }).eq("id", order.id);
+      }
+    }
+
     // Claim the job so two open tabs don't each pay for a report.
     if (!previo) {
       const { error } = await admin.from("reports").insert({ order_id: order.id, user_id: order.user_id, data: { estado: "generando", desde: ahora } });
@@ -195,10 +223,11 @@ Deno.serve(async (req) => {
       else await admin.from("reports").delete().eq("order_id", order.id);
     };
 
-    const imagenes = [];
-    for (const slot of FOTOS) {
+    const imagenes = [], vistas: string[] = [];
+    for (const [slot, etiqueta] of FOTOS) {
       const { data: file } = await admin.storage.from("fotos").download(`${order.user_id}/${order.id}/${slot}.jpg`);
       if (!file) continue;
+      vistas.push(etiqueta);
       const bytes = new Uint8Array(await file.arrayBuffer());
       let bin = ""; for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
       imagenes.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: btoa(bin) } });
@@ -208,11 +237,16 @@ Deno.serve(async (req) => {
     const m = order.medidas;
     const tabla = m.medidas.map((x: Record<string, unknown>) =>
       `${x.nombre} (${x.zona}): ${x.valor}${x.unidad ?? ""} | referencia ${(x.rango as number[])[0]} a ${(x.rango as number[])[1]} | ${x.estado} | puntaje ${x.puntaje}`).join("\n");
+    const fila = (x: Record<string, unknown>) =>
+      `${x.nombre} (${x.zona}): ${x.valor}${x.unidad ?? ""} | referencia ${(x.rango as number[])[0]} a ${(x.rango as number[])[1]} | ${x.estado} | puntaje ${x.puntaje}`;
+    const perfilTxt = m.perfil?.medidas?.length
+      ? `\n\nMedidas de perfil (puntaje de perfil ${m.perfil.resumen?.general}/100, tomadas de la silueta de la foto de ${m.perfil.foto === "perfil_der" ? "perfil derecho" : "perfil izquierdo"}; los milímetros son aproximados):\n${m.perfil.medidas.map(fila).join("\n")}`
+      : "\n\nNo hay medidas de perfil para este pedido.";
     const zonas = m.resumen.zonas.map((z: Record<string, unknown>) => `${z.nombre}: ${z.puntaje}`).join(", ");
 
     const cuerpo = {
         model: MODELO,
-        max_tokens: 7000,
+        max_tokens: 10000,
         system: instrucciones(order.tier, order.answers ?? {}),
         tools: [{ name: "reporte", description: "Entrega el reporte de análisis facial.", input_schema: esquema }],
         tool_choice: { type: "tool", name: "reporte" },
@@ -220,7 +254,7 @@ Deno.serve(async (req) => {
           role: "user",
           content: [
             ...imagenes,
-            { type: "text", text: `${imagenes.length > 1 ? "Fotos: la primera es de frente, la segunda de perfil." : "Foto de frente."}\n\nPuntaje general: ${m.resumen.general}/100.\nPuntajes por zona: ${zonas}.\n\nMedidas:\n${tabla}\n${m.avisos?.length ? `\nAvisos de calidad de la foto: ${m.avisos.join(" ")}` : ""}\n\nEscribe el reporte.` }
+            { type: "text", text: `Fotos, en este orden: ${vistas.join("; ")}.\n\nPuntaje general de frente: ${m.resumen.general}/100.\nPuntajes por zona: ${zonas}.\n\nMedidas de frente:\n${tabla}${perfilTxt}\n${m.avisos?.length ? `\nAvisos de calidad de la foto: ${m.avisos.join(" ")}` : ""}\n\nEscribe el reporte.` }
           ]
         }]
       };
