@@ -1,0 +1,32 @@
+# Publishes blog posts that were written ahead, on their date.
+# Every morning it rebuilds the site; posts whose date arrived get their page, a card on /blog and a sitemap entry.
+name: Publicar blog
+on:
+  schedule:
+    - cron: "7 12 * * *"   # 6:07 am Ciudad de México
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Construir
+        run: python build.py
+      - name: Guardar si hay artículos nuevos
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Only commit when a new post page appeared today.
+          if [ -z "$(git status --porcelain --untracked-files=all blog | grep '^??')" ]; then echo "Nada nuevo hoy"; exit 0; fi
+          git add blog blog.html sitemap.xml
+          git config user.name "resalta-bot"
+          git config user.email "resalta-bot@users.noreply.github.com"
+          git commit -m "Publica artículos del blog"
+          git push
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" || true
