@@ -55,10 +55,24 @@ export const ZONAS_PERFIL = [
 export async function analizarPerfil(image, sexo) {
   const s = await getSegmenter();
   const W = image.naturalWidth || image.width, Hh = image.naturalHeight || image.height;
-  const res = s.segment(image);
-  const m = res.categoryMask; const mw = m.width, mh = m.height;
-  const cat = m.getAsUint8Array().slice(); m.close && m.close();
-  const sx = W / mw, sy = Hh / mh;
+  const mascara = (src) => {
+    const res = s.segment(src); const m = res.categoryMask;
+    const o = { mw: m.width, mh: m.height, cat: m.getAsUint8Array().slice() }; m.close && m.close(); return o;
+  };
+  // First pass on the whole photo only to find the head, second pass on a close crop so the edge is finer.
+  const p1 = mascara(image);
+  let bx0 = p1.mw, bx1 = 0, by0 = p1.mh, by1 = 0, n1 = 0;
+  for (let y = 0; y < p1.mh; y++) for (let x = 0; x < p1.mw; x++) if (p1.cat[y * p1.mw + x] === 3) { n1++; if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+  if (n1 < p1.mw * p1.mh * 0.01) throw new Error("sin_cara");
+  const k1x = W / p1.mw, k1y = Hh / p1.mh, hs = (by1 - by0) * k1y;
+  let cy0 = Math.max(0, by0 * k1y - 0.35 * hs), cy1 = Math.min(Hh, by1 * k1y + 0.8 * hs);
+  let lado0 = cy1 - cy0, ccx = ((bx0 + bx1) / 2) * k1x;
+  let cx0 = Math.max(0, Math.min(W - Math.min(W, lado0), ccx - lado0 / 2)), cw = Math.min(W, lado0);
+  const lienzo = document.createElement("canvas"); const esc = Math.min(1, 1024 / Math.max(cw, lado0));
+  lienzo.width = Math.round(cw * esc); lienzo.height = Math.round(lado0 * esc);
+  lienzo.getContext("2d").drawImage(image, cx0, cy0, cw, lado0, 0, 0, lienzo.width, lienzo.height);
+  const { mw, mh, cat } = mascara(lienzo);
+  const sx = cw / mw, sy = lado0 / mh, ox = cx0, oy = cy0;
   const at = (x, y) => cat[y * mw + x];
   const persona = (x, y) => at(x, y) !== 0;
 
@@ -88,7 +102,7 @@ export async function analizarPerfil(image, sexo) {
     for (let j = y - k; j <= y + k; j++) if (j >= 0 && j < mh && aRaw[j] !== null) { s2 += aRaw[j]; n++; }
     return s2 / n;
   });
-  const P = (y) => ({ x: frente[y] * sx + sx / 2, y: y * sy + sy / 2 });
+  const P = (y) => ({ x: ox + frente[y] * sx + sx / 2, y: oy + y * sy + sy / 2 });
   const arg = (y0, y1, fn2) => {
     y0 = Math.max(0, Math.round(y0)); y1 = Math.min(mh - 1, Math.round(y1));
     let best = null;
@@ -102,33 +116,49 @@ export async function analizarPerfil(image, sexo) {
   let H = Math.max(10, (yBotSkin - yTop) * 1.05);
   const yPrn = max(yTop + 0.25 * H, yTop + 0.72 * H);
   if (yPrn === null) throw new Error("perfil_no_claro");
-  const yN = min(yTop + 0.12 * H, yPrn - 0.08 * H);
-  const yG = max(yTop + 0.03 * H, yN);
   const ySn = min(yPrn + 0.01 * H, yPrn + 0.14 * H);
   const yLs = max(ySn + 0.01 * H, ySn + 0.13 * H);
   const yLi = max(yLs + 0.04 * H, yLs + 0.17 * H);
   const ySto = min(yLs, yLi);
   const yB = min(yLi + 0.01 * H, yLi + 0.14 * H);
   const yPog = max(yB + 0.01 * H, yB + 0.16 * H);
-  if ([yN, yG, ySn, yLs, yLi, yB, yPog].some(v => v === null)) throw new Error("perfil_no_claro");
+  if ([ySn, yLs, yLi, yB, yPog].some(v => v === null)) throw new Error("perfil_no_claro");
 
-  // under the chin: scan each column from the chin back toward the neck
+  // contour under the chin: bottom of the person in every column, walking from the chin back to the neck
   const xPog = frente[yPog];
-  let sub = [], neckX = null;
+  const sub = [];
   for (let i = 0; i < mw; i++) {
     const x = xPog - d * i; if (x < 0 || x >= mw) break;
     let y = yPog; while (y < mh && persona(x, y)) y++;
-    if (y >= mh || y - yPog > 0.45 * H) { neckX = x; break; }
+    if (y >= mh || y - yPog > 0.6 * H) break;
     sub.push({ x, y });
   }
-  if (sub.length < 3 || neckX === null) throw new Error("perfil_no_claro");
-  let me = sub[0]; sub.forEach(p => { if (p.y > me.y) me = p; });
-  const c = sub[sub.length - 1];
-  const yNeck = Math.min(mh - 1, Math.round(c.y + 0.22 * H));
-  let neckPt = null;
-  for (let y = yNeck; y > c.y; y--) if (frente[y] !== null) { neckPt = { x: frente[y], y }; break; }
-  const toImg = (p) => ({ x: p.x * sx + sx / 2, y: p.y * sy + sy / 2 });
-  const Me = toImg(me), C = toImg(c), Ne = neckPt ? toImg(neckPt) : null;
+  if (sub.length < 6) throw new Error("perfil_no_claro");
+  // menton: the point of the chin furthest down and forward
+  let me = sub[0], mejor = -1e9;
+  sub.forEach(p => { const v = p.y * sy + d * p.x * sx; if (v > mejor) { mejor = v; me = p; } });
+  const ne = sub[sub.length - 1];
+  // cervical point: the corner between the line under the chin and the neck
+  let c = null, prof = 0;
+  { const dx = ne.x - me.x, dy = ne.y - me.y, L = Math.hypot(dx * sx, dy * sy) || 1;
+    sub.forEach(p => { if (d * (me.x - p.x) <= 0) return;
+      const t = Math.abs((p.x - me.x) * sx * dy * sy - (p.y - me.y) * sy * dx * sx) / L;
+      if (t > prof) { prof = t; c = p; } }); }
+  if (!c) throw new Error("perfil_no_claro");
+  const toImg = (p) => ({ x: ox + p.x * sx + sx / 2, y: oy + p.y * sy + sy / 2 });
+  const Me = toImg(me), C = toImg(c), Ne = prof > 0.02 * H * sy ? toImg(ne) : null;
+
+  // nasion: deepest point between the brow and the nose tip, searched where the proportions say it should be
+  const Lf = me.y - ySn;
+  const yTopN = Math.max(yTop, Math.round(ySn - 1.2 * Lf)), yBotN = Math.round(yPrn - 0.3 * Lf);
+  let yN = null, hondo = -1e9;
+  if (a[yTopN] === null) throw new Error("perfil_no_claro");
+  for (let y = yTopN; y <= yBotN; y++) { if (a[y] === null) continue;
+    const t = (y - yTopN) / (yPrn - yTopN), cuerda = a[yTopN] + t * (a[yPrn] - a[yTopN]);
+    if (cuerda - a[y] > hondo) { hondo = cuerda - a[y]; yN = y; } }
+  if (yN === null) throw new Error("perfil_no_claro");
+  const yG = max(yN - 0.32 * Lf, yN - 0.04 * Lf);
+  if (yG === null) throw new Error("perfil_no_claro");
 
   const G = P(yG), N = P(yN), Prn = P(yPrn), Sn = P(ySn), Ls = P(yLs), Sto = P(ySto), Li = P(yLi), B = P(yB), Pog = P(yPog);
   const yCm = Math.round(ySn - 0.45 * (ySn - yPrn)), Cm = P(yCm);
