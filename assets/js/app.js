@@ -1438,3 +1438,20 @@ if (new URLSearchParams(location.search).get("cuenta") === "borrada") {
   document.body.appendChild(t); history.replaceState(null, "", location.pathname);
   setTimeout(() => t.remove(), 6000);
 }
+
+// mobile menu: the burger turns into an X, taps outside or on a link close it, and the page behind doesn't scroll
+(() => {
+  const btn = document.getElementById("menuBtn"), nav = document.getElementById("navLinks");
+  if (!btn || !nav) return;
+  const poner = abierto => {
+    nav.classList.toggle("open", abierto);
+    btn.setAttribute("aria-expanded", String(abierto));
+    btn.setAttribute("aria-label", abierto ? "Cerrar menú" : "Abrir menú");
+    document.documentElement.classList.toggle("menu-abierto", abierto);
+  };
+  btn.addEventListener("click", e => { e.stopPropagation(); poner(!nav.classList.contains("open")); });
+  document.addEventListener("click", e => { if (nav.classList.contains("open") && !nav.contains(e.target)) poner(false); });
+  nav.addEventListener("click", e => { if (e.target.closest("a")) poner(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && nav.classList.contains("open")) { poner(false); btn.focus(); } });
+  matchMedia("(min-width:861px)").addEventListener("change", m => { if (m.matches) poner(false); });
+})();
