@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794593083">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794593206">
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
 <script>(function(){try{var t=localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"),back=/[?&#](code|access_token|error|type)=/.test(location.href);if(!t&&!back)location.replace("/cuenta.html?next=/analisis.html");}catch(e){}})()</script>
 </head>
@@ -109,10 +109,30 @@
         </div>
       </section>
 
+      <!-- Paso 2.5: measuring their face before the plans -->
+      <section class="wstep" data-step="2.5" style="padding:0">
+        <span class="label">Analizando</span>
+        <h2 style="font-size:34px;margin:10px 0 8px">Estamos midiendo tu cara</h2>
+        <p class="hint">Unos segundos y te enseñamos tus planes.</p>
+        <div class="mide">
+          <div class="cal-scan mide-scan"><canvas id="mideCanvas"></canvas><i class="cal-linea"></i>
+            <div class="mide-cont"><b class="mono" id="mideN">0</b><span>medidas</span></div></div>
+          <div>
+            <ul class="cal-pasos" id="midePasos">
+              <li>Revisando tus fotos</li>
+              <li>Detectando 478 puntos de tu cara</li>
+              <li>Trazando tus proporciones</li>
+              <li>Midiendo tu simetría y tu perfil</li>
+              <li>Preparando tu plan</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <!-- Paso 3 -->
       <section class="wstep" data-step="3" style="padding:0">
         <span class="label">Elige tu plan</span>
-        <h2 style="font-size:34px;margin:10px 0 8px">Tu análisis está listo para empezar</h2>
+        <h2 style="font-size:34px;margin:10px 0 8px">Tu cara ya está medida</h2>
         <p class="hint">Tus fotos ya están guardadas. Elige tu plan y en unos minutos tienes tu reporte.</p>
         <div class="plan-pick" id="planPick">
           <label class="plan-opt"><input type="radio" name="planSel" value="soft"><span class="plan-in"><span class="plan-top"><b>Esencial</b><em class="mono"><span data-price="soft">$1,499</span> MXN</em></span><small>Softmaxing: todo lo que puedes mejorar sin procedimientos.</small>
@@ -163,8 +183,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794593083"></script>
-<script src="/assets/js/app.js?v=1794593083"></script>
+<script src="/assets/js/config.js?v=1794593206"></script>
+<script src="/assets/js/app.js?v=1794593206"></script>
 
 </body>
 </html>
