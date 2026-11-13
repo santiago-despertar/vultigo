@@ -1309,3 +1309,46 @@ html.esc-on,html.esc-on body{overflow:hidden}
 .edad-rows{margin-top:16px}
 .edad-rows div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .edad-rows b{font:400 13px var(--font-mono);color:var(--ink-muted)}
+.ba .ba-tag{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font:11px var(--font-mono);letter-spacing:.06em;color:#fff;background:rgba(40,52,62,.6);padding:5px 10px;border-radius:999px;white-space:nowrap;pointer-events:none;z-index:2}
+@media (max-width:900px){.ba .ba-tag{font-size:9px;bottom:8px;padding:4px 8px}}
+
+/* v28 onboarding quiz + plan chooser */
+.quiz{margin-top:14px}
+.quiz-bar{height:4px;border-radius:4px;background:var(--line);overflow:hidden;margin:0 0 30px}
+.quiz-bar i{display:block;height:100%;width:0;background:var(--ink);transition:width .35s ease}
+.quiz .q{display:none;min-height:230px}
+.quiz .q.on{display:block;animation:qIn .3s ease}
+@keyframes qIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.quiz .q h2{font-size:30px;line-height:1.15;margin:0 0 8px}
+.quiz .q .hint{margin:0 0 18px}
+.quiz .q input:not([type=checkbox]),.quiz .q textarea{width:100%;font-size:18px;padding:14px 16px}
+.quiz .q textarea{min-height:110px}
+.quiz .opts{display:grid;gap:10px;margin-top:18px}
+.quiz .opts-2{grid-template-columns:1fr 1fr}
+.quiz .opt{font:inherit;font-size:16px;text-align:left;padding:15px 18px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-raised);color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s}
+.quiz .opt:hover{border-color:var(--ink-muted)}
+.quiz .opt.on{border-color:var(--ink);background:var(--ink);color:var(--surface)}
+.quiz-nav{display:flex;justify-content:space-between;gap:10px;margin-top:26px}
+.quiz-nav [hidden]{display:none}
+#quizMsg:empty{display:none}
+@media (max-width:560px){.quiz .q h2{font-size:25px}.quiz .opts-2{grid-template-columns:1fr}.quiz .q{min-height:200px}.quiz-nav .btn{flex:1}}
+.plan-pick{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:22px 0 12px}
+.plan-opt{position:relative;cursor:pointer;display:block}
+.plan-opt input{position:absolute;opacity:0;pointer-events:none}
+.plan-in{display:flex;flex-direction:column;gap:6px;height:100%;padding:20px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-raised);transition:border-color .15s,box-shadow .15s}
+.plan-opt input:checked + .plan-in{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.plan-opt input:focus-visible + .plan-in{outline:2px solid var(--focus);outline-offset:2px}
+.plan-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.plan-top b{font-size:19px}
+.plan-top em{font-style:normal;font-size:15px;white-space:nowrap}
+.plan-in small{color:var(--ink-muted);font-size:14px}
+.plan-in .checks{margin:8px 0 0}
+.plan-in .checks li{font-size:14px;padding:7px 0 7px 24px}
+.plan-rec{position:absolute;top:-10px;right:16px;font-style:normal;font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--ink);color:var(--surface);padding:3px 9px;border-radius:var(--r-pill)}
+@media (max-width:640px){.plan-pick{grid-template-columns:1fr}}
+.su-step{display:none}
+.su-step.on{display:block;animation:qIn .3s ease}
+.su-h{font-size:24px;line-height:1.2;margin:4px 0 16px}
+.su-nav{display:flex;gap:10px;margin-top:6px}
+.su-nav .btn{flex:1}
+.su-nav [hidden]{display:none}
