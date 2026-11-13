@@ -1505,3 +1505,10 @@ html:has(main.onb){background:#56636E}
 .esc3d-anillo{overflow:visible}
 g.esc3d-marcas{opacity:0;transition:opacity .3s}
 .esc3d.circulo g.esc3d-marcas{opacity:1}
+/* v33 save access card */
+.acceso{text-align:left;margin:0 0 22px}
+.acceso h2{font-size:24px;margin:8px 0 6px}
+.acceso .hint{margin:0 0 14px}
+.acceso-f{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.acceso-f input{flex:1;min-width:200px;height:48px;padding:0 14px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);font:16px var(--font-sans)}
+.acceso .btn-google{margin-top:4px}
