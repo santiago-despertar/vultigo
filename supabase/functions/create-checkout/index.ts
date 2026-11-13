@@ -49,9 +49,10 @@ Deno.serve(async (req) => {
     const pct = afiliado ? Math.round(Number(afiliado.descuento_pct) || 0) : 0;
     if (pct > 0) {
       const id = `AFILIADO_${pct}`;
-      try { await stripe.coupons.retrieve(id); }
-      catch { await stripe.coupons.create({ id, percent_off: pct, duration: "once", name: `Invitación ${pct}%` }).catch(() => {}); }
-      discounts = [{ coupon: id }];
+      // Only apply the discount if the coupon really exists, so a Stripe hiccup never blocks the payment.
+      const cupon = await stripe.coupons.retrieve(id).catch(() =>
+        stripe.coupons.create({ id, percent_off: pct, duration: "once", name: `Invitación ${pct}%` }).catch(e => { console.error("coupon", e); return null; }));
+      if (cupon) discounts = [{ coupon: id }];
     }
     const site = Deno.env.get("SITE_URL") ?? "https://resalta.co";
     const base = {
