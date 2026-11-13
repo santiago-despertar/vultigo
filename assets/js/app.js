@@ -544,6 +544,8 @@
 
       const { data: orders } = await sb.from("orders").select("id,status,tier,created_at,paid_at,medidas,answers").order("created_at", { ascending: false });
       todos = orders || [];
+      const conNombre = todos.find(o => o.answers && o.answers.nombre);
+      if (conNombre) $("#who").textContent = conNombre.answers.nombre.split(" ")[0];
       const box = $("#orders");
       if (!orders || !orders.length) {
         box.innerHTML = '<p class="hint" style="padding:18px 0">Todavía no tienes análisis. <a href="/analisis.html">Empieza el tuyo</a>.</p>';
