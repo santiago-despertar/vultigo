@@ -1,5 +1,5 @@
 // Interactive measurement viewer: photo with the measurement lines on top and a list of measurements.
-import { analizar, ZONAS } from "/assets/js/medidas.js?v=4";
+import { analizar, ZONAS } from "/assets/js/medidas.js?v=5";
 
 const $ = (s) => document.querySelector(s);
 const file = $("#vFile"), go = $("#vGo"), msgEl = $("#vMsg");

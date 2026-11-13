@@ -38,11 +38,15 @@ function estado(v, lo, hi) {
   const span = hi - lo, off = v < lo ? lo - v : v - hi;
   return off <= span * 0.5 ? "cerca" : "fuera";
 }
-// 0-100: 100 inside the range, falling off with distance from it.
-function puntaje(v, lo, hi) {
-  if (v >= lo && v <= hi) return 100;
-  const span = hi - lo, off = v < lo ? lo - v : v - hi;
-  return Math.max(0, Math.round(100 - (off / (span * 1.5)) * 100));
+// 0-100. Only the center of the reference range scores 100; the edge of the range scores about 72
+// and it keeps falling outside it. "alto" and "bajo" are for measurements where more (or less) is always better.
+function puntaje(v, lo, hi, tipo) {
+  const half = (hi - lo) / 2 || 1;
+  let z;
+  if (tipo === "alto") z = Math.max(0, hi - v) / half;
+  else if (tipo === "bajo") z = Math.max(0, v - lo) / half;
+  else z = Math.abs(v - (lo + hi) / 2) / half;
+  return Math.round(100 / (1 + Math.pow(z / 1.6, 2)));
 }
 
 export const ZONAS = [
@@ -61,7 +65,7 @@ export function medir(L) {
   const add = (m) => {
     m.valor = round(m.valor, m.unidad === "°" ? 1 : 2);
     m.estado = estado(m.valor, m.rango[0], m.rango[1]);
-    m.puntaje = puntaje(m.valor, m.rango[0], m.rango[1]);
+    m.puntaje = puntaje(m.valor, m.rango[0], m.rango[1], m.tipo);
     out.push(m);
   };
 
@@ -205,14 +209,14 @@ export function medir(L) {
   const devs = pairs.map(([l, r]) => dist(P(l), reflect(P(r), a, b)) / bizy);
   const dev = devs.reduce((s, x) => s + x, 0) / devs.length;
   add({ id: "simetria", zona: "simetria", nombre: "Simetría general",
-    valor: Math.max(0, 100 * (1 - dev / 0.09)), unidad: "%", rango: [85, 100],
+    valor: Math.max(0, 100 * (1 - dev / 0.09)), unidad: "%", rango: [80, 100], tipo: "alto",
     lineas: [[a, b]].concat(pairs.slice(0, 5).map(([l, r]) => [P(l), P(r)])),
     que: "Qué tanto coinciden los puntos del lado izquierdo con los del derecho al reflejarlos sobre la línea media.",
     significa: "Nadie es perfectamente simétrico. Si la cabeza está girada o inclinada en la foto, este número baja aunque tu cara sea simétrica." });
 
   const tiltDiff = Math.abs(tilt(eyeLi, eyeLo) - tilt(eyeRi, eyeRo));
   add({ id: "simetria_ojos", zona: "simetria", nombre: "Diferencia de inclinación entre ojos",
-    valor: tiltDiff, unidad: "°", rango: [0, 2],
+    valor: tiltDiff, unidad: "°", rango: [0, 2], tipo: "bajo",
     lineas: [[eyeLi, eyeLo], [eyeRi, eyeRo]],
     que: "Diferencia entre la inclinación del ojo izquierdo y la del derecho.",
     significa: "Hasta unos 2 grados es normal y casi nadie lo nota." });
