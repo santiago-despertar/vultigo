@@ -100,7 +100,15 @@ function draw(L) {
   g.strokeStyle = "#FFFFFF"; g.fillStyle = "#FFFFFF"; g.lineWidth = Math.max(1.5, W / 600);
   const line = (a, b, dash) => { g.setLineDash(dash ? [6, 6] : []); g.beginPath(); g.moveTo(...p(a)); g.lineTo(...p(b)); g.stroke(); };
   line(10, 152, true); line(33, 263); line(234, 454); line(172, 152); line(397, 152);
-  [[9, 2], [2, 152]].forEach(([a, b]) => { const [x1, y1] = p(a), [, y2] = p(b); g.setLineDash([]); g.beginPath(); g.moveTo(x1 + W * 0.18, y1); g.lineTo(x1 + W * 0.18, y2); g.stroke(); });
+  // facial thirds ruler: sits just outside the cheek, with a tick at brow, nose base and chin
+  // and a faint guide from each point to the ruler, so it reads as a measurement of the face
+  const rx = Math.min(W - 8, Math.max(p(454)[0], p(234)[0]) + W * 0.035), tk = Math.max(6, W / 90);
+  g.setLineDash([]); g.beginPath(); g.moveTo(rx, p(9)[1]); g.lineTo(rx, p(152)[1]); g.stroke();
+  [9, 2, 152].forEach(i => {
+    const [x, y] = p(i);
+    g.setLineDash([]); g.beginPath(); g.moveTo(rx - tk, y); g.lineTo(rx + tk, y); g.stroke();
+    g.save(); g.globalAlpha = .45; g.setLineDash([4, 6]); g.beginPath(); g.moveTo(x, y); g.lineTo(rx - tk, y); g.stroke(); g.restore();
+  });
   [33, 133, 362, 263, 234, 454, 172, 397, 152, 2, 9, 61, 291, 13].forEach(i => { const [x, y] = p(i); g.beginPath(); g.arc(x, y, Math.max(3, W / 250), 0, 7); g.fill(); });
 }
 
