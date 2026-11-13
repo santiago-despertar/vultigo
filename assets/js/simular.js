@@ -123,7 +123,7 @@ export async function iniciar({ url, sexo }) {
     const a1 = armonia(ahora), d = a1 - a0, sg = (x) => (x > 0 ? "+" : "") + x.toFixed(1);
     const cls = Math.abs(d) < 0.05 ? "" : d > 0 ? "sube" : "baja";
     const html = `<span class="mono">${a0.toFixed(1)}</span><span class="sim-fl">→</span><b class="mono">${a1.toFixed(1)}</b><em class="sim-d ${cls}">${sg(d)}</em>`;
-    $("#simScore").innerHTML = html; $("#simNow").innerHTML = `<b>Armonía de frente</b><i class="sim-mini">${html}</i>`;
+    $("#simScore").innerHTML = html; $("#simNow").innerHTML = `<b>Antes y después</b><i class="sim-mini">${html}</i>`;
     const cambios = ahora.map((m, i) => ({ m, o: antes[i], d: (m.puntaje - antes[i].puntaje) / 10 })).filter(x => Math.abs(x.d) >= 0.2).sort((p, q) => Math.abs(q.d) - Math.abs(p.d)).slice(0, 8);
     $("#simDelta").innerHTML = cambios.length ? cambios.map(x => `<div class="sim-row"><span>${esc(x.m.nombre)}<small class="mono">${x.o.valor}${x.o.unidad || ""} → ${x.m.valor}${x.m.unidad || ""}</small></span><em class="sim-d ${x.d > 0 ? "sube" : "baja"}">${sg(x.d)}</em><b class="mono">${(x.m.puntaje / 10).toFixed(1)}</b></div>`).join("")
       : '<p class="hint" style="padding:8px 0">Mueve un control para ver qué medidas cambian.</p>';

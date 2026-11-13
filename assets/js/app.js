@@ -649,7 +649,10 @@
       $$("#repBody .dash-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
       // always land at the top of the section: on a phone the bar is far from the content it changes
       scrollTo({ top: $("#reportArea").getBoundingClientRect().top + scrollY - 84 });
-      if (tab === "simular" && !sim && actual) {
+      if (tab === "simular") abrirSim();
+    }
+    function abrirSim() {
+      if (!sim && actual) {
         sim = import("/assets/js/simular.js?v=18").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
           .catch(e => { sim = null; $("#simWait").hidden = true; msg($("#simMsg"), e && e.message === "sin_foto" ? "No encontramos tu foto de frente para simular." : "No pudimos preparar el simulador. Vuelve a intentarlo en un momento."); });
       }
@@ -681,6 +684,8 @@
         $("#repCuenta").textContent = n + " medidas en " + (pf ? "frente y perfil" : "tu foto de frente");
         if (foto) $("#dFoto").style.backgroundImage = `url("${foto}")`;
         actual = { url: foto, sexo: (o.answers || {}).sexo };
+        // someone may have opened Simular before the photo was ready
+        if ($('.dash-tab[data-tab="simular"]').classList.contains("active")) abrirSim();
       }
 
       // ---- inicio
