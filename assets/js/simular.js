@@ -191,7 +191,7 @@ function numeros() {
   const a0 = armonia(S.antes), a1 = armonia(ahora), dl = a1 - a0, sg = (x) => (x > 0 ? "+" : "") + x.toFixed(1);
   const cls = Math.abs(dl) < 0.05 ? "" : dl > 0 ? "sube" : "baja";
   const html = `<span class="mono">${a0.toFixed(1)}</span><span class="sim-fl">→</span><b class="mono">${a1.toFixed(1)}</b><em class="sim-d ${cls}">${sg(dl)}</em>`;
-  $("#simScore").innerHTML = html; $("#simNow").innerHTML = `<b>Antes y después</b><i class="sim-mini">${html}</i>`;
+  $("#simScore").innerHTML = html; $("#simNow").innerHTML = `<b>Armonía</b><i class="sim-mini">${html}</i>`;
   const porId = Object.fromEntries(S.antes.map(m => [m.id, m]));
   const cambios = ahora.filter(m => porId[m.id]).map(m => ({ m, o: porId[m.id], d: (m.puntaje - porId[m.id].puntaje) / 10 }))
     .filter(x => Math.abs(x.d) >= 0.2).sort((p, q) => Math.abs(q.d) - Math.abs(p.d)).slice(0, 8);

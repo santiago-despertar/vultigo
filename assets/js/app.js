@@ -796,7 +796,7 @@
     }
     function abrirSim() {
       if (!sim && actual) {
-        sim = import("/assets/js/simular.js?v=21").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
+        sim = import("/assets/js/simular.js?v=22").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
           .catch(e => { sim = null; $("#simWait").hidden = true; msg($("#simMsg"), e && e.message === "sin_foto" ? "No encontramos tu foto de frente para simular." : "No pudimos preparar el simulador. Vuelve a intentarlo en un momento."); });
       }
     }
