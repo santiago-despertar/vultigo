@@ -75,15 +75,20 @@ const T_PRINCIPAL = {
       items: { type: "object", required: ["nombre", "que_hace", "considerar"], properties: { nombre: texto, que_hace: texto, considerar: texto } } }
   } }
 };
-const T_DETALLE = {
-  name: "detalle", description: "Entrega las secciones de detalle del reporte.",
-  input_schema: { type: "object", required: ["zonas", "perfil", "sonrisa", "tres_cuartos", "piel", "color", "cabello_barba"], properties: {
+const T_ZONAS = {
+  name: "zonas", description: "Entrega la lectura por zonas y por ángulo.",
+  input_schema: { type: "object", required: ["zonas", "perfil", "sonrisa", "tres_cuartos"], properties: {
     zonas: { type: "array", minItems: 6, maxItems: 6, description: "Una por zona, en este orden: proporciones, ojos, nariz, boca, mandibula, simetria.",
       items: { type: "object", required: ["id", "lectura", "acciones"], properties: {
         id: { type: "string", enum: ["proporciones", "ojos", "nariz", "boca", "mandibula", "simetria"] }, lectura: texto, acciones: lista(1, 3) } } },
     perfil: lectura("Nariz, labios, mentón, cuello y mandíbula de lado, con las medidas de perfil."),
     sonrisa: lectura("Dientes, encía, simetría y cómo cambia la cara al sonreír."),
-    tres_cuartos: lectura("Pómulos, volumen de mejillas, mandíbula, ojeras y surcos vistos de tres cuartos."),
+    tres_cuartos: lectura("Pómulos, volumen de mejillas, mandíbula, ojeras y surcos vistos de tres cuartos.")
+  } }
+};
+const T_ESTILO = {
+  name: "estilo", description: "Entrega piel, color y estilo.",
+  input_schema: { type: "object", required: ["piel", "color", "cabello_barba"], properties: {
     piel: lectura("Tono, textura, rojez, brillo, marcas y ojeras. Con una rutina concreta de mañana y noche en las acciones."),
     color: { type: "object", required: ["subtono", "lectura", "paleta", "evitar"], properties: {
       subtono: { type: "string", enum: ["cálido", "frío", "neutro"] }, contraste: { type: "string", enum: ["alto", "medio", "bajo"] }, lectura: texto,
@@ -120,7 +125,8 @@ const hay = (x: unknown) => Array.isArray(x) && x.length > 0;
 type Obj = Record<string, any>;
 const okEval = (r: Obj) => hay(r.evaluaciones) && r.evaluaciones.length >= IDS.length * 0.8;
 const okPrincipal = (r: Obj) => typeof r.resumen === "string" && r.resumen.length > 20 && hay(r.fortalezas) && hay(r.prioridades) && hay(r.plan);
-const okDetalle = (r: Obj) => hay(r.zonas) && r.piel?.lectura && hay(r.piel.acciones) && r.color?.lectura && hay(r.color.paleta) && hay(r.cabello_barba?.cortes) && r.perfil?.lectura;
+const okZonas = (r: Obj) => hay(r.zonas) && r.perfil?.lectura;
+const okEstilo = (r: Obj) => r.piel?.lectura && hay(r.piel.acciones) && r.color?.lectura && hay(r.color.paleta) && hay(r.cabello_barba?.cortes);
 
 const dec = (v: number) => Math.round(v * 10) / 10;
 const prom = (a: number[]) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
@@ -144,7 +150,8 @@ Cómo escribir:
 - Honesto y respetuoso. Puedes decir qué está fuera de rango sin insultar ni dramatizar. No infles: decirle a alguien que todo está bien cuando no lo está no le sirve.
 - Ajusta las recomendaciones a lo que el cliente dijo de su presupuesto, su tiempo y si le interesan procedimientos.
 - Las medidas vienen de fotos de celular, así que son estimaciones. Si una foto está girada o inclinada, dilo en vez de sacar conclusiones.
-- No diagnostiques ni recetes. Nada de medicamentos con nombre ni dosis.`;
+- No diagnostiques ni recetes. Nada de medicamentos con nombre ni dosis.
+- Sé concreto y breve: cada texto de dos a cuatro frases, cada acción en una frase. No pienses en voz alta ni expliques tu proceso.`;
 }
 
 Deno.serve(async (req) => {
@@ -223,8 +230,10 @@ ${m.perfil?.medidas?.length ? `\nMedidas de perfil (tomadas de la silueta; los m
 ${m.avisos?.length ? `\nAvisos de calidad de la foto de frente: ${m.avisos.join(" ")}` : ""}`;
 
         const sistema = estilo(order.tier, order.answers ?? {});
+        const inicio = Date.now();
         const pedir = async (tool: Obj, instruccion: string, valido: (r: Obj) => boolean, max: number) => {
-          for (let intento = 0; intento < 2; intento++) {
+          // a second try only if the first one failed fast, so the whole job fits in the time the server allows
+          for (let intento = 0; intento < 2 && (intento === 0 || Date.now() - inicio < 45000); intento++) {
             const r = await fetch("https://api.anthropic.com/v1/messages", {
               method: "POST",
               headers: { "content-type": "application/json", "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!, "anthropic-version": "2023-06-01" },
@@ -243,23 +252,24 @@ ${m.avisos?.length ? `\nAvisos de calidad de la foto de frente: ${m.avisos.join(
               if (obj && typeof obj === "object") input = limpiar(obj as Obj);
             }
             if (input && valido(input)) return { input, usage: resp.usage ?? null };
-            console.warn("respuesta incompleta", tool.name, resp.stop_reason);
+            console.warn("respuesta incompleta", tool.name, resp.stop_reason, JSON.stringify(resp.usage ?? {}));
           }
           return null;
         };
 
-        const [ev, pr, de] = await Promise.all([
+        const [ev, pr, zo, es] = await Promise.all([
           pedir(T_EVAL, `Califica de 0 a 10 cada uno de estos rasgos a partir de las fotos, uno por cada id, sin saltarte ninguno:
 ${Object.values(CATALOGO).map((g) => `${g.titulo}: ${Object.entries(g.items).map(([id, n]) => `${id} (${n})`).join(", ")}`).join("\n")}
 
 Escala: 5 es una persona promedio de su edad y sexo. La mayoría de la gente queda entre 4 y 6. Un 7 ya es claramente por encima del promedio, un 8 es poco común y un 9 es nivel de modelo profesional. Sé estricto y usa decimales; no regales puntos. Más alto siempre es mejor (por ejemplo, en acné un 9 es piel limpia).
-En dimorfismo, califica qué tanto ese rasgo se acerca a lo que se percibe como atractivo para su sexo. Si un rasgo no aplica o no se alcanza a ver (por ejemplo vello facial en una mujer, o cabello tapado), pon 5 y dilo en la nota.`, okEval, 6000),
+En dimorfismo, califica qué tanto ese rasgo se acerca a lo que se percibe como atractivo para su sexo. Si un rasgo no aplica o no se alcanza a ver (por ejemplo vello facial en una mujer, o cabello tapado), pon 5 y dilo en la nota.`, okEval, 12000),
           pedir(T_PRINCIPAL, `Escribe la parte principal del reporte: resumen, arquetipo, fortalezas, prioridades y plan por fases.${order.tier === "hard"
             ? " Incluye también avanzado: procedimientos estéticos que se suelen considerar para un rostro con estas proporciones, qué hace cada uno y qué pensar antes. Preséntalo como información general que debe evaluar un médico certificado, no como una recomendación tuya, y di cuando algo no parece indicado."
-            : " No llenes avanzado, este cliente tiene el plan esencial."}`, okPrincipal, 6000),
-          pedir(T_DETALLE, "Escribe las secciones de detalle: zona por zona, perfil, sonrisa, tres cuartos, piel, color personal y cabello, barba, cejas y lentes.", okDetalle, 6000),
+            : " No llenes avanzado, este cliente tiene el plan esencial."}`, okPrincipal, 12000),
+          pedir(T_ZONAS, "Escribe la lectura zona por zona y las de perfil, sonrisa y tres cuartos.", okZonas, 12000),
+          pedir(T_ESTILO, "Escribe piel, color personal y cabello, barba, cejas y lentes.", okEstilo, 12000),
         ]);
-        if (!pr || !de) { await fallar("modelo"); return; }
+        if (!pr) { await fallar("modelo"); return; }
 
         // group the scored items and work out the pillars
         const porId: Obj = {};
@@ -275,8 +285,8 @@ En dimorfismo, califica qué tanto ese rasgo se acerca a lo que se percibe como 
         puntajes.general = vals.length ? dec(Math.pow(vals.reduce((s, x) => s * x, 1), 1 / vals.length)) : null;
         const nMedidas = (m.medidas?.length ?? 0) + (m.perfil?.medidas?.length ?? 0);
 
-        const data: Obj = { ...pr.input, ...de.input, grupos, puntajes, evaluaciones: nMedidas + Object.keys(porId).length,
-          v: VERSION, tier: order.tier, modelo: MODELO, generado: new Date().toISOString(), uso: [ev?.usage, pr.usage, de.usage] };
+        const data: Obj = { ...pr.input, ...(zo?.input ?? {}), ...(es?.input ?? {}), grupos, puntajes, evaluaciones: nMedidas + Object.keys(porId).length,
+          v: VERSION, tier: order.tier, modelo: MODELO, generado: new Date().toISOString(), uso: [ev?.usage, pr.usage, zo?.usage, es?.usage], segundos: Math.round((Date.now() - inicio) / 1000) };
         if (order.tier !== "hard") delete data.avanzado;
         await admin.from("reports").update({ data }).eq("order_id", order.id);
         await admin.from("orders").update({ status: "listo", delivered_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pagado");
