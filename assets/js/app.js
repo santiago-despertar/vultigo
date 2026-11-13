@@ -595,13 +595,16 @@
     }
 
     // The front photo is measured here, in the browser, and the numbers travel with the order.
-    let medidasListas = null;
+    let medidasListas = null, crudo = null, fotoFrente = null;
     async function medir(blob, m) {
+      fotoFrente = blob;
       if (!sb || !order) return;
       try {
         const { analizar } = await import("/assets/js/medidas.js?v=18");
         const bmp = await createImageBitmap(blob);
-        M.frente = compactar(await analizar(bmp, (order.answers || {}).sexo));
+        const r = await analizar(bmp, (order.answers || {}).sexo);
+        crudo = { bmp, puntos: r.puntos, medidas: r.medidas, caja: r.caja };
+        M.frente = compactar(r);
         await guardarMedidas();
         medidasListas = true; check();
       } catch (e) {
@@ -643,8 +646,56 @@
       return true;
     }
 
+    // A short, visible measuring pass over their own front photo before the plans appear.
+    const espera = ms => new Promise(r => setTimeout(r, ms));
+    async function animarMedicion() {
+      const c = $("#mideCanvas"); if (!c) return;
+      go(2.5);
+      const items = $$("#midePasos li"); items.forEach(li => li.className = "");
+      const nEl = $("#mideN"); nEl.textContent = "0";
+      let src = crudo && crudo.bmp;
+      if (!src && fotoFrente) src = await createImageBitmap(fotoFrente).catch(() => null);
+      // crop to the face so the measuring is big and readable
+      const iw = src ? src.width : 600, ih = src ? src.height : 600;
+      let x0 = 0, y0 = 0, x1 = iw, y1 = ih;
+      if (crudo && crudo.caja) {
+        const k = crudo.caja, pw = (k.x1 - k.x0) * 0.35, ph = (k.y1 - k.y0) * 0.3;
+        x0 = Math.max(0, k.x0 - pw); x1 = Math.min(iw, k.x1 + pw); y0 = Math.max(0, k.y0 - ph); y1 = Math.min(ih, k.y1 + ph * 0.6);
+      }
+      const W = Math.min(720, Math.round(x1 - x0)), esc = W / (x1 - x0), H = Math.round((y1 - y0) * esc);
+      c.width = W; c.height = H;
+      const g = c.getContext("2d");
+      const fondo = () => { if (src) g.drawImage(src, x0, y0, x1 - x0, y1 - y0, 0, 0, W, H); else { g.fillStyle = "#1c232a"; g.fillRect(0, 0, W, H); } g.fillStyle = "rgba(22,25,29,.25)"; g.fillRect(0, 0, W, H); };
+      const P = p => [(p.x - x0) * esc, (p.y - y0) * esc];
+      fondo();
+      const total = crudo ? crudo.medidas.length : 60;
+      const contar = (a, b, ms) => { const t0 = performance.now(); const f = t => { const k = Math.min(1, (t - t0) / ms); nEl.textContent = Math.round(a + (b - a) * k); if (k < 1) requestAnimationFrame(f); }; requestAnimationFrame(f); };
+      const paso = async (i, fn, ms) => { items[i].className = "act"; await (fn ? fn() : espera(ms)); items[i].className = "ok"; };
+
+      await paso(0, null, 700);
+      await paso(1, async () => {
+        if (!crudo) return espera(1100);
+        g.fillStyle = "rgba(255,255,255,.85)"; const r = Math.max(1.2, W / 380);
+        for (let k = 0; k < crudo.puntos.length; k++) { const [x, y] = P(crudo.puntos[k]); g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); if (k % 24 === 0) await espera(14); }
+      });
+      await paso(2, async () => {
+        contar(0, Math.round(total * 0.6), 1500);
+        if (!crudo) return espera(1500);
+        const ls = crudo.medidas.filter(m => m.zona !== "perfil").flatMap(m => m.lineas || []).filter(l => l.length > 1).slice(0, 28);
+        g.lineWidth = Math.max(1.4, W / 420); g.strokeStyle = "#34e07a";
+        for (const l of ls) { g.beginPath(); g.moveTo(...P(l[0])); l.slice(1).forEach(p => g.lineTo(...P(p))); g.stroke(); await espera(1500 / Math.max(1, ls.length)); }
+      });
+      await paso(3, async () => { contar(Math.round(total * 0.6), total, 1100); await espera(1200); });
+      await paso(4, null, 800);
+      await espera(350);
+    }
+
     $("#toPay").addEventListener("click", async () => {
+      const b = $("#toPay"); b.disabled = true;
       if (sb && order) await sb.from("orders").update({ photos_consent_at: new Date().toISOString() }).eq("id", order.id);
+      const w0 = sb && order && !(await subEstado).activa ? warmPay() : null; if (w0) w0.catch(() => {}); // Stripe page gets ready while they watch
+      try { await animarMedicion(); } catch (e) { console.warn(e); }
+      b.disabled = false;
       go(3);
       if (await modoMensual()) return;
       const w = warmPay(); if (w) w.catch(() => {});
@@ -1274,3 +1325,15 @@
     });
   }
 })();
+
+// home: how-it-works video. Put the video URL in data-video and it plays in place.
+document.querySelectorAll(".how-video").forEach(box => {
+  const btn = box.querySelector(".how-play");
+  btn && btn.addEventListener("click", () => {
+    const src = box.dataset.video;
+    if (!src) { const t = box.querySelector(".how-pronto"); if (t) { t.textContent = "El video sale muy pronto"; } return; }
+    const v = document.createElement("video");
+    v.src = src; v.controls = true; v.playsInline = true; v.autoplay = true;
+    box.appendChild(v); v.play().catch(() => {});
+  });
+});
