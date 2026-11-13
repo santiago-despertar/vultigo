@@ -44,6 +44,15 @@
     if (!r.ok) throw new Error(j.error || "Error " + r.status);
     return j;
   }
+  // What an order keeps from the engine: enough for the report and to redraw every measurement later.
+  function compactar(r) {
+    const p1 = v => Math.round(v * 10) / 10;
+    return {
+      ancho: r.ancho, alto: r.alto, caja: r.caja, resumen: r.resumen, avisos: r.avisos,
+      medidas: r.medidas.map(x => ({ id: x.id, nombre: x.nombre, zona: x.zona, valor: x.valor, unidad: x.unidad, rango: x.rango, estado: x.estado, puntaje: x.puntaje,
+        que: x.que, significa: x.significa, lineas: (x.lineas || []).map(l => l.map(p => ({ x: p1(p.x), y: p1(p.y) }))) }))
+    };
+  }
   // Only allow redirects to pages of this site.
   const safePath = (p, fallback) => (typeof p === "string" && /^\/(?!\/)/.test(p) ? p : fallback);
   // A saved session that no longer works would bounce between pages, so clear it before sending to sign-in.
@@ -300,6 +309,8 @@
       msg(m, text);
     }
 
+    import("/assets/js/medidas.js?v=15").then(m => m.precargar()).catch(() => {});
+
     const grid = $("#photoGrid");
     SLOTS.forEach(([key, title, sub]) => {
       const el = document.createElement("label");
@@ -331,6 +342,27 @@
         if (error) return msg(m, "No se pudo subir la foto. Revisa tu conexión e inténtalo de nuevo.");
       }
       el.classList.add("done"); uploaded.add(key); check();
+      if (key === "frente") medir(blob, m);
+    }
+
+    // The front photo is measured here, in the browser, and the numbers travel with the order.
+    let medidasListas = null;
+    async function medir(blob, m) {
+      if (!sb || !order) return;
+      try {
+        const { analizar } = await import("/assets/js/medidas.js?v=15");
+        const bmp = await createImageBitmap(blob);
+        const medidas = compactar(await analizar(bmp));
+        const { error } = await sb.from("orders").update({ medidas }).eq("id", order.id);
+        if (error) { console.warn(error); return; }
+        medidasListas = true;
+      } catch (e) {
+        medidasListas = false;
+        const texto = e && e.message === "varias_caras"
+          ? "En la foto de frente aparece más de una cara. Sube una donde salgas solo."
+          : "No pudimos leer bien tu cara en la foto de frente. Prueba con otra de frente, con buena luz y sin lentes.";
+        if (m) msg(m, texto);
+      }
     }
     const consent = $("#consent");
     consent.addEventListener("change", check);
@@ -421,13 +453,18 @@
 
   if (page === "panel") {
     const LABEL = { borrador: ["Sin pagar", ""], pagado: ["En análisis", "paid"], listo: ["Listo", "ready"] };
+    const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const fecha = d => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+    const pausa = ms => new Promise(r => setTimeout(r, ms));
+    let user, abierto = null;
+
     (async () => {
       if (!sb) { $("#orders").innerHTML = '<p class="hint" style="padding:18px 0">Estamos terminando de preparar tu cuenta.</p>'; return; }
-      const user = await getUser();
+      user = await getUser();
       if (!user) { await toLogin("/cuenta.html?modo=entrar&next=/panel.html"); return; }
       $("#who").textContent = (user.user_metadata && user.user_metadata.full_name) || user.email;
 
-      const { data: orders } = await sb.from("orders").select("id,status,created_at,paid_at").order("created_at", { ascending: false });
+      const { data: orders } = await sb.from("orders").select("id,status,tier,created_at,paid_at,medidas").order("created_at", { ascending: false });
       const box = $("#orders");
       if (!orders || !orders.length) {
         box.innerHTML = '<p class="hint" style="padding:18px 0">Todavía no tienes análisis. <a href="/analisis.html">Empieza el tuyo</a>.</p>';
@@ -436,37 +473,146 @@
       box.innerHTML = "";
       for (const o of orders) {
         const [txt, cls] = LABEL[o.status] || [o.status, ""];
-        const d = new Date(o.created_at).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
-        const row = document.createElement("div"); row.className = "order";
-        row.innerHTML = `<div><b>Análisis Resalta</b><div class="hint">${d}</div></div><div style="display:flex;gap:10px;align-items:center"><span class="status ${cls}">${txt}</span></div>`;
+        const row = document.createElement("div"); row.className = "order"; row.dataset.order = o.id;
+        row.innerHTML = `<div><b>${esc((C.PLAN_NAMES || {})[o.tier] || "Análisis Resalta")}</b><div class="hint">${fecha(o.created_at)}</div></div><div style="display:flex;gap:10px;align-items:center"><span class="status ${cls}">${txt}</span></div>`;
         const act = row.lastElementChild;
         if (o.status === "borrador") act.insertAdjacentHTML("beforeend", '<a class="btn btn-ghost" style="height:40px" href="/analisis.html">Continuar</a>');
-        if (o.status === "listo") {
+        if (o.status === "pagado" || o.status === "listo") {
           const btn = document.createElement("button"); btn.className = "btn btn-primary"; btn.style.height = "40px"; btn.textContent = "Ver reporte";
-          btn.onclick = () => showReport(o.id); act.appendChild(btn);
+          btn.onclick = () => abrir(o, true); act.appendChild(btn);
         }
         box.appendChild(row);
       }
-      const ready = orders.find(o => o.status === "listo"); if (ready) showReport(ready.id);
+      const pagado = orders.find(o => o.status === "pagado" || o.status === "listo");
+      if (pagado) abrir(pagado, false);
     })();
 
-    async function showReport(orderId) {
-      const { data } = await sb.from("reports").select("data").eq("order_id", orderId).single();
-      if (!data) return;
-      const r = data.data || {}, out = $("#report");
-      const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-      let html = "";
-      if (r.resumen) html += `<p class="lead" style="margin:18px 0 8px">${esc(r.resumen)}</p>`;
-      if (r.puntaje != null) html += `<div class="report-row"><span>Armonía facial</span><b class="mono">${esc(r.puntaje)} / 10</b></div>`;
-      (r.medidas || []).forEach(m => {
-        html += `<div class="report-row"><span>${esc(m.nombre)}</span><b class="mono">${esc(m.valor)}${m.ideal ? " · ideal " + esc(m.ideal) : ""}</b></div>`;
-        if (m.nota) html += `<p class="hint" style="margin:-6px 0 10px">${esc(m.nota)}</p>`;
-      });
-      if ((r.plan || []).length) {
-        html += `<h3 style="margin:28px 0 8px">Tu plan</h3>`;
-        r.plan.forEach((p, i) => { html += `<div class="report-row" style="display:block"><b>${i + 1}. ${esc(p.titulo)}</b> <span class="mono" style="color:var(--ink-muted)">· ${esc(p.prioridad || "")}</span><p class="hint" style="margin-top:6px">${esc(p.detalle)}</p></div>`; });
+    async function leerReporte(id) {
+      const { data } = await sb.from("reports").select("data").eq("order_id", id).maybeSingle();
+      return data ? data.data : null;
+    }
+    const completo = (r, o) => r && r.resumen && !(o.tier === "hard" && r.tier !== "hard");
+
+    async function abrir(o, scroll) {
+      abierto = o.id;
+      $("#reportArea").hidden = false;
+      $("#repPlan").textContent = (C.PLAN_NAMES || {})[o.tier] || "Tu reporte";
+      $("#repDate").textContent = fecha(o.paid_at || o.created_at);
+      clearMsg($("#repMsg"));
+      if (scroll) $("#reportArea").scrollIntoView({ behavior: "smooth", block: "start" });
+      let r = await leerReporte(o.id);
+      if (r && r.resumen) await pintar(r, o);
+      if (completo(r, o) && r.estado !== "generando") { esperando(false); return; }
+      generar(o);
+    }
+
+    function esperando(si, titulo, sub) {
+      $("#repWait").hidden = !si;
+      $("#repStatus").textContent = si ? "Preparando" : "Listo";
+      $("#repStatus").className = "status " + (si ? "paid" : "ready");
+      if (titulo) $("#repWaitT").textContent = titulo;
+      if (sub) $("#repWaitS").textContent = sub;
+    }
+
+    // Orders paid before the front photo was measured at upload get measured here, once.
+    async function medirGuardada(o) {
+      const { data: s } = await sb.storage.from("fotos").createSignedUrl(`${o.user_id || user.id}/${o.id}/frente.jpg`, 600);
+      if (!s) throw new Error("sin_foto");
+      const [{ analizar }, img] = await Promise.all([
+        import("/assets/js/medidas.js?v=15"),
+        new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = s.signedUrl; })
+      ]);
+      return compactar(await analizar(img));
+    }
+
+    async function generar(o) {
+      const id = o.id;
+      esperando(true, "Estamos preparando tu reporte", "Suele tardar alrededor de un minuto. Puedes quedarte aquí o volver más tarde, se guarda en tu cuenta.");
+      try {
+        const body = { order_id: id };
+        if (!o.medidas || !o.medidas.medidas) { body.medidas = await medirGuardada(o); o.medidas = body.medidas; }
+        let r = await fnCall("generar-reporte", body);
+        // another tab may be writing it already: wait for that one
+        for (let i = 0; r.generando && i < 30; i++) {
+          await pausa(6000);
+          if (abierto !== id) return;
+          const d = await leerReporte(id);
+          if (completo(d, o) && d.estado !== "generando") r = { data: d };
+          else if (!d || d.estado !== "generando") r = await fnCall("generar-reporte", { order_id: id });
+        }
+        if (abierto !== id) return;
+        if (!r.data || !r.data.resumen) throw new Error("tarde");
+        o.status = "listo";
+        const fila = document.querySelector(`[data-order="${id}"] .status`);
+        if (fila) { fila.textContent = LABEL.listo[0]; fila.className = "status " + LABEL.listo[1]; }
+        await pintar(r.data, o);
+        esperando(false);
+      } catch (e) {
+        if (abierto !== id) return;
+        esperando(false);
+        $("#repStatus").textContent = "Pendiente"; $("#repStatus").className = "status paid";
+        const t = e.message === "sin_foto" || e.message === "No encontramos tus fotos"
+          ? "No encontramos tu foto de frente. Si borraste tus fotos, escríbenos a contacto@resalta.co y lo resolvemos."
+          : "Tu reporte está tardando más de lo normal. Vuelve a intentarlo en un momento.";
+        const m = $("#repMsg"); msg(m, t);
+        const b = document.createElement("button"); b.className = "btn btn-ghost"; b.style.cssText = "height:38px;margin-top:10px;display:flex";
+        b.textContent = "Intentar de nuevo"; b.onclick = () => generar(o); m.appendChild(b);
       }
-      out.innerHTML = html; $("#reportCard").hidden = false;
+    }
+
+    const li = arr => (arr || []).map(x => `<li>${esc(x)}</li>`).join("");
+    const NIVEL = { alto: "Impacto alto", medio: "Impacto medio", bajo: "Impacto bajo" };
+    const ESF = { bajo: "poco esfuerzo", medio: "esfuerzo medio", alto: "mucho esfuerzo" };
+
+    async function pintar(r, o) {
+      $("#repBody").hidden = false;
+      $("#repResumen").textContent = r.resumen || "";
+
+      if (o.medidas && o.medidas.medidas) {
+        const [{ montar }, foto] = await Promise.all([
+          import("/assets/js/visor-ui.js?v=15"),
+          sb.storage.from("fotos").createSignedUrl(`${user.id}/${o.id}/frente.jpg`, 3600).then(x => x.data ? x.data.signedUrl : "").catch(() => "")
+        ]);
+        montar(o.medidas, foto, { scroll: false });
+      }
+
+      $("#repFortalezas").innerHTML = (r.fortalezas || []).map(f => `<div class="rep-item"><b>${esc(f.titulo)}</b><p class="hint">${esc(f.texto)}</p></div>`).join("");
+      $("#repPrioridades").innerHTML = (r.prioridades || []).map((p, i) => `<div class="rep-item"><b><span class="mono rep-n">${i + 1}</span>${esc(p.titulo)}</b><p class="hint">${esc(p.texto)}</p><p class="rep-tags"><span class="rep-tag rep-${esc(p.impacto)}">${esc(NIVEL[p.impacto] || p.impacto)}</span><span class="rep-tag">${esc(ESF[p.esfuerzo] || p.esfuerzo)}</span></p></div>`).join("");
+
+      const zonas = Object.fromEntries((o.medidas && o.medidas.resumen ? o.medidas.resumen.zonas : []).map(z => [z.id, z]));
+      $("#repZonas").innerHTML = (r.zonas || []).map(z => {
+        const s = zonas[z.id];
+        return `<div class="card rep-zona"><div class="rep-zona-top"><b>${esc(s ? s.nombre : z.id)}</b>${s ? `<span class="mono">${s.puntaje}</span>` : ""}</div><p class="hint">${esc(z.lectura)}</p><ul class="rep-list">${li(z.acciones)}</ul></div>`;
+      }).join("");
+
+      const piel = r.piel || {};
+      $("#repPiel").innerHTML = `<p class="hint">${esc(piel.lectura)}</p><ul class="rep-list">${li(piel.acciones)}</ul>`;
+
+      const col = r.color || {};
+      const sw = arr => (arr || []).map(c => `<span class="rep-sw" title="${esc(c.nombre)}"><i style="background:${/^#[0-9a-f]{6}$/i.test(c.hex) ? c.hex : "#ccc"}"></i>${esc(c.nombre)}</span>`).join("");
+      $("#repColor").innerHTML = `<p class="rep-sub-t">Subtono <b>${esc(col.subtono)}</b></p><p class="hint">${esc(col.lectura)}</p><p class="label rep-mini">Te favorecen</p><div class="rep-sws">${sw(col.paleta)}</div><p class="label rep-mini">Mejor evitar</p><div class="rep-sws">${sw(col.evitar)}</div>`;
+
+      const cb = r.cabello_barba || {};
+      $("#repCabello").innerHTML = `<p class="label rep-mini">Cortes</p><ul class="rep-list">${li(cb.cortes)}</ul><p class="label rep-mini">Barba</p><ul class="rep-list">${li(cb.barba)}</ul><p class="label rep-mini">Cejas</p><ul class="rep-list">${li(cb.cejas)}</ul>`;
+
+      $("#repPlanFases").innerHTML = (r.plan || []).map(f => `<div class="card rep-fase"><p class="label">${esc(f.fase)}</p>${(f.pasos || []).map(p => `<div class="rep-paso"><b>${esc(p.accion)}</b><p class="hint">${esc(p.porque)}</p></div>`).join("")}</div>`).join("");
+
+      const av = $("#repAvanzado");
+      if (o.tier === "hard" && (r.avanzado || []).length) {
+        av.innerHTML = `<h3 class="rep-h">Procedimientos a considerar</h3><p class="hint rep-sub">Información general para que llegues mejor preparado a una consulta. Cada caso lo debe evaluar un médico certificado.</p><div class="rep-zonas">${r.avanzado.map(a => `<div class="card rep-zona"><b>${esc(a.nombre)}</b><p class="hint" style="margin-top:8px">${esc(a.que_hace)}</p><p class="hint" style="margin-top:8px"><b>Antes de decidir.</b> ${esc(a.considerar)}</p></div>`).join("")}</div>`;
+      } else if (o.tier === "soft") {
+        const U = C.UPSELL || {};
+        av.innerHTML = `<div class="card rep-lock"><div><p class="label">Plan Completo</p><h3 class="rep-lock-h">La parte de procedimientos</h3><p class="hint">Qué procedimientos se suelen considerar para un rostro con tus proporciones, qué hace cada uno y qué pensar antes de una consulta.</p></div><div class="rep-lock-r"><p class="mono rep-lock-p">${U.was ? `<s>${esc(U.was)}</s> ` : ""}${esc(U.now || "")} MXN</p><button class="btn btn-primary" id="repUp">Agregar a mi reporte</button><div class="msg" id="repUpMsg"></div></div></div>`;
+        $("#repUp").onclick = async () => {
+          const b = $("#repUp"), m = $("#repUpMsg"); clearMsg(m); b.disabled = true; b.textContent = "Procesando…";
+          try {
+            const x = await fnCall("upgrade-order", { order_id: o.id });
+            if (x.url) { location.href = x.url; return; }
+            o.tier = "hard"; $("#repPlan").textContent = (C.PLAN_NAMES || {}).hard || "Plan Completo";
+            av.innerHTML = ""; generar(o);
+          } catch (e) { b.disabled = false; b.textContent = "Agregar a mi reporte"; msg(m, "No pudimos agregarlo. Inténtalo de nuevo en un momento."); }
+        };
+      } else av.innerHTML = "";
     }
 
     $("#logout").addEventListener("click", async () => { if (sb) await sb.auth.signOut(); location.href = "/"; });

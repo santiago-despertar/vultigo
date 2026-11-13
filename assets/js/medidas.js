@@ -52,14 +52,8 @@ function puntaje(v, lo, hi, tipo) {
   return Math.round(100 / (1 + Math.pow(z / 1.6, 2)));
 }
 
-export const ZONAS = [
-  ["proporciones", "Proporciones"],
-  ["ojos", "Ojos"],
-  ["nariz", "Nariz"],
-  ["boca", "Boca y labios"],
-  ["mandibula", "Mandíbula y mentón"],
-  ["simetria", "Simetría"]
-];
+export { ZONAS } from "/assets/js/zonas.js?v=15";
+import { ZONAS } from "/assets/js/zonas.js?v=15";
 
 // Builds every measurement from the 478 landmarks. L[i] = {x,y} in pixels.
 export function medir(L) {
