@@ -126,12 +126,17 @@ function measure(L) {
 }
 
 function draw(L) {
-  const c = $("#rateCanvas"), W = Math.min(1000, img.width), H = Math.round(img.height * W / img.width);
+  // crop to the face so the measurements read clearly even in a full-body photo
+  const iw = img.width, ih = img.height, xs = L.map(q => q.x * iw), ys = L.map(q => q.y * ih);
+  const bx0 = Math.min(...xs), bx1 = Math.max(...xs), by0 = Math.min(...ys), by1 = Math.max(...ys);
+  const pw = (bx1 - bx0) * 0.45, ph = (by1 - by0) * 0.35;
+  const x0 = Math.max(0, bx0 - pw), x1 = Math.min(iw, bx1 + pw), y0 = Math.max(0, by0 - ph), y1 = Math.min(ih, by1 + ph * 0.7);
+  const c = $("#rateCanvas"), W = Math.min(900, Math.round(x1 - x0)), k = W / (x1 - x0), H = Math.round((y1 - y0) * k);
   c.width = W; c.height = H;
   const g = c.getContext("2d");
-  g.drawImage(img, 0, 0, W, H);
+  g.drawImage(img, x0, y0, x1 - x0, y1 - y0, 0, 0, W, H);
   g.fillStyle = "rgba(22,25,29,.18)"; g.fillRect(0, 0, W, H);
-  const p = (i) => [L[i].x * W, L[i].y * H];
+  const p = (i) => [(L[i].x * iw - x0) * k, (L[i].y * ih - y0) * k];
   g.strokeStyle = "#FFFFFF"; g.fillStyle = "#FFFFFF"; g.lineWidth = Math.max(1.5, W / 600);
   const line = (a, b, dash) => { g.setLineDash(dash ? [6, 6] : []); g.beginPath(); g.moveTo(...p(a)); g.lineTo(...p(b)); g.stroke(); };
   line(10, 152, true); line(33, 263); line(234, 454); line(172, 152); line(397, 152);
