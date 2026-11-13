@@ -1127,3 +1127,16 @@ html.authed [data-auth="out"]{display:none!important}
 .prog-tip{margin-top:14px;font-size:13px}
 .prog-link{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--ink-muted);text-decoration:underline;cursor:pointer;align-self:center}
 .dash-tab[data-tab="progreso"] > .card{margin-bottom:16px}
+/* v22 chat */
+.chat-card{display:flex;flex-direction:column;gap:12px}
+.chat-log{display:flex;flex-direction:column;gap:10px;max-height:56vh;overflow-y:auto;padding-right:4px}
+.chat-log:empty{display:none}
+.chat-m{max-width:86%;padding:10px 14px;border-radius:16px;font-size:15px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-m.yo{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:4px}
+.chat-m.re{align-self:flex-start;background:var(--mist);color:var(--ink);border-bottom-left-radius:4px}
+.chat-m.pensando{color:var(--ink-muted)}
+.chat-sug{display:flex;flex-wrap:wrap;gap:8px}
+.chat-form{display:flex;gap:10px;align-items:flex-end}
+.chat-form textarea{flex:1;min-width:0;resize:none;min-height:46px;max-height:140px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font:inherit;font-size:15px;background:var(--surface-raised);color:var(--ink)}
+.chat-form .btn{height:46px}
+.chat-nota{font-size:12px;margin:0}
