@@ -115,3 +115,6 @@ create policy "own chat read" on public.chat for select using (auth.uid() = user
 
 -- Sign-up keeps the email as a lead as soon as it is typed, before the password.
 alter table public.leads add column if not exists nombre text check (char_length(nombre) <= 60);
+
+-- Free rating: when the result email went out (empty = still to send)
+alter table public.leads add column if not exists enviado_at timestamptz;
