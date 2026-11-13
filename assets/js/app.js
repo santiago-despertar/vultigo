@@ -215,6 +215,8 @@
     function show(t) {
       tabs.forEach(b => b.classList.toggle("active", b.dataset.tab === t));
       $$("[data-pane]").forEach(p => (p.hidden = p.dataset.pane !== t));
+      const gb = $("#googleBox"), s1 = document.querySelector('.su-step[data-s="1"]');
+      if (gb) gb.hidden = t === "signup" && !!s1 && !s1.classList.contains("on");
     }
     tabs.forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
     if (params.get("modo") === "entrar") show("login");
@@ -229,18 +231,44 @@
       if (error) msg(m, errES(error));
     }));
 
-    $("#signupForm").addEventListener("submit", async (ev) => {
+    // Sign-up goes one thing at a time: name, then email, then password.
+    let suPaso = 1;
+    const suF = $("#signupForm");
+    function suIr(n) {
+      suPaso = n;
+      $$(".su-step", suF).forEach(st => st.classList.toggle("on", +st.dataset.s === n));
+      $$("[data-su-name]").forEach(e => { e.textContent = suF.nombre.value.trim().split(/\s+/)[0] || ""; });
+      suF.querySelector('[data-su="atras"]').hidden = n === 1;
+      suF.querySelector('[data-su="sig"]').textContent = n === 3 ? "Crear cuenta" : "Continuar";
+      const gb = $("#googleBox"); if (gb) gb.hidden = n !== 1;
+      clearMsg($("#signupMsg"));
+      const inp = suF.querySelector(`.su-step[data-s="${n}"] input`);
+      if (inp) setTimeout(() => inp.focus({ preventScroll: true }), 60);
+    }
+    suF.querySelector('[data-su="atras"]').addEventListener("click", () => suIr(suPaso - 1));
+    // a lead is kept as soon as we have the email, even if they stop before the password
+    function guardarLead(email, nombre) {
+      if (!sb) return;
+      try { sb.from("leads").insert({ email, nombre, source: "registro" }).then(() => {}, () => {}); } catch (e) {}
+    }
+    suF.addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const f = ev.target, m = $("#signupMsg"); clearMsg(m);
-      if (!f.nombre.value.trim()) return msg(m, "Escribe tu nombre.");
-      if (!f.email.value.includes("@")) return msg(m, "Escribe un correo válido.");
+      if (suPaso === 1) { if (!f.nombre.value.trim()) return msg(m, "Escribe tu nombre."); return suIr(2); }
+      if (suPaso === 2) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.value.trim())) return msg(m, "Escribe un correo válido.");
+        guardarLead(f.email.value.trim().toLowerCase(), f.nombre.value.trim().slice(0, 60));
+        return suIr(3);
+      }
       if (f.password.value.length < 8) return msg(m, "La contraseña debe tener al menos 8 caracteres.");
       if (!f.terms.checked) return msg(m, "Necesitas aceptar los términos y el aviso de privacidad.");
       if (!sb) return notReady(m);
+      const b = f.querySelector('[data-su="sig"]'); b.disabled = true; b.textContent = "Creando tu cuenta…";
       const { data, error } = await sb.auth.signUp({
         email: f.email.value.trim(), password: f.password.value,
         options: { emailRedirectTo: location.origin + next, data: { full_name: f.nombre.value.trim().slice(0, 60) } }
       });
+      b.disabled = false; b.textContent = "Crear cuenta";
       if (error) return msg(m, errES(error));
       if (data.session) location.href = next;
       else msg(m, "Listo. Te mandamos un correo para confirmar tu cuenta.", "ok");
@@ -285,6 +313,76 @@
     }
     $$("[data-back]").forEach(b => b.addEventListener("click", () => go(+b.dataset.back)));
 
+    // The profile form is shown one question at a time, like a short quiz.
+    const quiz = (() => {
+      const f = $("#aboutForm"); if (!f || !f.classList.contains("quiz")) return null;
+      const qs = $$(".q", f), bar = f.querySelector(".quiz-bar i"), qm = $("#quizMsg");
+      const bAtras = f.querySelector('[data-q="atras"]'), bSig = f.querySelector('[data-q="sig"]'), bFin = f.querySelector('[data-q="fin"]');
+      let i = 0;
+      // each select becomes a list of tap targets; picking one moves on by itself
+      qs.forEach(q => {
+        const sel = q.querySelector("select"); if (!sel) return;
+        sel.hidden = true;
+        const box = document.createElement("div"); box.className = "opts" + (sel.options.length > 5 ? " opts-2" : "");
+        [...sel.options].filter(o => !o.disabled).forEach(o => {
+          const b = document.createElement("button"); b.type = "button"; b.className = "opt"; b.textContent = o.textContent; b.dataset.v = o.value || o.textContent;
+          b.addEventListener("click", () => {
+            sel.value = b.dataset.v; sel.dataset.picked = "1"; pintar(q);
+            setTimeout(() => { if (qs[i] === q && i < qs.length - 1) mostrar(paso(i, 1)); }, 220);
+          });
+          box.appendChild(b);
+        });
+        sel.after(box);
+      });
+      function pintar(q) {
+        const sel = q.querySelector("select"); if (!sel) return;
+        $$(".opt", q).forEach(b => b.classList.toggle("on", !!sel.dataset.picked && b.dataset.v === sel.value));
+      }
+      function valido(q) {
+        clearMsg(qm);
+        const bad = [...q.querySelectorAll("input,select")].find(el => {
+          if (el.type === "checkbox") return false;
+          if (el.required && !String(el.value || "").trim()) return true;
+          if (el.type === "number" && el.value && ((el.min && +el.value < +el.min) || (el.max && +el.value > +el.max))) return true;
+          return false;
+        });
+        if (!bad) return true;
+        const t = bad.name === "edad" ? (bad.value && +bad.value < 18 ? "Este servicio es solo para mayores de 18 años." : "Escribe tu edad.")
+          : bad.name === "nombre" ? "Escribe tu nombre." : bad.name === "sexo" ? "Elige una opción." : "Revisa este dato.";
+        msg(qm, t); return false;
+      }
+      // some questions only apply after certain answers (procedure budget only if they are open to procedures)
+      const aplica = q => q.dataset.cond !== "proc" || !/^Solo/.test(f.procedimientos.value || "Solo");
+      const paso = (desde, d) => { let k = desde + d; while (k > 0 && k < qs.length - 1 && !aplica(qs[k])) k += d; return k; };
+      function mostrar(n, sinFoco) {
+        i = Math.max(0, Math.min(qs.length - 1, n));
+        qs.forEach((q, k) => q.classList.toggle("on", k === i));
+        pintar(qs[i]); clearMsg(qm);
+        const vis = qs.filter(aplica); if (bar) bar.style.width = Math.round((vis.indexOf(qs[i]) + 1) / vis.length * 100) + "%";
+        bAtras.style.visibility = i === 0 ? "hidden" : "";
+        const ultimo = i === qs.length - 1;
+        bSig.hidden = ultimo; bFin.hidden = !ultimo;
+        const inp = qs[i].querySelector("input:not([type=checkbox]),textarea");
+        if (inp && !sinFoco && matchMedia("(pointer:fine)").matches) setTimeout(() => inp.focus({ preventScroll: true }), 60);
+      }
+      bSig.addEventListener("click", () => { if (valido(qs[i])) mostrar(paso(i, 1)); });
+      bAtras.addEventListener("click", () => mostrar(paso(i, -1)));
+      f.addEventListener("keydown", e => {
+        if (e.key !== "Enter" || e.target.tagName === "TEXTAREA" || e.target.tagName === "BUTTON") return;
+        e.preventDefault(); if (i < qs.length - 1) bSig.click(); else bFin.click();
+      });
+      mostrar(0, true);
+      return {
+        // after saved answers are filled in, mark them as chosen and skip what we already know
+        refrescar(saltarNombre, guardadas) {
+          qs.forEach(q => { const sel = q.querySelector("select"); if (sel && guardadas && guardadas[sel.name]) sel.dataset.picked = "1"; });
+          mostrar(saltarNombre && i === 0 && f.nombre.value.trim() ? 1 : i, true);
+        },
+        alFinal() { mostrar(qs.length - 1); },
+        ir(name) { const k = qs.findIndex(q => q.querySelector(`[name="${name}"]`)); if (k >= 0) mostrar(k); }
+      };
+    })();
+
     (async () => {
       if (!sb) return;
       user = await getUser();
@@ -299,17 +397,20 @@
       }
       const fn = $("#aboutForm").nombre;
       if (fn && !fn.value && user.user_metadata && user.user_metadata.full_name) fn.value = user.user_metadata.full_name;
+      if (quiz) quiz.refrescar(true, order && order.answers);
     })();
 
     $("#aboutForm").addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const f = ev.target;
-      if (!f.mayor.checked || !f.edad.value || +f.edad.value < 18) { alertInline(f, "Este servicio es solo para mayores de 18 años."); return; }
+      if (!f.edad.value || +f.edad.value < 18) { if (quiz) quiz.ir("edad"); alertInline(f, "Este servicio es solo para mayores de 18 años."); return; }
+      if (!f.mayor.checked) { alertInline(f, "Confirma que tienes 18 años o más para continuar."); return; }
       const nombre = f.nombre.value.trim().slice(0, 60);
-      if (!nombre) { alertInline(f, "Escribe tu nombre."); return; }
+      if (!nombre) { if (quiz) quiz.ir("nombre"); alertInline(f, "Escribe tu nombre."); return; }
+      if (!f.sexo.value) { if (quiz) quiz.ir("sexo"); alertInline(f, "Elige si eres hombre o mujer."); return; }
       // the account keeps the name too, so the panel and the protocol greet them by it
       if (sb && nombre !== ((user && user.user_metadata) || {}).full_name) sb.auth.updateUser({ data: { full_name: nombre } }).catch(() => {});
-      const answers = { nombre, edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: f.objetivo.value, piel: f.piel.value, lentes: f.lentes.value, procedimientos: f.procedimientos.value, presupuesto: f.presupuesto.value, tiempo: f.tiempo.value, rutina: f.rutina.value, notas: f.notas.value.trim() };
+      const answers = { nombre, edad: +f.edad.value, sexo: f.sexo.value, pais: f.pais.value, estatura: f.estatura.value || null, peso: f.peso.value || null, objetivo: f.objetivo.value, piel: f.piel.value, lentes: f.lentes.value, procedimientos: f.procedimientos.value, presupuesto_procedimientos: /^Solo/.test(f.procedimientos.value) ? null : f.presupuesto_procedimientos.value, presupuesto: f.presupuesto.value, tiempo: f.tiempo.value, rutina: f.rutina.value, notas: f.notas.value.trim() };
       if (!sb) { go(2); return; }
       if (order) {
         await sb.from("orders").update({ answers }).eq("id", order.id); order.answers = answers;
@@ -321,7 +422,7 @@
       go(2);
     });
     function alertInline(form, text) {
-      let m = form.querySelector(".msg"); if (!m) { m = document.createElement("div"); form.insertBefore(m, form.lastElementChild); }
+      let m = form.querySelector("#quizMsg") || form.querySelector(".msg"); if (!m) { m = document.createElement("div"); form.insertBefore(m, form.lastElementChild); }
       msg(m, text);
     }
 
@@ -440,8 +541,7 @@
       mensual = st;
       $$("[data-plan-name]").forEach(e => { e.textContent = "Escaneo del mes"; });
       $$('[data-price="plan"]').forEach(e => { e.textContent = "Incluido"; });
-      const sum = document.querySelector("#payBtn").closest(".wstep").querySelector(".summary b"); if (sum) sum.innerHTML = '<span data-price="plan">Incluido</span>';
-      const bp = $("#bumpHard"); if (bp) bp.closest("label").hidden = true;
+      const pp = $("#planPick"); if (pp) { pp.hidden = true; if (pp.nextElementSibling) pp.nextElementSibling.hidden = true; }
       $("#payBtn").textContent = "Usar mi escaneo del mes";
       const h = document.querySelector('[data-step="3"] h2'); if (h) h.textContent = "Confirma tu escaneo";
       const hint = document.querySelector('[data-step="3"] h2 + .hint'); if (hint) hint.textContent = "Tus fotos ya están guardadas. Este escaneo viene incluido en tu seguimiento mensual y lleva el reporte completo.";
@@ -455,23 +555,16 @@
       const w = warmPay(); if (w) w.catch(() => {});
     });
 
-    const bump = $("#bumpHard");
-    if (bump) {
-      const num = v => +String(v || "").replace(/[^0-9.]/g, "");
-      const paintPlan = () => {
-        $$('[data-price="plan"]').forEach(e => { if (PRICES[plan]) e.textContent = PRICES[plan]; });
-        $$("[data-plan-name]").forEach(e => { if (C.PLAN_NAMES && C.PLAN_NAMES[plan]) e.textContent = C.PLAN_NAMES[plan]; });
-      };
-      const diff = num(PRICES.hard) - num(PRICES.soft);
-      if (diff > 0) $$("[data-bump-diff]").forEach(e => { e.textContent = "$" + diff.toLocaleString("en-US"); });
-      bump.checked = plan === "hard";
-      bump.addEventListener("change", () => {
-        plan = bump.checked ? "hard" : "soft";
+    // Both plans are shown side by side at the end; the one they came in with starts selected.
+    $$('[name="planSel"]').forEach(r => {
+      r.checked = r.value === plan;
+      r.addEventListener("change", () => {
+        if (!r.checked) return;
+        plan = r.value;
         try { sessionStorage.setItem("plan", plan); } catch (e) {}
-        paintPlan();
         const w = warmPay(); if (w) w.catch(() => {});
       });
-    }
+    });
 
     $("#payBtn").addEventListener("click", async () => {
       const m = $("#payMsg"), b = $("#payBtn"); clearMsg(m);
@@ -487,7 +580,7 @@
         const { url } = await warmPay();
         location.href = url;
       } catch (e) {
-        b.disabled = false; b.textContent = "Pagar";
+        b.disabled = false; b.textContent = "Pagar y empezar mi análisis";
         msg(m, "No pudimos abrir el pago. Inténtalo de nuevo en un momento.");
       }
     });
@@ -496,23 +589,43 @@
   // ---------- panel ----------
   if (page === "gracias") {
     (async () => {
-      const q = new URLSearchParams(location.search), id = q.get("pedido"), box = $("#upsell"), done = $("#upsellDone");
+      const q = new URLSearchParams(location.search), id = q.get("pedido"), box = $("#upsell"), done = $("#upsellDone"), sub = $("#upsellSub");
       const U = C.UPSELL || {};
       if (U.was) $$("[data-upsell-was]").forEach(e => { e.textContent = U.was; });
       if (U.now) $$("[data-upsell-now]").forEach(e => { e.textContent = U.now; });
-      if (q.get("mejora") === "1") { msg(done, "Listo. Tu análisis ahora incluye la parte avanzada.", "ok"); return; }
-      if (!sb || !id || !box || !(await getUser())) return;
+      if (C.SUB_PRICE) $$("[data-sub-price]").forEach(e => { e.textContent = C.SUB_PRICE; });
+      if (!sb || !id || !(await getUser())) return;
+
+      // Second offer: the monthly follow-up, only for people who do not have it yet.
+      async function ofrecerSeguimiento() {
+        if (!sub) return;
+        let st = {}; try { st = await fnCall("suscripcion", { accion: "estado" }); } catch (e) { return; }
+        if (st.activa) return;
+        sub.hidden = false;
+        $("#subNo").onclick = () => { sub.hidden = true; };
+        $("#subYes").onclick = async () => {
+          const b = $("#subYes"), m = $("#subMsgG"); clearMsg(m);
+          b.disabled = true; b.textContent = "Abriendo el pago…";
+          try { const { url } = await fnCall("suscripcion", { accion: "suscribir" }); location.href = url; }
+          catch (e) { b.disabled = false; b.textContent = "Activar mi seguimiento"; msg(m, "No pudimos abrir el pago. Inténtalo de nuevo en un momento."); }
+        };
+      }
+
+      if (q.get("mejora") === "1") { msg(done, "Listo. Tu análisis ahora incluye la parte avanzada.", "ok"); return ofrecerSeguimiento(); }
       // The payment confirmation can take a few seconds to arrive, so check a few times.
       let o = null;
       for (let i = 0; i < 6; i++) {
-        const { data } = await sb.from("orders").select("id,status,tier").eq("id", id).maybeSingle();
+        const { data } = await sb.from("orders").select("id,status,tier,origen").eq("id", id).maybeSingle();
         o = data;
         if (!o || o.status !== "borrador") break;
         await new Promise(r => setTimeout(r, 2000));
       }
-      if (!o || o.status !== "pagado" || o.tier !== "soft") return;
+      if (!o || o.status === "borrador") return;
+      if (o.origen === "suscripcion") return;
+      if (o.tier !== "soft" || !box) return ofrecerSeguimiento();
+      // First offer: the advanced part at a discount, one click on the same card.
       box.hidden = false;
-      $("#upsellNo").addEventListener("click", () => { box.hidden = true; });
+      $("#upsellNo").addEventListener("click", () => { box.hidden = true; ofrecerSeguimiento(); });
       $("#upsellYes").addEventListener("click", async () => {
         const b = $("#upsellYes"), m = $("#upsellMsg"), label = b.innerHTML; clearMsg(m);
         b.disabled = true; b.textContent = "Procesando…";
@@ -521,6 +634,7 @@
           if (r.url) { location.href = r.url; return; }
           box.hidden = true;
           msg(done, "Listo. Tu análisis ahora incluye la parte avanzada.", "ok");
+          ofrecerSeguimiento();
         } catch (e) {
           b.disabled = false; b.innerHTML = label;
           msg(m, "No pudimos agregarlo. Inténtalo de nuevo en un momento.");
