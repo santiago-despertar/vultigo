@@ -95,7 +95,14 @@ const T_ESTILO = {
       paleta: { type: "array", minItems: 6, maxItems: 8, items: muestra }, evitar: { type: "array", minItems: 2, maxItems: 4, items: muestra } } },
     cabello_barba: { type: "object", required: ["cortes", "barba", "cejas"], properties: {
       cortes: lista(2, 4), barba: lista(1, 3), cejas: lista(1, 3), lentes: lista(0, 3) },
-      description: "barba: para mujeres úsalo para maquillaje de contorno. lentes: formas de armazón que favorecen." }
+      description: "barba: para mujeres úsalo para maquillaje de contorno. lentes: formas de armazón que favorecen." },
+    longevidad: { type: "object", required: ["edad_visual", "edad_visual_meta", "lectura", "acciones"], description: "Edad visual: cuántos años aparenta en las fotos, por piel, ojeras, surcos, volumen, cabello y postura. Sé honesto: puede ser mayor o menor que su edad real.",
+      properties: { edad_visual: { type: "integer", minimum: 15, maximum: 90 }, edad_visual_meta: { type: "integer", minimum: 15, maximum: 90, description: "Edad que podría aparentar en 6 a 12 meses siguiendo su plan sin procedimientos. Realista: casi nunca más de 4 años menos." },
+        lectura: { type: "string", description: "Dos o tres frases: qué le suma o le quita años." }, acciones: lista(2, 4) } },
+    potencial: { type: "object", required: ["general_soft", "grupos"], description: "Calificación realista de 0 a 10 que podría alcanzar.",
+      properties: { general_soft: { type: "number", minimum: 0, maximum: 10, description: "General en 6 a 12 meses siguiendo el plan sin procedimientos." },
+        general_hard: { type: "number", minimum: 0, maximum: 10, description: "Solo plan completo: general sumando los procedimientos que sí tienen sentido." },
+        grupos: { type: "array", items: { type: "object", required: ["id", "valor"], properties: { id: { type: "string", enum: ["angularidad", "dimorfismo", "piel", "ojos", "cejas", "nariz", "cabello", "labios", "sonrisa"] }, valor: { type: "number", minimum: 0, maximum: 10 } } } } } }
   } }
 };
 
@@ -267,7 +274,7 @@ En dimorfismo, califica qué tanto ese rasgo se acerca a lo que se percibe como 
             ? " Incluye también avanzado: procedimientos estéticos que se suelen considerar para un rostro con estas proporciones, qué hace cada uno y qué pensar antes. Preséntalo como información general que debe evaluar un médico certificado, no como una recomendación tuya, y di cuando algo no parece indicado."
             : " No llenes avanzado, este cliente tiene el plan esencial."}`, okPrincipal, 12000),
           pedir(T_ZONAS, "Escribe la lectura zona por zona y las de perfil, sonrisa y tres cuartos.", okZonas, 12000),
-          pedir(T_ESTILO, "Escribe piel, color personal y cabello, barba, cejas y lentes.", okEstilo, 12000),
+          pedir(T_ESTILO, `Escribe piel, color personal y cabello, barba, cejas y lentes. Además: longevidad (edad visual contra su edad real de ${(order.answers ?? {}).edad || "?"} años, y la que podría aparentar con su plan) y potencial (calificación realista que podría alcanzar en general y en cada grupo, en la misma escala estricta donde 5 es el promedio; el potencial casi nunca sube más de 1.5 puntos sin procedimientos).${order.tier === "hard" ? " Incluye general_hard." : " No llenes general_hard."}`, okEstilo, 12000),
         ]);
         if (!pr) { await fallar("modelo"); return; }
 
@@ -287,7 +294,7 @@ En dimorfismo, califica qué tanto ese rasgo se acerca a lo que se percibe como 
 
         const data: Obj = { ...pr.input, ...(zo?.input ?? {}), ...(es?.input ?? {}), grupos, puntajes, evaluaciones: nMedidas + Object.keys(porId).length,
           v: VERSION, tier: order.tier, modelo: MODELO, generado: new Date().toISOString(), uso: [ev?.usage, pr.usage, zo?.usage, es?.usage], segundos: Math.round((Date.now() - inicio) / 1000) };
-        if (order.tier !== "hard") delete data.avanzado;
+        if (order.tier !== "hard") { delete data.avanzado; if (data.potencial) delete data.potencial.general_hard; }
         await admin.from("reports").update({ data }).eq("order_id", order.id);
         await admin.from("orders").update({ status: "listo", delivered_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pagado");
       } catch (e) {
