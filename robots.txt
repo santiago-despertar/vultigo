@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /panel.html
+Disallow: /reporte.html
+Disallow: /visor.html
+Disallow: /gracias.html
+Disallow: /analisis.html
+Disallow: /cuenta.html
+
+Sitemap: https://resalta.co/sitemap.xml

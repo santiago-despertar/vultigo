@@ -16,6 +16,7 @@ HEAD = """<!doctype html>
 <meta property="og:description" content="{desc}">
 <meta property="og:image" content="https://resalta.co/assets/img/og.png">
 <meta property="og:url" content="https://resalta.co/{path}">
+<link rel="canonical" href="https://resalta.co/{path}">
 <meta name="theme-color" content="#6E7E8E">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
@@ -25,6 +26,8 @@ HEAD = """<!doctype html>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/site.css?v=__V__">
 <script>try{{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}}catch(e){{}}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-F5L2THEVH0"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag("js",new Date());gtag("config","G-F5L2THEVH0");</script>
 {extra_head}
 </head>
 <body data-page="{page}">
