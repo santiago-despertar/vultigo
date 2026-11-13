@@ -1515,3 +1515,47 @@ g.esc3d-marcas{opacity:0;transition:opacity .3s}
 .fotos-t{margin:22px 0 -6px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
 .fotos-sub{text-transform:none;letter-spacing:0;font-size:13px;opacity:.85}
 @media (max-width:640px){.photo-grid:not(.opc){grid-template-columns:repeat(3,1fr);gap:8px}.photo-grid:not(.opc) .slot small{display:none}}
+/* v34 free rating funnel */
+.cal-panel{max-width:480px}
+.cal-paso{display:none}
+.cal-paso.on{display:block;animation:qIn .35s ease}
+.cal-foto{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;aspect-ratio:4/4.4;border:1px dashed rgba(255,255,255,.4);border-radius:16px;background:rgba(255,255,255,.07);padding:0 0 18px;cursor:pointer;overflow:hidden;margin:0 0 14px}
+.cal-foto:hover{border-color:#fff}
+.cal-foto .slot-guia{top:8%;height:58%}
+.cal-foto b{font-weight:500;position:relative;z-index:1}
+.cal-foto small{position:relative;z-index:1;color:rgba(255,255,255,.7)}
+.cal-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+.cal-foto input{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:3}
+.cal-tips{list-style:none;padding:0;margin:0 0 6px;display:flex;flex-wrap:wrap;gap:6px}
+.cal-tips li{font-size:13px;padding:5px 10px;border-radius:var(--r-pill);background:rgba(255,255,255,.1);color:rgba(255,255,255,.85)}
+.cal-priv{text-align:center;font-size:13px;margin:12px 0 0}
+.cal-legal{font-size:12px;text-align:center;margin:22px 0 0;opacity:.7}
+.cal-scan{position:relative;border-radius:16px;overflow:hidden;margin:0 0 20px;background:#1c232a}
+.cal-scan canvas{display:block;width:100%;height:auto}
+.cal-linea{position:absolute;left:0;right:0;height:3px;background:#34e07a;box-shadow:0 0 18px 4px rgba(52,224,122,.7);animation:calScan 1.8s ease-in-out infinite alternate}
+@keyframes calScan{from{top:6%}to{top:92%}}
+.cal-pasos{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.cal-pasos li{display:flex;align-items:center;gap:10px;font-size:15px;color:rgba(255,255,255,.45);transition:color .3s}
+.cal-pasos li::before{content:"";flex:0 0 18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.3)}
+.cal-pasos li.act{color:#fff}
+.cal-pasos li.act::before{border-color:#fff;border-top-color:transparent;animation:calGira .7s linear infinite}
+.cal-pasos li.ok{color:#fff}
+.cal-pasos li.ok::before{border-color:#34e07a;background:#34e07a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2316191D' stroke-width='2.4'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E") center/12px no-repeat}
+@keyframes calGira{to{transform:rotate(360deg)}}
+.cal-res{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center;margin:12px 0 10px}
+.cal-res canvas{width:100%;height:auto;border-radius:14px;display:block}
+.cal-res-num span{font-size:64px;line-height:1}
+.cal-res-num small{font-size:18px;color:rgba(255,255,255,.6);margin-left:4px}
+.cal-res-num p{margin:8px 0 0;font-size:14px}
+.cal-borroso{filter:blur(7px);user-select:none;pointer-events:none}
+.cal-filas{margin:0 0 6px}
+.cal-filas .report-row{border-bottom-color:rgba(255,255,255,.14);padding:9px 0;font-size:14px}
+.cal-gate{margin-top:-60px;position:relative;padding:22px 20px 18px;border-radius:16px;background:rgba(18,24,30,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.18)}
+.cal-gate .su-h{margin-bottom:6px}
+.cal-gate .hint{margin:0 0 14px}
+.cal-video{margin-top:8px;padding:22px 20px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}
+.cal-video h2{font-family:var(--font-display);font-weight:400;font-size:26px;line-height:1.15;margin:8px 0 10px}
+.cal-video p{color:rgba(255,255,255,.82);font-size:15px;line-height:1.55}
+.cal-video .checks li{border-top-color:rgba(255,255,255,.14)}
+.cal-video .checks li::before{color:#34e07a}
+@media (max-width:560px){.cal-res-num span{font-size:52px}}
