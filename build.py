@@ -111,6 +111,7 @@ PAGES = [
     ("reporte.html", "Tu reporte · Resalta", "Tu análisis facial para leer y descargar.", '<script src="/assets/js/reporte.js?v=__V__"></script>'),
     ("visor.html", "Tu cara, medida · Resalta", "Vista previa del visor de medidas de Resalta.", ""),
     ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
+    ("afiliados.html", "Programa de afiliados · Resalta", "Gana 30% por cada análisis de Resalta que recomiendes con tu link.", ""),
     ("blog.html", "Blog · Resalta", "Simetría, proporciones, mandíbula y procedimientos: lo que hay que saber de tu cara, explicado claro y con medidas.", ""),
     ("blog/simetria-facial.html", "Simetría facial: qué es, cómo se mide y cuánto importa · Resalta", "Qué es la simetría facial, cómo se mide en una foto, qué la afecta y cuánto importa realmente para verte bien.", ""),
 ]
