@@ -1,10 +1,11 @@
 // Interactive measurement viewer: photo with the measurement lines on top and a list of measurements.
-import { analizar, ZONAS } from "/assets/js/medidas.js?v=5";
+import { analizar, precargar, ZONAS } from "/assets/js/medidas.js?v=6";
 
 const $ = (s) => document.querySelector(s);
 const file = $("#vFile"), go = $("#vGo"), msgEl = $("#vMsg");
 const ESTADO = { dentro: ["En rango", "ready"], cerca: ["Cerca del rango", "paid"], fuera: ["Fuera del rango", ""] };
 let img = null, data = null, zona = ZONAS[0][0], activa = null, view = null, fila = null;
+precargar(); // starts downloading the face model right away so measuring feels instant
 // On phones the explanation opens right under the measurement you tapped; on a wide screen it stays in its card.
 const movil = matchMedia("(max-width:900px)");
 let casa = null;
@@ -92,6 +93,8 @@ function render() {
 
 function setZona(id, scroll) {
   zona = id;
+  // The detail card may be sitting inside the list; park it back in its slot before the list is rebuilt.
+  fila = null; colocarDetalle();
   $("#vTabs").querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.zona === id));
   $("#vZones").querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.zona === id));
   const ms = data.medidas.filter(m => m.zona === id);
