@@ -319,7 +319,7 @@
     }
 
     import("/assets/js/medidas.js?v=18").then(m => m.precargar()).catch(() => {});
-    import("/assets/js/perfil.js?v=17").then(m => m.precargarPerfil()).catch(() => {});
+    import("/assets/js/perfil.js?v=19").then(m => m.precargarPerfil()).catch(() => {});
 
     const grid = $("#photoGrid");
     SLOTS.forEach(([key, title, sub]) => {
@@ -368,7 +368,7 @@
     async function medirPerfil(key, blob) {
       if (!sb || !order) return;
       try {
-        const { analizarPerfil } = await import("/assets/js/perfil.js?v=17");
+        const { analizarPerfil } = await import("/assets/js/perfil.js?v=19");
         const r = await analizarPerfil(await createImageBitmap(blob), (order.answers || {}).sexo);
         M.perfil[key] = compactarPerfil(r); await guardarMedidas();
       } catch (e) { delete M.perfil[key]; console.warn("perfil", e && e.message); }
@@ -574,7 +574,7 @@
       return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = s.signedUrl; });
     };
     async function medirPerfilGuardado(o) {
-      const { analizarPerfil } = await import("/assets/js/perfil.js?v=17");
+      const { analizarPerfil } = await import("/assets/js/perfil.js?v=19");
       for (const key of ["perfil_izq", "perfil_der"]) {
         try { return { ...compactarPerfil(await analizarPerfil(await cargarFoto(o, key), (o.answers || {}).sexo)), foto: key }; } catch (e) {}
       }
@@ -653,7 +653,7 @@
     }
     function abrirSim() {
       if (!sim && actual) {
-        sim = import("/assets/js/simular.js?v=18").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
+        sim = import("/assets/js/simular.js?v=19").then(m => m.iniciar(actual)).then(() => { $("#simWait").hidden = true; $("#simBox").hidden = false; })
           .catch(e => { sim = null; $("#simWait").hidden = true; msg($("#simMsg"), e && e.message === "sin_foto" ? "No encontramos tu foto de frente para simular." : "No pudimos preparar el simulador. Vuelve a intentarlo en un momento."); });
       }
     }
@@ -683,7 +683,7 @@
         const n = o.medidas.medidas.length + (pf ? pf.medidas.length : 0);
         $("#repCuenta").textContent = n + " medidas en " + (pf ? "frente y perfil" : "tu foto de frente");
         if (foto) $("#dFoto").style.backgroundImage = `url("${foto}")`;
-        actual = { url: foto, sexo: (o.answers || {}).sexo };
+        actual = { url: foto, urlPerfil: fotoP || null, sexo: (o.answers || {}).sexo };
         // someone may have opened Simular before the photo was ready
         if ($('.dash-tab[data-tab="simular"]').classList.contains("active")) abrirSim();
       }

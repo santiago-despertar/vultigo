@@ -43,129 +43,10 @@ function puntaje(v, lo, hi, tipo) {
   return Math.round(100 / (1 + Math.pow(z / 1.6, 2)));
 }
 
-export const ZONAS_PERFIL = [
-  ["nariz", "Nariz"],
-  ["labios", "Labios"],
-  ["menton", "Mentón y perfil"],
-  ["cuello", "Cuello y mandíbula"],
-  ["proporciones", "Proporciones"]
-];
-
-// image: HTMLImageElement / ImageBitmap / canvas. sexo: "hombre" | "mujer" | undefined
-export async function analizarPerfil(image, sexo) {
-  const s = await getSegmenter();
-  const W = image.naturalWidth || image.width, Hh = image.naturalHeight || image.height;
-  const mascara = (src) => {
-    const res = s.segment(src); const m = res.categoryMask;
-    const o = { mw: m.width, mh: m.height, cat: m.getAsUint8Array().slice() }; m.close && m.close(); return o;
-  };
-  // First pass on the whole photo only to find the head, second pass on a close crop so the edge is finer.
-  const p1 = mascara(image);
-  let bx0 = p1.mw, bx1 = 0, by0 = p1.mh, by1 = 0, n1 = 0;
-  for (let y = 0; y < p1.mh; y++) for (let x = 0; x < p1.mw; x++) if (p1.cat[y * p1.mw + x] === 3) { n1++; if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
-  if (n1 < p1.mw * p1.mh * 0.01) throw new Error("sin_cara");
-  const k1x = W / p1.mw, k1y = Hh / p1.mh, hs = (by1 - by0) * k1y;
-  let cy0 = Math.max(0, by0 * k1y - 0.35 * hs), cy1 = Math.min(Hh, by1 * k1y + 0.8 * hs);
-  let lado0 = cy1 - cy0, ccx = ((bx0 + bx1) / 2) * k1x;
-  let cx0 = Math.max(0, Math.min(W - Math.min(W, lado0), ccx - lado0 / 2)), cw = Math.min(W, lado0);
-  const lienzo = document.createElement("canvas"); const esc = Math.min(1, 1024 / Math.max(cw, lado0));
-  lienzo.width = Math.round(cw * esc); lienzo.height = Math.round(lado0 * esc);
-  lienzo.getContext("2d").drawImage(image, cx0, cy0, cw, lado0, 0, 0, lienzo.width, lienzo.height);
-  const { mw, mh, cat } = mascara(lienzo);
-  const sx = cw / mw, sy = lado0 / mh, ox = cx0, oy = cy0;
-  const at = (x, y) => cat[y * mw + x];
-  const persona = (x, y) => at(x, y) !== 0;
-
-  // which way the face looks: face skin sits in front of the hair
-  let fx = 0, fn = 0, hx = 0, hn = 0, yTop = mh, yBotSkin = 0;
-  for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) {
-    const c = at(x, y);
-    if (c === 3) { fx += x; fn++; if (y < yTop) yTop = y; if (y > yBotSkin) yBotSkin = y; }
-    else if (c === 1) { hx += x; hn++; }
-  }
-  if (fn < mw * mh * 0.01) throw new Error("sin_cara");
-  const fcx = fx / fn;
-  const d = hn > fn * 0.1 ? Math.sign(fcx - hx / hn) || 1 : (fcx > mw / 2 ? 1 : -1);
-
-  // front edge of the person in every row, as "how far forward" (a) and x
-  const frente = new Array(mh).fill(null);
-  for (let y = 0; y < mh; y++) {
-    if (d > 0) { for (let x = mw - 1; x >= 0; x--) if (persona(x, y)) { frente[y] = x; break; } }
-    else { for (let x = 0; x < mw; x++) if (persona(x, y)) { frente[y] = x; break; } }
-  }
-  const aRaw = frente.map(x => x === null ? null : d * x);
-  // light smoothing of the edge
-  const k = Math.max(1, Math.round(mh * 0.004));
-  const a = aRaw.map((v, y) => {
-    if (v === null) return null;
-    let s2 = 0, n = 0;
-    for (let j = y - k; j <= y + k; j++) if (j >= 0 && j < mh && aRaw[j] !== null) { s2 += aRaw[j]; n++; }
-    return s2 / n;
-  });
-  const P = (y) => ({ x: ox + frente[y] * sx + sx / 2, y: oy + y * sy + sy / 2 });
-  const arg = (y0, y1, fn2) => {
-    y0 = Math.max(0, Math.round(y0)); y1 = Math.min(mh - 1, Math.round(y1));
-    let best = null;
-    for (let y = y0; y <= y1; y++) if (a[y] !== null && (best === null || fn2(a[y], a[best]))) best = y;
-    return best;
-  };
-  const max = (y0, y1) => arg(y0, y1, (p, q) => p > q);
-  const min = (y0, y1) => arg(y0, y1, (p, q) => p < q);
-
-  // rough face height from the visible skin, refined once the chin is found
-  let H = Math.max(10, (yBotSkin - yTop) * 1.05);
-  const yPrn = max(yTop + 0.25 * H, yTop + 0.72 * H);
-  if (yPrn === null) throw new Error("perfil_no_claro");
-  const ySn = min(yPrn + 0.01 * H, yPrn + 0.14 * H);
-  const yLs = max(ySn + 0.01 * H, ySn + 0.13 * H);
-  const yLi = max(yLs + 0.04 * H, yLs + 0.17 * H);
-  const ySto = min(yLs, yLi);
-  const yB = min(yLi + 0.01 * H, yLi + 0.14 * H);
-  const yPog = max(yB + 0.01 * H, yB + 0.16 * H);
-  if ([ySn, yLs, yLi, yB, yPog].some(v => v === null)) throw new Error("perfil_no_claro");
-
-  // contour under the chin: bottom of the person in every column, walking from the chin back to the neck
-  const xPog = frente[yPog];
-  const sub = [];
-  for (let i = 0; i < mw; i++) {
-    const x = xPog - d * i; if (x < 0 || x >= mw) break;
-    let y = yPog; while (y < mh && persona(x, y)) y++;
-    if (y >= mh || y - yPog > 0.6 * H) break;
-    sub.push({ x, y });
-  }
-  if (sub.length < 6) throw new Error("perfil_no_claro");
-  // menton: the point of the chin furthest down and forward
-  let me = sub[0], mejor = -1e9;
-  sub.forEach(p => { const v = p.y * sy + d * p.x * sx; if (v > mejor) { mejor = v; me = p; } });
-  const ne = sub[sub.length - 1];
-  // cervical point: the corner between the line under the chin and the neck
-  let c = null, prof = 0;
-  { const dx = ne.x - me.x, dy = ne.y - me.y, L = Math.hypot(dx * sx, dy * sy) || 1;
-    sub.forEach(p => { if (d * (me.x - p.x) <= 0) return;
-      const t = Math.abs((p.x - me.x) * sx * dy * sy - (p.y - me.y) * sy * dx * sx) / L;
-      if (t > prof) { prof = t; c = p; } }); }
-  if (!c) throw new Error("perfil_no_claro");
-  const toImg = (p) => ({ x: ox + p.x * sx + sx / 2, y: oy + p.y * sy + sy / 2 });
-  const Me = toImg(me), C = toImg(c), Ne = prof > 0.02 * H * sy ? toImg(ne) : null;
-
-  // nasion: deepest point between the brow and the nose tip, searched where the proportions say it should be
-  const Lf = me.y - ySn;
-  const yTopN = Math.max(yTop, Math.round(ySn - 1.2 * Lf)), yBotN = Math.round(yPrn - 0.3 * Lf);
-  let yN = null, hondo = -1e9;
-  if (a[yTopN] === null) throw new Error("perfil_no_claro");
-  for (let y = yTopN; y <= yBotN; y++) { if (a[y] === null) continue;
-    const t = (y - yTopN) / (yPrn - yTopN), cuerda = a[yTopN] + t * (a[yPrn] - a[yTopN]);
-    if (cuerda - a[y] > hondo) { hondo = cuerda - a[y]; yN = y; } }
-  if (yN === null) throw new Error("perfil_no_claro");
-  const yG = max(yN - 0.32 * Lf, yN - 0.04 * Lf);
-  if (yG === null) throw new Error("perfil_no_claro");
-
-  const G = P(yG), N = P(yN), Prn = P(yPrn), Sn = P(ySn), Ls = P(yLs), Sto = P(ySto), Li = P(yLi), B = P(yB), Pog = P(yPog);
-  const yCm = Math.round(ySn - 0.45 * (ySn - yPrn)), Cm = P(yCm);
-  // order sanity check: every point below the previous one and the nose tip in front
-  const orden = [G, N, Prn, Sn, Ls, Li, B, Pog, Me];
-  for (let i = 1; i < orden.length; i++) if (orden[i].y < orden[i - 1].y - 2) throw new Error("perfil_no_claro");
-
+// All profile measurements from the named points. d is 1 when the face looks to the right of the photo.
+// Exported so the simulator can move the points and measure again.
+export function medirPuntos(P0, d, sexo) {
+  const { G, N, Prn, Cm, Sn, Ls, Sto, Li, B, Pog, Me, C, Ne, Tr } = P0;
   const mm = (sexo === "mujer" ? 115 : sexo === "hombre" ? 125 : 120) / Math.abs(Me.y - N.y); // N-Me ≈ 120 mm
   const fwd = (p, q) => d * (p.x - q.x); // how far p sits in front of q, px
   const mujer = sexo === "mujer";
@@ -308,18 +189,144 @@ export async function analizarPerfil(image, sexo) {
     lineas: [[Sn, Sto], [Sto, Me]],
     que: "Altura de la base de la nariz a la boca dividida entre la altura de la boca al mentón.",
     significa: "La referencia es 1 a 2. Por arriba, el labio superior es largo o el mentón corto." });
-  // forehead: follow the bare skin up from the brow until the hair starts
-  let yTr = yG; for (let y = yG; y >= 0 && frente[y] !== null; y--) { const c2 = at(Math.max(0, Math.min(mw - 1, frente[y] - d)), y); if (c2 === 3) yTr = y; else if (yG - y > 2 && c2 !== 3 && yTr - y > 3) break; }
-  if (yG - yTr > 0.3 * Lf) {
-    const Tr = P(yTr);
+  if (Tr) {
     add({ id: "frente_inclinacion", zona: "proporciones", nombre: "Inclinación de la frente", unidad: "°",
       valor: deg(Math.atan2(fwd(G, Tr), Math.abs(G.y - Tr.y))), rango: mujer ? [3, 14] : [8, 20],
       lineas: [[G, Tr], [G, { x: G.x, y: Tr.y }]],
       que: "Qué tanto se inclina la frente hacia atrás, de la ceja a donde empieza el cabello.",
       significa: "Una frente más vertical se percibe más suave; una más inclinada, con arco de ceja marcado, más angulosa." });
   }
+  return out;
+}
 
-  const puntos = { G, N, Prn, Cm, Sn, Ls, Sto, Li, B, Pog, Me, C, Ne };
+export const ZONAS_PERFIL = [
+  ["nariz", "Nariz"],
+  ["labios", "Labios"],
+  ["menton", "Mentón y perfil"],
+  ["cuello", "Cuello y mandíbula"],
+  ["proporciones", "Proporciones"]
+];
+
+// image: HTMLImageElement / ImageBitmap / canvas. sexo: "hombre" | "mujer" | undefined
+export async function analizarPerfil(image, sexo) {
+  const s = await getSegmenter();
+  const W = image.naturalWidth || image.width, Hh = image.naturalHeight || image.height;
+  const mascara = (src) => {
+    const res = s.segment(src); const m = res.categoryMask;
+    const o = { mw: m.width, mh: m.height, cat: m.getAsUint8Array().slice() }; m.close && m.close(); return o;
+  };
+  // First pass on the whole photo only to find the head, second pass on a close crop so the edge is finer.
+  const p1 = mascara(image);
+  let bx0 = p1.mw, bx1 = 0, by0 = p1.mh, by1 = 0, n1 = 0;
+  for (let y = 0; y < p1.mh; y++) for (let x = 0; x < p1.mw; x++) if (p1.cat[y * p1.mw + x] === 3) { n1++; if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+  if (n1 < p1.mw * p1.mh * 0.01) throw new Error("sin_cara");
+  const k1x = W / p1.mw, k1y = Hh / p1.mh, hs = (by1 - by0) * k1y;
+  let cy0 = Math.max(0, by0 * k1y - 0.35 * hs), cy1 = Math.min(Hh, by1 * k1y + 0.8 * hs);
+  let lado0 = cy1 - cy0, ccx = ((bx0 + bx1) / 2) * k1x;
+  let cx0 = Math.max(0, Math.min(W - Math.min(W, lado0), ccx - lado0 / 2)), cw = Math.min(W, lado0);
+  const lienzo = document.createElement("canvas"); const esc = Math.min(1, 1024 / Math.max(cw, lado0));
+  lienzo.width = Math.round(cw * esc); lienzo.height = Math.round(lado0 * esc);
+  lienzo.getContext("2d").drawImage(image, cx0, cy0, cw, lado0, 0, 0, lienzo.width, lienzo.height);
+  const { mw, mh, cat } = mascara(lienzo);
+  const sx = cw / mw, sy = lado0 / mh, ox = cx0, oy = cy0;
+  const at = (x, y) => cat[y * mw + x];
+  const persona = (x, y) => at(x, y) !== 0;
+
+  // which way the face looks: face skin sits in front of the hair
+  let fx = 0, fn = 0, hx = 0, hn = 0, yTop = mh, yBotSkin = 0;
+  for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) {
+    const c = at(x, y);
+    if (c === 3) { fx += x; fn++; if (y < yTop) yTop = y; if (y > yBotSkin) yBotSkin = y; }
+    else if (c === 1) { hx += x; hn++; }
+  }
+  if (fn < mw * mh * 0.01) throw new Error("sin_cara");
+  const fcx = fx / fn;
+  const d = hn > fn * 0.1 ? Math.sign(fcx - hx / hn) || 1 : (fcx > mw / 2 ? 1 : -1);
+
+  // front edge of the person in every row, as "how far forward" (a) and x
+  const frente = new Array(mh).fill(null);
+  for (let y = 0; y < mh; y++) {
+    if (d > 0) { for (let x = mw - 1; x >= 0; x--) if (persona(x, y)) { frente[y] = x; break; } }
+    else { for (let x = 0; x < mw; x++) if (persona(x, y)) { frente[y] = x; break; } }
+  }
+  const aRaw = frente.map(x => x === null ? null : d * x);
+  // light smoothing of the edge
+  const k = Math.max(1, Math.round(mh * 0.004));
+  const a = aRaw.map((v, y) => {
+    if (v === null) return null;
+    let s2 = 0, n = 0;
+    for (let j = y - k; j <= y + k; j++) if (j >= 0 && j < mh && aRaw[j] !== null) { s2 += aRaw[j]; n++; }
+    return s2 / n;
+  });
+  const P = (y) => ({ x: ox + frente[y] * sx + sx / 2, y: oy + y * sy + sy / 2 });
+  const arg = (y0, y1, fn2) => {
+    y0 = Math.max(0, Math.round(y0)); y1 = Math.min(mh - 1, Math.round(y1));
+    let best = null;
+    for (let y = y0; y <= y1; y++) if (a[y] !== null && (best === null || fn2(a[y], a[best]))) best = y;
+    return best;
+  };
+  const max = (y0, y1) => arg(y0, y1, (p, q) => p > q);
+  const min = (y0, y1) => arg(y0, y1, (p, q) => p < q);
+
+  // rough face height from the visible skin, refined once the chin is found
+  let H = Math.max(10, (yBotSkin - yTop) * 1.05);
+  const yPrn = max(yTop + 0.25 * H, yTop + 0.72 * H);
+  if (yPrn === null) throw new Error("perfil_no_claro");
+  const ySn = min(yPrn + 0.01 * H, yPrn + 0.14 * H);
+  const yLs = max(ySn + 0.01 * H, ySn + 0.13 * H);
+  const yLi = max(yLs + 0.04 * H, yLs + 0.17 * H);
+  const ySto = min(yLs, yLi);
+  const yB = min(yLi + 0.01 * H, yLi + 0.14 * H);
+  const yPog = max(yB + 0.01 * H, yB + 0.16 * H);
+  if ([ySn, yLs, yLi, yB, yPog].some(v => v === null)) throw new Error("perfil_no_claro");
+
+  // contour under the chin: bottom of the person in every column, walking from the chin back to the neck
+  const xPog = frente[yPog];
+  const sub = [];
+  for (let i = 0; i < mw; i++) {
+    const x = xPog - d * i; if (x < 0 || x >= mw) break;
+    let y = yPog; while (y < mh && persona(x, y)) y++;
+    if (y >= mh || y - yPog > 0.6 * H) break;
+    sub.push({ x, y });
+  }
+  if (sub.length < 6) throw new Error("perfil_no_claro");
+  // menton: the point of the chin furthest down and forward
+  let me = sub[0], mejor = -1e9;
+  sub.forEach(p => { const v = p.y * sy + d * p.x * sx; if (v > mejor) { mejor = v; me = p; } });
+  const ne = sub[sub.length - 1];
+  // cervical point: the corner between the line under the chin and the neck
+  let c = null, prof = 0;
+  { const dx = ne.x - me.x, dy = ne.y - me.y, L = Math.hypot(dx * sx, dy * sy) || 1;
+    sub.forEach(p => { if (d * (me.x - p.x) <= 0) return;
+      const t = Math.abs((p.x - me.x) * sx * dy * sy - (p.y - me.y) * sy * dx * sx) / L;
+      if (t > prof) { prof = t; c = p; } }); }
+  if (!c) throw new Error("perfil_no_claro");
+  const toImg = (p) => ({ x: ox + p.x * sx + sx / 2, y: oy + p.y * sy + sy / 2 });
+  const Me = toImg(me), C = toImg(c), Ne = prof > 0.02 * H * sy ? toImg(ne) : null;
+
+  // nasion: deepest point between the brow and the nose tip, searched where the proportions say it should be
+  const Lf = me.y - ySn;
+  const yTopN = Math.max(yTop, Math.round(ySn - 1.2 * Lf)), yBotN = Math.round(yPrn - 0.3 * Lf);
+  let yN = null, hondo = -1e9;
+  if (a[yTopN] === null) throw new Error("perfil_no_claro");
+  for (let y = yTopN; y <= yBotN; y++) { if (a[y] === null) continue;
+    const t = (y - yTopN) / (yPrn - yTopN), cuerda = a[yTopN] + t * (a[yPrn] - a[yTopN]);
+    if (cuerda - a[y] > hondo) { hondo = cuerda - a[y]; yN = y; } }
+  if (yN === null) throw new Error("perfil_no_claro");
+  const yG = max(yN - 0.32 * Lf, yN - 0.04 * Lf);
+  if (yG === null) throw new Error("perfil_no_claro");
+
+  const G = P(yG), N = P(yN), Prn = P(yPrn), Sn = P(ySn), Ls = P(yLs), Sto = P(ySto), Li = P(yLi), B = P(yB), Pog = P(yPog);
+  const yCm = Math.round(ySn - 0.45 * (ySn - yPrn)), Cm = P(yCm);
+  // order sanity check: every point below the previous one and the nose tip in front
+  const orden = [G, N, Prn, Sn, Ls, Li, B, Pog, Me];
+  for (let i = 1; i < orden.length; i++) if (orden[i].y < orden[i - 1].y - 2) throw new Error("perfil_no_claro");
+
+  // forehead: follow the bare skin up from the brow until the hair starts
+  let yTr = yG; for (let y = yG; y >= 0 && frente[y] !== null; y--) { const c2 = at(Math.max(0, Math.min(mw - 1, frente[y] - d)), y); if (c2 === 3) yTr = y; else if (yG - y > 2 && c2 !== 3 && yTr - y > 3) break; }
+  const Tr = yG - yTr > 0.3 * Lf ? P(yTr) : null;
+  const out = medirPuntos({ G, N, Prn, Cm, Sn, Ls, Sto, Li, B, Pog, Me, C, Ne, Tr }, d, sexo);
+  const puntos = { G, N, Prn, Cm, Sn, Ls, Sto, Li, B, Pog, Me, C, Ne, Tr };
   const ps = Object.values(puntos).filter(Boolean);
   const xs = ps.map(p => p.x), ys = ps.map(p => p.y);
   const caja = { x0: Math.min(...xs) - (d < 0 ? 0 : 0.35 * H * sx), x1: Math.max(...xs) + (d > 0 ? 0 : 0.35 * H * sx), y0: Math.min(...ys), y1: Math.max(...ys) };
@@ -331,7 +338,7 @@ export async function analizarPerfil(image, sexo) {
   if (yTop < 2) avisos.push("La cabeza queda cortada arriba en la foto.");
   if ((yPog - yTop) < mh * 0.25) avisos.push("La cara se ve pequeña en la foto de perfil. Acércate un poco más.");
   return {
-    tipo: "perfil", mira: d > 0 ? "derecha" : "izquierda", ancho: W, alto: Hh, caja, puntos,
+    tipo: "perfil", mira: d > 0 ? "derecha" : "izquierda", d, ancho: W, alto: Hh, caja, puntos,
     zonas: ZONAS_PERFIL.filter(([id]) => zonas.some(z => z.id === id)),
     medidas: out, avisos,
     resumen: { zonas, general: Math.round(zonas.reduce((t, z) => t + z.puntaje, 0) / zonas.length) }
