@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await userClient.auth.getUser();
     if (!user) return json({ error: "No autorizado" }, 401);
 
-    const { order_id } = await req.json();
+    const { order_id, luego } = await req.json();
     const { data: order } = await userClient.from("orders").select("id,status,tier,stripe_session_id,amount_mxn").eq("id", order_id).single();
     if (!order || !["pagado", "listo"].includes(order.status) || order.tier !== "soft" || !order.stripe_session_id) return json({ error: "Pedido no válido" }, 400);
 
@@ -93,7 +93,8 @@ Deno.serve(async (req) => {
       client_reference_id: order.id,
       metadata: { order_id: order.id, user_id: user.id, upgrade: "true" },
       locale: "es-419",
-      success_url: `${site}/gracias?pedido=${order.id}&mejora=1`,
+      // "luego=sub": they also picked the monthly follow-up, so the thank-you page activates it on return.
+      success_url: `${site}/gracias?pedido=${order.id}&mejora=1${luego === "sub" ? "&sub=1" : ""}`,
       cancel_url: `${site}/gracias?pedido=${order.id}`,
     });
     return json({ url: fallback.url });
