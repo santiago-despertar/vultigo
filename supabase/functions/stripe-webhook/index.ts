@@ -7,6 +7,22 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!);
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 // Affiliate commission for a paid order or upgrade. Unique per order and concept, so retries never double-pay.
+// Local prices, in the smallest unit Stripe uses for each currency (CLP has no cents). Keep in sync with MONEDAS in assets/js/config.js.
+const PRECIOS: Record<string, { soft: number; hard: number; up: number; sub: number }> = {
+  MXN: { soft: 149900, hard: 299900, up: 99900, sub: 34900 },
+  USD: { soft: 7900, hard: 15900, up: 4900, sub: 1900 },
+  EUR: { soft: 6900, hard: 13900, up: 4500, sub: 1600 },
+  COP: { soft: 25900000, hard: 51900000, up: 16900000, sub: 5900000 },
+  CLP: { soft: 79990, hard: 159990, up: 49990, sub: 18990 },
+  PEN: { soft: 27900, hard: 55900, up: 18900, sub: 6500 },
+};
+const monedaDe = (m: unknown) => { const c = String(m ?? "").toUpperCase(); return PRECIOS[c] ? c : "MXN"; };
+// Any charged amount expressed in pesos, using the same ratio as the price table. Commissions are always in pesos.
+const aPesos = (amount: number | null | undefined, currency: string | null | undefined) => {
+  const c = monedaDe(currency); if (!amount) return 0;
+  return c === "MXN" ? Math.round(amount / 100) : Math.round(amount * 1499 / PRECIOS[c].soft);
+};
+
 async function comision(orderId: string, concepto: string, ventaMxn: number) {
   if (!ventaMxn) return;
   const { data: o } = await admin.from("orders").select("afiliado_id,user_id").eq("id", orderId).single();
@@ -54,19 +70,19 @@ Deno.serve(async (req) => {
       if (o && o.tier === "soft") {
         await admin.from("orders").update({
           tier: "hard",
-          amount_mxn: (o.amount_mxn ?? 0) + (s.amount_total ? Math.round(s.amount_total / 100) : 0),
+          amount_mxn: (o.amount_mxn ?? 0) + (aPesos(s.amount_total, s.currency)),
         }).eq("id", s.client_reference_id).in("status", ["pagado", "listo"]);
-        await comision(s.client_reference_id, "mejora", s.amount_total ? Math.round(s.amount_total / 100) : 0);
+        await comision(s.client_reference_id, "mejora", aPesos(s.amount_total, s.currency));
       }
     } else if (s.payment_status === "paid" && s.client_reference_id) {
       const { data: cambiado } = await admin.from("orders").update({
         status: "pagado",
         tier: s.metadata?.tier === "hard" ? "hard" : "soft",
         stripe_session_id: s.id,
-        amount_mxn: s.amount_total ? Math.round(s.amount_total / 100) : null,
+        amount_mxn: s.amount_total ? aPesos(s.amount_total, s.currency) : null,
         paid_at: new Date().toISOString(),
       }).eq("id", s.client_reference_id).eq("status", "borrador").select("id");
-      if (cambiado && cambiado.length) await comision(s.client_reference_id, "venta", s.amount_total ? Math.round(s.amount_total / 100) : 0);
+      if (cambiado && cambiado.length) await comision(s.client_reference_id, "venta", aPesos(s.amount_total, s.currency));
     }
   }
   if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
