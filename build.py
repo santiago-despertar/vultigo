@@ -114,6 +114,7 @@ PAGES = [
     ("reporte.html", "Tu reporte · Resalta", "Tu análisis facial para leer y descargar.", '<script src="/assets/js/reporte.js?v=__V__"></script>'),
     ("visor.html", "Tu cara, medida · Resalta", "Vista previa del visor de medidas de Resalta.", ""),
     ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
+    ("creadores.html", "Programa de creadores · Resalta", "Gana 50% de cada análisis de Resalta que recomiendes. Tu audiencia recibe 10% de descuento y tú cobras cada mes.", ""),
     ("blog.html", "Blog · Resalta", "Simetría, proporciones, mandíbula y procedimientos: lo que hay que saber de tu cara, explicado claro y con medidas.", ""),
 ]
 
@@ -144,7 +145,7 @@ CARDS = "\n".join(
       <span class="blog-meta">{int(p.get('minutos') or 5)} min de lectura</span>
     </a>""" for p in POSTS)
 _hoy = _HOY_MX
-_urls = [("", "1.0", _hoy), ("blog", "0.7", POSTS[0]["fecha"] if POSTS else _hoy)] + [(f"blog/{p['slug']}", "0.7", p["fecha"]) for p in POSTS] + [("calificacion", "0.9", _hoy), ("privacidad", "0.2", _hoy), ("terminos", "0.2", _hoy)]
+_urls = [("", "1.0", _hoy), ("blog", "0.7", POSTS[0]["fecha"] if POSTS else _hoy)] + [(f"blog/{p['slug']}", "0.7", p["fecha"]) for p in POSTS] + [("calificacion", "0.9", _hoy), ("creadores", "0.6", _hoy), ("privacidad", "0.2", _hoy), ("terminos", "0.2", _hoy)]
 (ROOT / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(f"  <url><loc>https://resalta.co/{u}</loc><lastmod>{d}</lastmod><priority>{pr}</priority></url>\n" for u, pr, d in _urls) + "</urlset>\n", encoding="utf-8")
 
 # Runs before the page paints, so signed-out visitors go straight to sign-in (and signed-in ones skip it)
@@ -208,7 +209,7 @@ P_FOOTER = """<footer class="site-footer">
   </div>
 </footer>
 """
-head = HEAD.format(title="Programa de afiliados · Resalta", desc="Gana 30% por cada análisis de Resalta que recomiendes con tu link.", path="", page="portal", extra_head="")
+head = HEAD.format(title="Programa de afiliados · Resalta", desc="Gana 50% por cada análisis de Resalta que recomiendes con tu link.", path="", page="portal", extra_head="")
 head = head.replace('href="https://resalta.co/"', 'href="https://afiliados.resalta.co/"').replace('content="https://resalta.co/"', 'content="https://afiliados.resalta.co/"')
 head = head.replace('href="/assets/', 'href="https://resalta.co/assets/')
 head = _re.sub(r'<script>try\{\{if\(localStorage.*?</script>\n', '', head)
