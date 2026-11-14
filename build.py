@@ -72,7 +72,6 @@ FOOTER = """<footer class="site-footer">
         <a href="/blog">Blog</a>
         <a href="/cuenta">Entrar</a>
         <a href="https://afiliados.resalta.co">Programa de afiliados</a>
-        <a href="/creadores">Programa de creadores</a>
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Síguenos</p>
@@ -114,7 +113,6 @@ PAGES = [
     ("reporte.html", "Tu reporte · Resalta", "Tu análisis facial para leer y descargar.", '<script src="/assets/js/reporte.js?v=__V__"></script>'),
     ("visor.html", "Tu cara, medida · Resalta", "Vista previa del visor de medidas de Resalta.", ""),
     ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
-    ("creadores.html", "Programa de creadores · Resalta", "Graba videos con tu celular, nosotros los corremos como anuncios y te llevas 10% de lo que vendan, cada mes.", ""),
     ("blog.html", "Blog · Resalta", "Simetría, proporciones, mandíbula y procedimientos: lo que hay que saber de tu cara, explicado claro y con medidas.", ""),
 ]
 
@@ -145,7 +143,7 @@ CARDS = "\n".join(
       <span class="blog-meta">{int(p.get('minutos') or 5)} min de lectura</span>
     </a>""" for p in POSTS)
 _hoy = _HOY_MX
-_urls = [("", "1.0", _hoy), ("blog", "0.7", POSTS[0]["fecha"] if POSTS else _hoy)] + [(f"blog/{p['slug']}", "0.7", p["fecha"]) for p in POSTS] + [("calificacion", "0.9", _hoy), ("creadores", "0.5", _hoy), ("privacidad", "0.2", _hoy), ("terminos", "0.2", _hoy)]
+_urls = [("", "1.0", _hoy), ("blog", "0.7", POSTS[0]["fecha"] if POSTS else _hoy)] + [(f"blog/{p['slug']}", "0.7", p["fecha"]) for p in POSTS] + [("calificacion", "0.9", _hoy), ("privacidad", "0.2", _hoy), ("terminos", "0.2", _hoy)]
 (ROOT / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(f"  <url><loc>https://resalta.co/{u}</loc><lastmod>{d}</lastmod><priority>{pr}</priority></url>\n" for u, pr, d in _urls) + "</urlset>\n", encoding="utf-8")
 
 # Runs before the page paints, so signed-out visitors go straight to sign-in (and signed-in ones skip it)
