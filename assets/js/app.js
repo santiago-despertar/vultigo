@@ -19,6 +19,11 @@
     return MONEDAS.USD ? "USD" : "MXN";
   })();
   const LOCAL = MONEDAS[moneda];
+  // An amount already in the visitor's currency, rounded and written the way that country writes it.
+  const FMT = { MXN: n => `$${n.toLocaleString("es-MX")} MXN`, USD: n => `US$${n.toLocaleString("en-US")}`, EUR: n => `${n.toLocaleString("es-ES", { useGrouping: "always" })} €`,
+    COP: n => `$${n.toLocaleString("es-CO")} COP`, CLP: n => `$${n.toLocaleString("es-CL")} CLP`, PEN: n => `S/ ${n.toLocaleString("en-US")}` };
+  const PASO = { COP: 100, CLP: 10 }[moneda] || 1;
+  const dinero = v => (FMT[moneda] || FMT.MXN)(Math.round((v || 0) / PASO) * PASO);
   if (LOCAL) { C.PRICES = { soft: LOCAL.soft, hard: LOCAL.hard }; C.UPSELL = { was: LOCAL.was, now: LOCAL.now }; C.SUB_PRICE = LOCAL.sub; }
   // Code after a price only where "$" is ambiguous.
   const SUFIJO = { MXN: "MXN", COP: "COP", CLP: "CLP" }[moneda] || "";
@@ -1010,18 +1015,47 @@
     })();
   }
 
+  // ---------- creators program ----------
+  if (page === "creadores") {
+    const ventas = $("#crVentas"), tot = $("#crTotal"), tuyo = $("#crTuyo");
+    const calc = () => {
+      const n = Math.max(0, Math.min(100000, Math.round(Number(ventas.value) || 0)));
+      const total = n * (precio("soft") || 0);
+      tot.textContent = dinero(total); tuyo.textContent = dinero(total * 0.1);
+    };
+    if (ventas) { ventas.addEventListener("input", calc); calc(); }
+    const f = $("#crForm"), m = $("#crMsg");
+    if (f) f.addEventListener("submit", async ev => {
+      ev.preventDefault(); clearMsg(m);
+      const d = Object.fromEntries(new FormData(f).entries());
+      if (d.web) return; // filled by bots only
+      for (const k of ["nombre", "whatsapp", "email", "pais", "instagram", "tiktok"]) d[k] = String(d[k] || "").trim();
+      const digitos = d.whatsapp.replace(/\D/g, "");
+      if (!d.nombre || !d.pais) return msg(m, "Revisa tus datos: falta tu nombre o tu país.");
+      if (digitos.length < 10 || digitos.length > 15) return msg(m, "Revisa tu WhatsApp. Escríbelo con lada, por ejemplo +52 55 1234 5678.");
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return msg(m, "Revisa tu correo.");
+      if (!d.instagram && !d.tiktok) return msg(m, "Déjanos tu Instagram o tu TikTok para ver tus videos.");
+      if (!sb) return notReady(m);
+      const b = f.querySelector("button[type=submit]"); b.disabled = true;
+      const { error } = await sb.from("creadores").insert({
+        nombre: d.nombre, whatsapp: d.whatsapp, email: d.email.toLowerCase(), pais: d.pais,
+        instagram: d.instagram || null, tiktok: d.tiktok || null, moneda, ref: (typeof getRef === "function" ? getRef() : null) || null,
+      });
+      b.disabled = false;
+      if (error) { console.error(error); return msg(m, "No pudimos enviar tu solicitud. Inténtalo de nuevo en un momento."); }
+      f.hidden = true; $("#crOk").hidden = false;
+      track("generate_lead", { lead_type: "creador" });
+    });
+  }
+
   if (page === "portal") {
     const box = $("#afApp");
     const e = v => String(v ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     const mx = n => "$" + Math.round(n || 0).toLocaleString("es-MX");
     // Pesos to the affiliate's currency, with the same ratio as the price table (so a sale shows what the buyer paid).
-    const FMT = { MXN: n => `$${n.toLocaleString("es-MX")} MXN`, USD: n => `US$${n.toLocaleString("en-US")}`, EUR: n => `${n.toLocaleString("es-ES", { useGrouping: "always" })} €`,
-      COP: n => `$${n.toLocaleString("es-CO")} COP`, CLP: n => `$${n.toLocaleString("es-CL")} CLP`, PEN: n => `S/ ${n.toLocaleString("en-US")}` };
-    const PASO = { COP: 100, CLP: 10 }[moneda] || 1;
     const loc = (n, enPesos = true) => {
       const f = enPesos && moneda !== "MXN" && LOCAL && LOCAL.n ? LOCAL.n.soft / MONEDAS.MXN.n.soft : 1;
-      const v = Math.round((n || 0) * f / PASO) * PASO;
-      return (FMT[moneda] || FMT.MXN)(v);
+      return dinero((n || 0) * f);
     };
     // Same, for the big numbers: the currency code goes small so it never wraps on a phone.
     const locG = (n, enPesos = true) => e(loc(n, enPesos)).replace(/ (MXN|COP|CLP)$/, '<small style="font-size:.42em;letter-spacing:.04em;margin-left:4px">$1</small>');
