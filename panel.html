@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794662744">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794663860">
 <script>try{var _p=location.pathname;if(/\.html$/.test(_p))history.replaceState(null,"",((/\/index\.html$/.test(_p)?_p.slice(0,-10):_p.slice(0,-5))||"/")+location.search+location.hash)}catch(e){}</script>
 <script>try{var _d=document.documentElement;if(document.fonts&&document.fonts.load){_d.classList.add("fload");var _ok=function(){_d.classList.remove("fload")};Promise.all([document.fonts.load("300 40px Inter"),document.fonts.load("400 16px Inter"),document.fonts.load("600 16px Inter")]).then(_ok,_ok);setTimeout(_ok,900)}}catch(e){}</script>
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
@@ -54,6 +54,10 @@
     </div>
 
     <div class="acceso card" id="acceso" hidden></div>
+    <div class="card cu-aviso" id="cuerpoAviso" hidden>
+      <div><p class="label">Tu seguimiento incluye tu plan de cuerpo</p><p class="hint">Llena tus datos y sube tus fotos de físico para recibir tu plan de nutrición y ejercicio.</p></div>
+      <button type="button" class="btn btn-primary" id="cuerpoIr">Llenar mis datos</button>
+    </div>
     <div class="card" id="ordersCard">
       <p class="label" style="margin-bottom:6px">Tus análisis</p>
       <div id="orders"><p class="hint" style="padding:18px 0">Cargando…</p></div>
@@ -66,6 +70,7 @@
         <button type="button" data-tab="rasgos">Rasgos</button>
         <button type="button" data-tab="reporte">Reporte</button>
         <button type="button" data-tab="plan">Plan</button>
+        <button type="button" data-tab="cuerpo">Cuerpo</button>
         <button type="button" data-tab="simular">Simular</button>
         <button type="button" data-tab="progreso">Progreso</button>
         <button type="button" data-tab="chat">Preguntar</button>
@@ -102,6 +107,7 @@
               <button type="button" class="card dash-tool" data-ir="rasgos"><b>Rasgos</b><span class="hint">Angularidad, dimorfismo, piel, ojos, cabello y sonrisa</span></button>
               <button type="button" class="card dash-tool" data-ir="reporte"><b>Reporte</b><span class="hint">La lectura completa, zona por zona</span></button>
               <button type="button" class="card dash-tool" data-ir="plan"><b>Plan</b><span class="hint">Qué hacer y en qué orden</span></button>
+              <button type="button" class="card dash-tool" data-ir="cuerpo"><b>Cuerpo</b><span class="hint">Tu plan de nutrición y ejercicio, y tu avance de físico</span></button>
               <button type="button" class="card dash-tool" data-ir="simular"><b>Simular</b><span class="hint">Mueve mentón, nariz, labios y cejas sobre tu foto</span></button>
               <button type="button" class="card dash-tool" data-ir="progreso"><b>Progreso</b><span class="hint">Tu calificación en cada escaneo y la comparación entre fotos</span></button>
               <button type="button" class="card dash-tool" data-ir="chat"><b>Preguntar</b><span class="hint">Resuelve tus dudas sobre tu reporte, cortes, barba o piel</span></button>
@@ -143,6 +149,12 @@
             <h3 class="rep-h rep-h0">Tu plan</h3>
             <p class="hint rep-sub">En orden de impacto. Empieza por la primera fase y no brinques pasos.</p>
             <div class="rep-plan" id="repPlanFases"></div>
+          </div>
+
+          <div class="dash-tab" data-tab="cuerpo">
+            <h3 class="rep-h rep-h0">Tu cuerpo</h3>
+            <p class="hint rep-sub">Tu plan de nutrición y ejercicio para definir tu cara, y tu avance de físico mes con mes.</p>
+            <div id="cuerpoBox"><p class="hint" style="padding:18px 0">Cargando…</p></div>
           </div>
 
           <div class="dash-tab" data-tab="simular">
@@ -206,7 +218,7 @@
             <div class="card prog-oferta" id="progOferta">
               <p class="label" id="subL">Seguimiento mensual</p>
               <h3 id="subT">Mide tu avance cada mes</h3>
-              <p class="hint" id="subX">Un escaneo completo cada mes con reporte nuevo, tu línea de progreso y la comparación entre fotos. <b class="mono" data-sub-price>$349</b> <span data-moneda>MXN</span> al mes y cancelas cuando quieras.</p>
+              <p class="hint" id="subX">Un escaneo completo cada mes con reporte nuevo, tu plan de nutrición y ejercicio, y tu progreso de cara y físico. <b class="mono" data-sub-price>$349</b> <span data-moneda>MXN</span> al mes y cancelas cuando quieras.</p>
               <div class="msg" id="subMsg"></div>
               <div id="progAccion" class="prog-accion"></div>
               <p class="hint prog-tip">Para que la comparación sea justa, repite las fotos con la misma luz, distancia y peinado. Los cambios de piel, peso, barba o tratamientos se notan entre 6 y 12 semanas.</p>
@@ -282,8 +294,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794662744"></script>
-<script src="/assets/js/app.js?v=1794662744"></script>
+<script src="/assets/js/config.js?v=1794663860"></script>
+<script src="/assets/js/app.js?v=1794663860"></script>
 
 </body>
 </html>
