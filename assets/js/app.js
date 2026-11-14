@@ -860,7 +860,7 @@
         const { analizar } = await import("/assets/js/medidas.js?v=20");
         const bmp = await createImageBitmap(blob);
         const r = await analizar(bmp, (order.answers || {}).sexo);
-        crudo = { bmp, puntos: r.puntos, medidas: r.medidas, caja: r.caja };
+        crudo = { bmp, puntos: r.puntos, medidas: r.medidas, caja: r.caja, resumen: r.resumen };
         M.frente = compactar(r);
         await guardarMedidas();
         medidasListas = true; check();
@@ -947,12 +947,59 @@
       await espera(350);
     }
 
+    // The plans page speaks to this person: their measured photo, what we already found and what they asked for.
+    const FOCO = {
+      "Verme mejor en general": "Lo que más te suma cambiar primero, ordenado por impacto",
+      "Verme más joven": "Tu edad visual y qué rasgos te están sumando años",
+      "Mandíbula y perfil": "Tu mandíbula, tu mentón y tu perfil medidos contra rangos de referencia",
+      "Piel": "Una rutina de mañana y noche para tu tipo de piel",
+      "Cabello": "Los cortes que van con la forma de tu cara",
+      "Cejas y vello facial": "La forma de ceja y de barba que mejor le queda a tu cara",
+      "Ojos y mirada": "Cómo enmarcar tu mirada: cejas, ojeras y párpados",
+      "Salir mejor en fotos": "Tu lado bueno y el ángulo que más te favorece en fotos"
+    };
+    function personalizarOferta() {
+      const esc = v => String(v ?? "").replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+      const a = (order && order.answers) || {};
+      const nombre = String(a.nombre || "").trim().split(/\s+/)[0];
+      const h = document.querySelector('[data-step="3"] h2');
+      if (h && nombre) h.textContent = `${nombre}, tu cara ya está medida`;
+      const c = $("#mideCanvas"), box = $("#tuyo");
+      if (crudo && crudo.resumen && c && c.width && box) {
+        try { $("#tuyoImg").src = c.toDataURL("image/jpeg", 0.86); } catch (e) {}
+        $("#tuyoN").textContent = crudo.medidas.length;
+        const zs = crudo.resumen.zonas.filter(z => z.puntaje != null).sort((x, y) => y.puntaje - x.puntaje);
+        const abiertas = zs.slice(0, 2), cerradas = zs.slice(2);
+        $("#tuyoZonas").innerHTML = abiertas.map(z => `<div><span>${esc(z.nombre)}</span><b>${z.puntaje}/100</b></div>`).join("") +
+          cerradas.map(z => `<div><span>${esc(z.nombre)}</span><b class="lock" aria-label="Bloqueado"><i>88/100</i></b></div>`).join("");
+        const fuera = crudo.medidas.filter(m => m.estado && m.estado !== "dentro").length;
+        $("#tuyoNota").textContent = `Tu zona más fuerte es ${abiertas[0] ? abiertas[0].nombre.toLowerCase() : "tu cara"}. ` +
+          (fuera ? `${fuera} de tus ${crudo.medidas.length} medidas están fuera del rango de referencia. Tu reporte te dice cuáles, qué significan y qué hacer primero.` : "Tu reporte te dice qué significa cada medida y qué hacer primero.");
+        box.hidden = false;
+      }
+      const metas = String(a.objetivo || "").split(", ").filter(x => FOCO[x]);
+      const lista = metas.map(x => FOCO[x]);
+      if (a.tiempo) lista.push(`Un plan de 90 días hecho para el tiempo que tienes: ${String(a.tiempo).toLowerCase()} al día`);
+      if (lista.length) { $("#tuyoLista").innerHTML = lista.map(t => `<li>${esc(t)}</li>`).join(""); $("#tuyoFoco").hidden = false; }
+      // Someone who only wants natural changes is told honestly that Esencial covers it.
+      const natural = /^Solo/.test(a.procedimientos || ""), razon = $("#planRazon");
+      const recSoft = document.querySelector('[data-plan="soft"] .plan-rec'), recHard = document.querySelector('[data-plan="hard"] .plan-rec');
+      if (natural && recSoft && recHard) {
+        recSoft.hidden = false; recHard.hidden = true;
+        if (razon) { razon.textContent = "Nos dijiste que prefieres cambios sin procedimientos, así que el plan Esencial cubre todo lo que buscas."; razon.hidden = false; }
+      } else if (/procedimiento|cirug/i.test(a.procedimientos || "") && razon) {
+        razon.textContent = "Como estás abierto a procedimientos, el plan Completo te dice cuáles sí tienen sentido para tu cara y cuáles no.";
+        razon.hidden = false;
+      }
+    }
+
     $("#toPay").addEventListener("click", async () => {
       const b = $("#toPay"); b.disabled = true;
       if (sb && order) await sb.from("orders").update({ photos_consent_at: new Date().toISOString() }).eq("id", order.id);
       const w0 = sb && order && !(await subEstado).activa ? warmPay() : null; if (w0) w0.catch(() => {}); // Stripe page gets ready while they watch
       try { await animarMedicion(); } catch (e) { console.warn(e); }
       b.disabled = false;
+      try { personalizarOferta(); } catch (e) { console.warn(e); }
       go(3);
       if (await modoMensual()) return;
       const w = warmPay(); if (w) w.catch(() => {});
