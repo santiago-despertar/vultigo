@@ -10,6 +10,22 @@ const cors = {
 };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
+// Local prices, in the smallest unit Stripe uses for each currency (CLP has no cents). Keep in sync with MONEDAS in assets/js/config.js.
+const PRECIOS: Record<string, { soft: number; hard: number; up: number; sub: number }> = {
+  MXN: { soft: 149900, hard: 299900, up: 99900, sub: 34900 },
+  USD: { soft: 7900, hard: 15900, up: 4900, sub: 1900 },
+  EUR: { soft: 6900, hard: 13900, up: 4500, sub: 1600 },
+  COP: { soft: 25900000, hard: 51900000, up: 16900000, sub: 5900000 },
+  CLP: { soft: 79990, hard: 159990, up: 49990, sub: 18990 },
+  PEN: { soft: 27900, hard: 55900, up: 18900, sub: 6500 },
+};
+const monedaDe = (m: unknown) => { const c = String(m ?? "").toUpperCase(); return PRECIOS[c] ? c : "MXN"; };
+// Any charged amount expressed in pesos, using the same ratio as the price table. Commissions are always in pesos.
+const aPesos = (amount: number | null | undefined, currency: string | null | undefined) => {
+  const c = monedaDe(currency); if (!amount) return 0;
+  return c === "MXN" ? Math.round(amount / 100) : Math.round(amount * 1499 / PRECIOS[c].soft);
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -19,7 +35,8 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return json({ error: "No autorizado" }, 401);
 
-    const { order_id, tier: wanted, ref } = await req.json();
+    const { order_id, tier: wanted, ref, moneda: m } = await req.json();
+    const moneda = monedaDe(m);
     const { data: order } = await supabase.from("orders").select("id,status,tier,photos_consent_at,afiliado_id").eq("id", order_id).single();
     if (!order || order.status !== "borrador") return json({ error: "Pedido no válido" }, 400);
     const tier = (wanted ?? order.tier) === "hard" ? "hard" : "soft";
@@ -55,13 +72,23 @@ Deno.serve(async (req) => {
       if (cupon) discounts = [{ coupon: id }];
     }
     const site = Deno.env.get("SITE_URL") ?? "https://resalta.co";
+    // Pesos use the Stripe prices; other currencies charge the rounded local price on the same product.
+    const priceId = Deno.env.get(tier === "hard" ? "STRIPE_PRICE_HARD" : "STRIPE_PRICE_SOFT")!;
+    let linea: Stripe.Checkout.SessionCreateParams.LineItem = { price: priceId, quantity: 1 };
+    if (moneda !== "MXN") {
+      const precio = await stripe.prices.retrieve(priceId);
+      const product = typeof precio.product === "string" ? precio.product : precio.product.id;
+      linea = { quantity: 1, price_data: { currency: moneda.toLowerCase(), product, unit_amount: PRECIOS[moneda][tier] } };
+    }
+    // Months without interest only exist for Mexican cards in pesos.
+    const cuotas = moneda === "MXN" ? { installments: { enabled: true } } : {};
     const base = {
       mode: "payment" as const,
-      line_items: [{ price: Deno.env.get(tier === "hard" ? "STRIPE_PRICE_HARD" : "STRIPE_PRICE_SOFT")!, quantity: 1 }],
+      line_items: [linea],
       customer_creation: "always" as const,
       customer_email: user.email,
       client_reference_id: order.id,
-      metadata: { order_id: order.id, user_id: user.id, tier, afiliado_id: afiliado ? afiliado.id : "" },
+      metadata: { order_id: order.id, user_id: user.id, tier, moneda, afiliado_id: afiliado ? afiliado.id : "" },
       ...(discounts ? { discounts } : {}),
       locale: "es-419" as const,
       success_url: `${site}/gracias?pedido=${order.id}`,
@@ -72,13 +99,13 @@ Deno.serve(async (req) => {
       // Saves the card so the one-click upgrade on the thank-you page can reuse it.
       session = await stripe.checkout.sessions.create({
         ...base,
-        payment_method_options: { card: { installments: { enabled: true }, setup_future_usage: "off_session" } },
+        payment_method_options: { card: { ...cuotas, setup_future_usage: "off_session" } },
       });
     } catch (e) {
       console.error("checkout with saved card failed, retrying without it", e);
       session = await stripe.checkout.sessions.create({
         ...base,
-        payment_method_options: { card: { installments: { enabled: true } } },
+        ...(moneda === "MXN" ? { payment_method_options: { card: cuotas } } : {}),
       });
     }
     return json({ url: session.url });
