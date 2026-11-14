@@ -4,15 +4,15 @@
       <img src="/assets/img/mark-ink.svg" alt="" style="height:56px;margin:0 auto 20px">
       <h1 style="font-size:40px;margin-bottom:12px">Recibimos tu pago</h1>
       <p class="lead" style="margin-bottom:28px">Ya estamos trabajando en tu análisis. En unos minutos lo vas a ver en tu cuenta.</p>
-      <p class="hint" style="margin-bottom:24px">¿Pagaste en OXXO? Tu análisis empieza en cuanto OXXO confirme el pago, normalmente en unas horas.</p>
+      <p class="hint" style="margin-bottom:24px" data-solo-mx>¿Pagaste en OXXO? Tu análisis empieza en cuanto OXXO confirme el pago, normalmente en unas horas.</p>
       <div class="acceso card" id="acceso" hidden></div>
       <div class="upsell" id="upsell" hidden>
         <span class="label">Antes de irte</span>
         <h2 style="font-size:26px;margin:10px 0 8px">Agrega el análisis avanzado con descuento</h2>
-        <p class="upsell-price"><s data-upsell-was>$1,500</s> <b class="mono"><span data-upsell-now>$999</span> MXN</b></p>
+        <p class="upsell-price"><s data-upsell-was>$1,500</s> <b class="mono"><span data-upsell-now>$999</span> <span data-moneda>MXN</span></b></p>
         <p class="hint">Suma a tu reporte las opciones de procedimientos y cirugía que aplican a tu caso y qué esperar de cada una. Es información general para revisar con un médico certificado. Este precio solo aparece aquí, después de tu compra.</p>
         <div class="msg" id="upsellMsg"></div>
-        <button class="btn btn-primary" id="upsellYes"><span>Sí, agregarlo por <span data-upsell-now>$999</span> MXN</span></button>
+        <button class="btn btn-primary" id="upsellYes"><span>Sí, agregarlo por <span data-upsell-now>$999</span> <span data-moneda>MXN</span></span></button>
         <p class="hint" style="margin-top:12px">Se cobra a la tarjeta que acabas de usar. Si tu banco pide confirmarlo, te llevamos a la página de pago.</p>
         <button class="upsell-no" id="upsellNo" type="button">No, gracias</button>
       </div>
@@ -20,7 +20,7 @@
         <span class="label">Para que veas tu avance</span>
         <h2 style="font-size:26px;margin:10px 0 8px">¿Agregamos tu seguimiento mensual?</h2>
         <p class="upsell-price"><b>Tu primer mes ya está cubierto</b></p>
-        <p class="hint">Después <b class="mono"><span data-sub-price>$349</span> MXN</b> al mes, a partir del <span data-sub-fecha></span>, en la misma tarjeta. Cancelas cuando quieras desde tu cuenta, sin llamadas.</p>
+        <p class="hint">Después <b class="mono"><span data-sub-price>$349</span> <span data-moneda>MXN</span></b> al mes, a partir del <span data-sub-fecha></span>, en la misma tarjeta. Cancelas cuando quieras desde tu cuenta, sin llamadas.</p>
         <ul class="checks" style="text-align:left;max-width:420px;margin:14px auto 18px">
           <li>Un escaneo completo cada mes, con reporte nuevo</li>
           <li>Tu línea de progreso y el antes y después lado a lado</li>
@@ -31,7 +31,7 @@
         <button class="upsell-no" id="subNo" type="button">Ahora no</button>
       </div>
       <div class="msg" id="upsellDone"></div>
-      <a class="btn btn-primary" href="/panel.html" id="toPanel">Ir a mi cuenta</a>
+      <a class="btn btn-primary" href="/panel" id="toPanel">Ir a mi cuenta</a>
     </div>
   </div>
 </main>
