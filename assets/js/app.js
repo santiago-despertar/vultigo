@@ -982,7 +982,7 @@
     })();
   }
 
-  if (page === "afiliados") {
+  if (page === "portal") {
     const box = $("#afApp");
     const e = v => String(v ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     const mx = n => "$" + Math.round(n || 0).toLocaleString("es-MX");
@@ -995,9 +995,70 @@
       <div class="field"><label for="af-met">Cómo quieres cobrar</label><select id="af-met" name="pago_metodo"><option value="paypal">PayPal</option><option value="transferencia">Transferencia bancaria</option><option value="otro">Otro</option></select></div>
       <div class="field"><label for="af-dat">Tus datos de pago</label><input id="af-dat" name="pago_datos" maxlength="200" placeholder="Tu correo de PayPal o tu CLABE y banco" value="${e(a && a.pago_datos)}"><span class="hint">Los usamos solo para pagarte. Puedes cambiarlos cuando quieras.</span></div>`;
 
-    function sinSesion() {
-      box.innerHTML = `<div class="card af-card"><h2 class="af-h">Crea tu link de afiliado</h2><p class="hint" style="margin:8px 0 18px">Entra con tu correo o con Google. Toma un minuto.</p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn btn-primary" href="/cuenta?next=/afiliados">Crear mi link</a><a class="btn btn-ghost" href="/cuenta?modo=entrar&next=/afiliados">Ya tengo cuenta</a></div></div>`;
+    // The affiliate portal lives on its own subdomain with its own sign-in, separate from customer accounts.
+    const GOOGLE_SVG = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.9 6.2C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.9-6.2A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l8-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.9l-8 6.2C6.6 42.6 14.6 48 24 48z"/></svg>`;
+    function sinSesion(modo) {
+      modo = modo || "signup";
+      box.innerHTML = `<div class="card af-card af-auth">
+        <h2 class="af-h">${modo === "signup" ? "Crea tu cuenta de afiliado" : modo === "nueva" ? "Elige tu nueva contraseña" : "Entra a tu panel"}</h2>
+        ${modo === "nueva" ? "" : `<div class="tabs" role="tablist" style="margin:18px 0 22px"><button type="button" class="${modo === "signup" ? "active" : ""}" data-m="signup">Crear cuenta</button><button type="button" class="${modo === "login" ? "active" : ""}" data-m="login">Entrar</button></div>`}
+        <form id="afAuth" novalidate>
+          ${modo === "signup" ? `<div class="field"><label for="aa-nom">Tu nombre o el de tu marca</label><input id="aa-nom" name="nombre" maxlength="80" autocomplete="name" required></div>` : ""}
+          ${modo === "nueva" ? "" : `<div class="field"><label for="aa-em">Correo</label><input id="aa-em" name="email" type="email" autocomplete="email" required></div>`}
+          <div class="field"><label for="aa-pw">Contraseña</label><input id="aa-pw" name="password" type="password" minlength="8" autocomplete="${modo === "login" ? "current-password" : "new-password"}" required placeholder="Mínimo 8 caracteres"></div>
+          <div class="msg" id="aaMsg"></div>
+          <button class="btn btn-primary btn-block" type="submit">${modo === "signup" ? "Crear mi cuenta" : modo === "nueva" ? "Guardar contraseña" : "Entrar"}</button>
+          ${modo === "login" ? `<p class="hint" style="margin-top:12px"><a href="#" id="aaOlvide">¿Olvidaste tu contraseña?</a></p>` : ""}
+        </form>
+        ${modo === "nueva" ? "" : `<div style="margin-top:14px"><button class="btn btn-google btn-block" type="button" id="aaGoogle">${GOOGLE_SVG}<span>Continuar con Google</span></button></div>`}
+        <p class="hint" style="margin-top:16px">Esta cuenta es solo para el programa de afiliados. Si quieres tu análisis, entra en <a href="https://resalta.co/cuenta">resalta.co</a>.</p>
+      </div>`;
+      box.querySelectorAll("[data-m]").forEach(b => b.onclick = () => sinSesion(b.dataset.m));
+      const f = $("#afAuth"), m = $("#aaMsg");
+      const g = $("#aaGoogle");
+      if (g) g.onclick = async () => {
+        const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + "/", queryParams: { prompt: "select_account" } } });
+        if (error) msg(m, errES(error));
+      };
+      const olv = $("#aaOlvide");
+      if (olv) olv.onclick = async ev => {
+        ev.preventDefault(); clearMsg(m);
+        const em = f.email.value.trim();
+        if (!em.includes("@")) return msg(m, "Escribe tu correo arriba y vuelve a dar clic.");
+        await sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + "/?modo=nueva" });
+        msg(m, "Si el correo existe, te mandamos un enlace para cambiar tu contraseña.", "ok");
+      };
+      f.addEventListener("submit", async ev => {
+        ev.preventDefault(); clearMsg(m);
+        const pw = f.password.value;
+        if (pw.length < 8) return msg(m, "La contraseña debe tener al menos 8 caracteres.");
+        const b = f.querySelector('[type="submit"]'), txt = b.textContent; b.disabled = true; b.textContent = "Un momento…";
+        try {
+          if (modo === "nueva") {
+            const { error } = await sb.auth.updateUser({ password: pw });
+            if (error) throw error;
+            history.replaceState(null, "", "/"); return cargar();
+          }
+          const email = f.email.value.trim().toLowerCase();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Escribe un correo válido.");
+          if (modo === "login") {
+            const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+            if (error) throw error;
+            return cargar();
+          }
+          const nombre = f.nombre.value.trim().slice(0, 80);
+          if (!nombre) throw new Error("Escribe tu nombre.");
+          const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { full_name: nombre, tipo: "afiliado" }, emailRedirectTo: location.origin + "/" } });
+          if (error) throw error;
+          if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+            b.disabled = false; b.textContent = txt;
+            return msg(m, "Ya hay una cuenta con este correo. Entra con tu contraseña o con Google.", "info");
+          }
+          track("afiliado_registro");
+          if (data && data.session) return cargar();
+          box.innerHTML = `<div class="card af-card"><h2 class="af-h">Revisa tu correo</h2><p class="hint" style="margin-top:10px">Te mandamos un enlace a <b>${e(email)}</b> para confirmar tu cuenta. Al abrirlo regresas aquí y creas tu link.</p></div>`;
+        } catch (err) { b.disabled = false; b.textContent = txt; msg(m, errES(err)); }
+      });
     }
 
     function unirme(d) {
@@ -1009,7 +1070,7 @@
         ${pagoCampos(null)}
         <div class="msg" id="afMsg"></div>
         <button class="btn btn-primary" type="submit">Crear mi link</button>
-        <p class="hint" style="margin-top:14px">Al crearlo aceptas las reglas del programa de abajo y los <a href="/terminos">términos</a>.</p></form>`;
+        <p class="hint" style="margin-top:14px">Al crearlo aceptas las reglas del programa de abajo y los <a href="https://resalta.co/terminos">términos</a>.</p></form>`;
       const f = $("#afJoin"), cod = f.codigo;
       cod.addEventListener("input", () => { cod.value = cod.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""); $("#afPrev").textContent = "resalta.co/?ref=" + cod.value; });
       f.addEventListener("submit", async ev => {
@@ -1086,10 +1147,19 @@
       pintar().catch(() => { $("#afAdm").innerHTML = `<p class="hint">No se pudo cargar.</p>`; });
     }
 
+    if (sb && sb.auth.onAuthStateChange) sb.auth.onAuthStateChange(ev => { if (ev === "PASSWORD_RECOVERY") sinSesion("nueva"); });
+    const salir = $("#afSalir");
+    if (salir) salir.onclick = async () => { await sb.auth.signOut().catch(() => {}); salir.hidden = true; sinSesion("login"); };
     async function cargar() {
       if (!sb) return sinSesion();
-      const u = await getUser();
-      if (!u) return sinSesion();
+      if (new URLSearchParams(location.search).get("modo") === "nueva" || /type=recovery/.test(location.hash)) {
+        for (let i = 0; i < 10 && !(await sb.auth.getSession()).data.session; i++) await new Promise(r => setTimeout(r, 300));
+        return sinSesion("nueva");
+      }
+      let u = await getUser();
+      if (!u && /[?&#](code|access_token)=/.test(location.href)) { for (let i = 0; i < 10 && !u; i++) { await new Promise(r => setTimeout(r, 300)); u = await getUser(); } }
+      if (salir) salir.hidden = !u;
+      if (!u) return sinSesion(new URLSearchParams(location.search).get("modo") === "entrar" ? "login" : "signup");
       let d;
       try { d = await fnCall("afiliados", { accion: "panel" }); }
       catch (err) { return sinSesion(); }
