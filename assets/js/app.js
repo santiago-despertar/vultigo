@@ -230,6 +230,7 @@
   // analytics events (Google Analytics; the Meta pixel can hook here too)
   // Meta pixel names for our events; purchase carries the order id so Meta never counts it twice.
   const META = { sign_up: "CompleteRegistration", begin_checkout: "InitiateCheckout", purchase: "Purchase", generate_lead: "Lead" };
+  const galleta = n => { const m = document.cookie.match(new RegExp("(?:^|; )" + n + "=([^;]*)")); return m ? decodeURIComponent(m[1]) : ""; };
   const track = (nombre, datos) => {
     datos = datos || {};
     try { if (window.gtag) window.gtag("event", nombre, datos); } catch (e) {}
@@ -848,7 +849,7 @@
     function warmPay() {
       if (!sb || !order) return null;
       const p = plan;
-      if (!payReady[p]) payReady[p] = fnCall("create-checkout", { order_id: order.id, tier: p, ref: getRef(), moneda }).catch(e => { delete payReady[p]; throw e; });
+      if (!payReady[p]) payReady[p] = fnCall("create-checkout", { order_id: order.id, tier: p, ref: getRef(), moneda, fbp: galleta("_fbp"), fbc: galleta("_fbc") || (new URLSearchParams(location.search).get("fbclid") ? `fb.1.${Date.now()}.${new URLSearchParams(location.search).get("fbclid")}` : "") }).catch(e => { delete payReady[p]; throw e; });
       return payReady[p];
     }
 
