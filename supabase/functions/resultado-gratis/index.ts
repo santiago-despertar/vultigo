@@ -1,8 +1,9 @@
 // Free rating: saves the lead and emails the result. The result is only delivered by email, so the
 // address has to be real and the first email gets opened (good for the follow-up sequence).
-// It also adds the contact to a Brevo list, which is what starts the email sequence.
-// Secrets: BREVO_API_KEY, BREVO_LIST_ID (number), BREVO_SENDER_EMAIL (default hola@resalta.co), SITE_URL
-// Without BREVO_API_KEY the lead is still saved with enviado_at empty, so it can be sent later.
+// It also adds the contact to a Sender group, which is what starts the email sequence.
+// Secrets: SENDER_API_KEY, SENDER_GROUP_ID (optional, defaults to the "Leads calificación gratis" group), SENDER_FROM (default contacto@resalta.co), SITE_URL
+// Without SENDER_API_KEY the lead is still saved with enviado_at empty. Every later call also retries
+// a few leads that were never sent, so a backlog clears itself once the key exists.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const cors = {
@@ -66,35 +67,48 @@ Deno.serve(async (req) => {
     const { data: lead, error } = await admin.from("leads").insert({ email, nombre, score, metrics: { partes, fuerte, debil }, source: "calificacion" }).select("id").single();
     if (error) throw error;
 
-    const key = Deno.env.get("BREVO_API_KEY");
+    const key = Deno.env.get("SENDER_API_KEY");
     if (!key) return json({ ok: true, pendiente: true });
-    const site = Deno.env.get("SITE_URL") ?? "https://resalta.co";
-    const h = { "api-key": key, "Content-Type": "application/json", accept: "application/json" };
+    const enviado = await enviar(key, { id: lead.id, email, nombre, score, metrics: { partes, fuerte, debil } });
 
-    const envio = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST", headers: h,
-      body: JSON.stringify({
-        sender: { name: "Resalta", email: Deno.env.get("BREVO_SENDER_EMAIL") ?? "hola@resalta.co" },
-        to: [{ email, name: nombre }],
-        subject: `${nombre.split(/\s+/)[0]}, tu calificación facial: ${score}/100`,
-        htmlContent: correo(nombre, score, partes, fuerte, debil, site),
-        tags: ["calificacion"],
-      }),
-    });
-    if (!envio.ok) console.error("brevo send", envio.status, await envio.text());
-    else await admin.from("leads").update({ enviado_at: new Date().toISOString() }).eq("id", lead.id);
+    // clear any backlog (leads saved while email was not set up yet)
+    const { data: atrasados } = await admin.from("leads").select("id,email,nombre,score,metrics")
+      .eq("source", "calificacion").is("enviado_at", null).neq("id", lead.id).order("created_at").limit(5);
+    for (const l of atrasados ?? []) await enviar(key, l);
 
-    // the list is what starts the sequence in Brevo
-    const lista = Number(Deno.env.get("BREVO_LIST_ID") ?? "");
-    const contacto = await fetch("https://api.brevo.com/v3/contacts", {
-      method: "POST", headers: h,
-      body: JSON.stringify({ email, updateEnabled: true, attributes: { FIRSTNAME: nombre, PUNTAJE: score }, ...(lista > 0 ? { listIds: [lista] } : {}) }),
-    });
-    if (!contacto.ok && contacto.status !== 204) console.error("brevo contact", contacto.status, await contacto.text());
-
-    return json({ ok: true });
+    return json({ ok: true, enviado });
   } catch (e) {
     console.error(e);
     return json({ error: "No se pudo enviar" }, 500);
   }
 });
+
+type Lead = { id: string; email: string; nombre: string; score: number; metrics: { partes?: Parte[]; fuerte?: string; debil?: { k: string; tip?: string } | null } | null };
+
+async function enviar(key: string, l: Lead) {
+  const site = Deno.env.get("SITE_URL") ?? "https://resalta.co";
+  const h = { Authorization: `Bearer ${key}`, "Content-Type": "application/json", Accept: "application/json" };
+  const m = l.metrics ?? {};
+  const nombre = l.nombre || "Hola";
+  const envio = await fetch("https://api.sender.net/v2/message/send", {
+    method: "POST", headers: h,
+    body: JSON.stringify({
+      from: { name: "Resalta", email: Deno.env.get("SENDER_FROM") ?? "contacto@resalta.co" },
+      to: { email: l.email, name: nombre },
+      subject: `${nombre.split(/\s+/)[0]}, tu calificación facial: ${Math.round(l.score)}/100`,
+      html: correo(nombre, l.score, m.partes ?? [], m.fuerte ?? "", m.debil ?? null, site),
+    }),
+  });
+  const r = await envio.text();
+  if (!envio.ok || !/"success"\s*:\s*true/.test(r)) { console.error("sender send", envio.status, r); return false; }
+  await admin.from("leads").update({ enviado_at: new Date().toISOString() }).eq("id", l.id);
+
+  // the group is what starts the sequence in Sender
+  const grupo = Deno.env.get("SENDER_GROUP_ID") ?? "aM2mX5"; // "Leads calificación gratis"
+  const sub = await fetch("https://api.sender.net/v2/subscribers", {
+    method: "POST", headers: h,
+    body: JSON.stringify({ email: l.email, firstname: nombre, ...(grupo ? { groups: [grupo] } : {}), trigger_automation: true }),
+  });
+  if (!sub.ok) console.error("sender subscriber", sub.status, await sub.text());
+  return true;
+}
