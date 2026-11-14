@@ -2098,11 +2098,11 @@ html.fq-abierto{overflow:hidden}
 @keyframes dzB{0%{display:none}32%,94%{display:inline}95%,100%{display:none}}
 
 /* ---------- homepage: draggable before/after ---------- */
-.bax{max-width:760px;margin:0 auto;padding:0 24px}
+.bax{max-width:540px;margin:0 auto;padding:0 24px}
 .bax-tabs{display:flex;gap:6px;padding:4px;background:var(--mist);border-radius:999px;width:max-content;margin:0 auto 18px}
 .bax-tabs button{height:38px;padding:0 20px;border:0;border-radius:999px;background:transparent;font:500 14px var(--font-sans);color:var(--ink-muted);cursor:pointer}
 .bax-tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.bax-frame{position:relative;aspect-ratio:900/1000;border-radius:18px;overflow:hidden;background:#C9D2D9;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize}
+.bax-frame{position:relative;aspect-ratio:4/4.6;border-radius:18px;overflow:hidden;background:#C9D2D9;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize}
 .bax-frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;pointer-events:none}
 .bax-after{position:absolute;inset:0;clip-path:inset(0 0 0 var(--x))}
 .bax-l{position:absolute;top:14px;padding:6px 12px;border-radius:999px;background:rgba(22,25,29,.55);color:#fff;font-size:13px}
@@ -2120,7 +2120,7 @@ html.fq-abierto{overflow:hidden}
 .bax-hint{text-align:center;font-size:13px;color:var(--ink-muted);margin-top:10px}
 
 /* ---------- homepage: pillars ---------- */
-.pl-wrap{display:grid;grid-template-columns:minmax(0,420px) minmax(0,460px);gap:48px;justify-content:center;align-items:center;padding:0 24px}
+.pl-wrap{display:grid;grid-template-columns:minmax(0,520px) minmax(0,440px);gap:48px;justify-content:center;align-items:center;padding:0 24px}
 .pl-chart{position:relative}
 .pl-radar{width:100%;height:auto;overflow:visible}
 .pl-grid polygon,.pl-grid line{fill:none;stroke:var(--line);stroke-width:1}
@@ -2162,7 +2162,7 @@ html.fq-abierto{overflow:hidden}
 
 @media (max-width:900px){
   .pl-wrap{grid-template-columns:1fr;gap:24px}
-  .pl-chart{max-width:340px;margin:0 auto;width:100%}
+  .pl-chart{max-width:420px;margin:0 auto;width:100%}
   .pl-grid2{grid-template-columns:1fr 1fr}
   .pl-more{padding-bottom:64px}
   .cmp-note{padding-bottom:64px}
