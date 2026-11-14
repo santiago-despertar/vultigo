@@ -6,10 +6,8 @@
   const page = document.body.dataset.page;
   // ---------- local currency ----------
   // Picked from the device time zone: no lookup and nothing leaves the browser. ?moneda=EUR forces one (kept for the visit).
-  // Affiliates always see pesos, because commissions are paid in pesos.
   const MONEDAS = C.MONEDAS || {};
   const moneda = (() => {
-    if (page === "portal") return "MXN";
     const q = (new URLSearchParams(location.search).get("moneda") || "").toUpperCase();
     try { if (MONEDAS[q]) { sessionStorage.setItem("resalta_moneda", q); return q; } const g = sessionStorage.getItem("resalta_moneda"); if (MONEDAS[g]) return g; } catch (e) {}
     let tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
@@ -217,7 +215,7 @@
     } catch (e) {}
   };
   const precio = tier => (LOCAL && LOCAL.n ? LOCAL.n[tier] : Number(String((C.PRICES || {})[tier] || "").replace(/[^0-9.]/g, ""))) || undefined;
-  // Affiliate earnings are always in pesos.
+  // Affiliate commissions are stored in pesos; the portal shows them in the affiliate's currency.
   const precioMXN = tier => (MONEDAS.MXN && MONEDAS.MXN.n ? MONEDAS.MXN.n[tier] : precio(tier));
   const errES = (e) => {
     const m = (e && e.message) || "";
@@ -1016,9 +1014,20 @@
     const box = $("#afApp");
     const e = v => String(v ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     const mx = n => "$" + Math.round(n || 0).toLocaleString("es-MX");
+    // Pesos to the affiliate's currency, with the same ratio as the price table (so a sale shows what the buyer paid).
+    const FMT = { MXN: n => `$${n.toLocaleString("es-MX")} MXN`, USD: n => `US$${n.toLocaleString("en-US")}`, EUR: n => `${n.toLocaleString("es-ES", { useGrouping: "always" })} €`,
+      COP: n => `$${n.toLocaleString("es-CO")} COP`, CLP: n => `$${n.toLocaleString("es-CL")} CLP`, PEN: n => `S/ ${n.toLocaleString("en-US")}` };
+    const PASO = { COP: 100, CLP: 10 }[moneda] || 1;
+    const loc = (n, enPesos = true) => {
+      const f = enPesos && moneda !== "MXN" && LOCAL && LOCAL.n ? LOCAL.n.soft / MONEDAS.MXN.n.soft : 1;
+      const v = Math.round((n || 0) * f / PASO) * PASO;
+      return (FMT[moneda] || FMT.MXN)(v);
+    };
+    // Same, for the big numbers: the currency code goes small so it never wraps on a phone.
+    const locG = (n, enPesos = true) => e(loc(n, enPesos)).replace(/ (MXN|COP|CLP)$/, '<small style="font-size:.42em;letter-spacing:.04em;margin-left:4px">$1</small>');
     const fecha = d => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
     // what an affiliate earns per plan, from the prices shown on the site (10% buyer discount, 30% commission)
-    $$("[data-af-gana]").forEach(b => { const p = precioMXN(b.dataset.afGana); if (p) b.textContent = mx(p * 0.9 * 0.3); });
+    $$("[data-af-gana]").forEach(b => { const p = precio(b.dataset.afGana); if (!p) return; if (b.closest(".stat")) b.innerHTML = locG(p * 0.9 * 0.3, false); else b.textContent = loc(p * 0.9 * 0.3, false); });
     const ESTADOS = { pendiente: ["Por liberar", ""], aprobada: ["Por pagar", "paid"], pagada: ["Pagada", "ready"], cancelada: ["Cancelada", ""] };
     const slug = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 16);
     const pagoCampos = a => `
@@ -1119,7 +1128,7 @@
       const a = d.afiliado, link = `https://resalta.co/?ref=${a.codigo}`;
       const filas = (d.lista || []).map(c => {
         const [t, cls] = ESTADOS[c.estado] || [c.estado, ""];
-        return `<div class="order"><div><b>${c.concepto === "mejora" ? "Subió a plan Completo" : "Venta"}</b><p class="hint">${fecha(c.created_at)} · venta de ${mx(c.venta_mxn)}${c.estado === "pendiente" ? ` · se libera el ${fecha(c.disponible_at)}` : ""}</p></div><div class="af-row-r"><b class="mono">${mx(c.comision_mxn)}</b><span class="status ${cls}">${t}</span></div></div>`;
+        return `<div class="order"><div><b>${c.concepto === "mejora" ? "Subió a plan Completo" : "Venta"}</b><p class="hint">${fecha(c.created_at)} · venta de ${loc(c.venta_mxn)}${c.estado === "pendiente" ? ` · se libera el ${fecha(c.disponible_at)}` : ""}</p></div><div class="af-row-r"><b class="mono">${loc(c.comision_mxn)}</b><span class="status ${cls}">${t}</span></div></div>`;
       }).join("");
       box.innerHTML = `
         ${a.activo ? "" : `<div class="card af-card"><p class="hint">Tu link está en pausa. Escríbenos si crees que es un error.</p></div>`}
@@ -1129,11 +1138,11 @@
         <div class="strip af-strip af-kpis">
           <div class="stat"><b>${(a.clics || 0).toLocaleString("es-MX")}</b><span>visitas con tu link</span></div>
           <div class="stat"><b>${d.ventas || 0}</b><span>ventas</span></div>
-          <div class="stat"><b>${mx(d.pendiente)}</b><span>por liberar</span></div>
-          <div class="stat"><b>${mx(d.por_pagar)}</b><span>listo para pago</span></div>
-          <div class="stat"><b>${mx(d.pagado)}</b><span>pagado</span></div>
+          <div class="stat"><b>${locG(d.pendiente)}</b><span>por liberar</span></div>
+          <div class="stat"><b>${locG(d.por_pagar)}</b><span>listo para pago</span></div>
+          <div class="stat"><b>${locG(d.pagado)}</b><span>pagado</span></div>
         </div>
-        <div class="card af-card"><p class="label" style="margin-bottom:6px">Tus comisiones</p>${filas || `<p class="hint" style="padding:14px 0">Aún no hay ventas. En cuanto alguien compre con tu link aparece aquí.</p>`}</div>
+        <div class="card af-card"><p class="label" style="margin-bottom:6px">Tus comisiones</p>${moneda !== "MXN" ? `<p class="hint" style="margin-bottom:6px">Montos en tu moneda. Las comisiones se calculan en pesos mexicanos, así que la cifra exacta del pago puede variar un poco.</p>` : ""}${filas || `<p class="hint" style="padding:14px 0">Aún no hay ventas. En cuanto alguien compre con tu link aparece aquí.</p>`}</div>
         <form class="card af-card" id="afEdit" novalidate><p class="label" style="margin-bottom:12px">Tus datos de pago</p>
           <div class="field"><label for="af-nom">Nombre</label><input id="af-nom" name="nombre" maxlength="80" value="${e(a.nombre)}"></div>
           <div class="field"><label for="af-red">Dónde lo compartes</label><input id="af-red" name="redes" maxlength="300" value="${e(a.redes)}"></div>
