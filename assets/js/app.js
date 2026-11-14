@@ -4,6 +4,34 @@
   const configured = !!(C.SUPABASE_URL && C.SUPABASE_ANON_KEY && window.supabase);
   const sb = configured ? window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY) : null;
   const page = document.body.dataset.page;
+  // ---------- local currency ----------
+  // Picked from the device time zone: no lookup and nothing leaves the browser. ?moneda=EUR forces one (kept for the visit).
+  // Affiliates always see pesos, because commissions are paid in pesos.
+  const MONEDAS = C.MONEDAS || {};
+  const moneda = (() => {
+    if (page === "portal") return "MXN";
+    const q = (new URLSearchParams(location.search).get("moneda") || "").toUpperCase();
+    try { if (MONEDAS[q]) { sessionStorage.setItem("resalta_moneda", q); return q; } const g = sessionStorage.getItem("resalta_moneda"); if (MONEDAS[g]) return g; } catch (e) {}
+    let tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+    if (!tz || /^America\/(Mexico_City|Cancun|Merida|Monterrey|Matamoros|Chihuahua|Ciudad_Juarez|Ojinaga|Mazatlan|Bahia_Banderas|Hermosillo|Tijuana)$/.test(tz)) return "MXN";
+    if (/^(Europe\/|Atlantic\/(Canary|Madeira|Azores)|Africa\/Ceuta)/.test(tz)) return MONEDAS.EUR ? "EUR" : "MXN";
+    if (tz === "America/Bogota") return MONEDAS.COP ? "COP" : "USD";
+    if (/^(America\/(Santiago|Punta_Arenas)|Pacific\/Easter)$/.test(tz)) return MONEDAS.CLP ? "CLP" : "USD";
+    if (tz === "America/Lima") return MONEDAS.PEN ? "PEN" : "USD";
+    return MONEDAS.USD ? "USD" : "MXN";
+  })();
+  const LOCAL = MONEDAS[moneda];
+  if (LOCAL) { C.PRICES = { soft: LOCAL.soft, hard: LOCAL.hard }; C.UPSELL = { was: LOCAL.was, now: LOCAL.now }; C.SUB_PRICE = LOCAL.sub; }
+  // Code after a price only where "$" is ambiguous.
+  const SUFIJO = { MXN: "MXN", COP: "COP", CLP: "CLP" }[moneda] || "";
+  document.querySelectorAll("[data-moneda]").forEach(e => { e.textContent = SUFIJO; if (!SUFIJO) e.hidden = true; });
+  if (LOCAL && moneda !== "MXN") {
+    [["#q-procbudget", LOCAL.proc], ["#q-budget", LOCAL.dia]].forEach(([sel, txt]) => {
+      const el = document.querySelector(sel); if (!el || !txt) return;
+      [...el.options].filter(o => o.value || o.textContent).slice(1, 1 + txt.length).forEach((o, i) => { o.textContent = txt[i]; o.value = txt[i]; });
+    });
+  }
+  if (moneda !== "MXN") document.querySelectorAll("[data-solo-mx]").forEach(e => { e.hidden = true; e.style.display = "none"; });
   // ---------- homepage: animated panel demos, one at a time, only while on screen ----------
   (function () {
     const fx = document.querySelector(".fx"); if (!fx) return;
@@ -182,13 +210,15 @@
     try { if (window.gtag) window.gtag("event", nombre, datos); } catch (e) {}
     try {
       if (window.fbq && META[nombre]) {
-        const p = {}; if (datos.value) { p.value = datos.value; p.currency = datos.currency || "MXN"; }
+        const p = {}; if (datos.value) { p.value = datos.value; p.currency = datos.currency || moneda; }
         if (datos.items && datos.items[0]) { p.content_ids = [datos.items[0].item_id]; p.content_name = datos.items[0].item_name; p.content_type = "product"; }
         window.fbq("track", META[nombre], p, datos.transaction_id ? { eventID: "compra-" + datos.transaction_id } : undefined);
       }
     } catch (e) {}
   };
-  const precio = tier => Number(String((C.PRICES || {})[tier] || "").replace(/[^0-9.]/g, "")) || undefined;
+  const precio = tier => (LOCAL && LOCAL.n ? LOCAL.n[tier] : Number(String((C.PRICES || {})[tier] || "").replace(/[^0-9.]/g, ""))) || undefined;
+  // Affiliate earnings are always in pesos.
+  const precioMXN = tier => (MONEDAS.MXN && MONEDAS.MXN.n ? MONEDAS.MXN.n[tier] : precio(tier));
   const errES = (e) => {
     const m = (e && e.message) || "";
     if (/Invalid login/i.test(m)) return "Correo o contraseña incorrectos.";
@@ -793,7 +823,7 @@
     function warmPay() {
       if (!sb || !order) return null;
       const p = plan;
-      if (!payReady[p]) payReady[p] = fnCall("create-checkout", { order_id: order.id, tier: p, ref: getRef() }).catch(e => { delete payReady[p]; throw e; });
+      if (!payReady[p]) payReady[p] = fnCall("create-checkout", { order_id: order.id, tier: p, ref: getRef(), moneda }).catch(e => { delete payReady[p]; throw e; });
       return payReady[p];
     }
 
@@ -880,7 +910,7 @@
     });
 
     $("#payBtn").addEventListener("click", async () => {
-      track("begin_checkout", { currency: "MXN", value: precio(plan), items: [{ item_id: plan, item_name: (C.PLAN_NAMES || {})[plan] }] });
+      track("begin_checkout", { currency: moneda, value: precio(plan), items: [{ item_id: plan, item_name: (C.PLAN_NAMES || {})[plan] }] });
       const m = $("#payMsg"), b = $("#payBtn"); clearMsg(m);
       if (!sb || !order) return notReady(m);
       if (mensual) {
@@ -917,7 +947,7 @@
         if (!localStorage.getItem(k)) {
           const { data: od } = await sb.from("orders").select("tier,status").eq("id", id).maybeSingle();
           if (od && (od.status === "pagado" || od.status === "listo")) {
-            track("purchase", { transaction_id: id, currency: "MXN", value: precio(od.tier), items: [{ item_id: od.tier, item_name: (C.PLAN_NAMES || {})[od.tier] }] });
+            track("purchase", { transaction_id: id, currency: moneda, value: precio(od.tier), items: [{ item_id: od.tier, item_name: (C.PLAN_NAMES || {})[od.tier] }] });
             localStorage.setItem(k, "1");
           }
         }
@@ -932,7 +962,7 @@
         const en30 = new Date(Date.now() + 30 * 864e5);
         $$("[data-sub-fecha]").forEach(e => { e.textContent = fecha(en30); });
         if (st.nuevo === false) { // already had a subscription before: no free month again
-          sub.querySelector(".upsell-price").innerHTML = `<b class="mono">${C.SUB_PRICE || "$349"}</b> MXN al mes`;
+          sub.querySelector(".upsell-price").innerHTML = `<b class="mono">${C.SUB_PRICE || "$349"}</b>${SUFIJO ? " " + SUFIJO : ""} al mes`;
           sub.querySelector(".hint").textContent = "Se cobra a la tarjeta que acabas de usar. Cancelas cuando quieras desde tu cuenta.";
         }
         sub.hidden = false;
@@ -941,7 +971,7 @@
           const b = $("#subYes"), m = $("#subMsgG"); clearMsg(m);
           b.disabled = true; b.textContent = "Activando…";
           try {
-            const r = await fnCall("suscripcion", { accion: "activar", order_id: id });
+            const r = await fnCall("suscripcion", { accion: "activar", order_id: id, moneda });
             if (r.url) { location.href = r.url; return; }
             sub.hidden = true;
             const pc = r.primer_cobro ? fecha(new Date(r.primer_cobro)) : "";
@@ -988,7 +1018,7 @@
     const mx = n => "$" + Math.round(n || 0).toLocaleString("es-MX");
     const fecha = d => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
     // what an affiliate earns per plan, from the prices shown on the site (10% buyer discount, 30% commission)
-    $$("[data-af-gana]").forEach(b => { const p = precio(b.dataset.afGana); if (p) b.textContent = mx(p * 0.9 * 0.3); });
+    $$("[data-af-gana]").forEach(b => { const p = precioMXN(b.dataset.afGana); if (p) b.textContent = mx(p * 0.9 * 0.3); });
     const ESTADOS = { pendiente: ["Por liberar", ""], aprobada: ["Por pagar", "paid"], pagada: ["Pagada", "ready"], cancelada: ["Cancelada", ""] };
     const slug = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 16);
     const pagoCampos = a => `
@@ -1474,12 +1504,12 @@
       const fin = st.periodo_fin ? new Date(st.periodo_fin).toLocaleDateString("es-MX", { day: "numeric", month: "long" }) : "";
       const accion = async (b, a, ok) => {
         const t = b.textContent; b.disabled = true; b.textContent = "Un momento…"; clearMsg($("#subMsg"));
-        try { const r = await fnCall("suscripcion", { accion: a }); if (r.url) { location.href = r.url; return; } if (ok) ok(r); suscripcionUI(true); }
+        try { const r = await fnCall("suscripcion", { accion: a, moneda }); if (r.url) { location.href = r.url; return; } if (ok) ok(r); suscripcionUI(true); }
         catch (e) { b.disabled = false; b.textContent = t; msg($("#subMsg"), "No se pudo completar. Inténtalo de nuevo en un momento."); }
       };
       if (!st.activa) {
         $("#subL").textContent = "Seguimiento mensual"; $("#subT").textContent = "Mide tu avance cada mes";
-        $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu línea de progreso y la comparación entre fotos. ${st.nuevo === false ? "" : "El primer mes es gratis, después "}<b class="mono">${esc(precio)}</b> MXN al mes y cancelas cuando quieras.`;
+        $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu línea de progreso y la comparación entre fotos. ${st.nuevo === false ? "" : "El primer mes es gratis, después "}<b class="mono">${esc(precio)}</b>${SUFIJO ? " " + SUFIJO : ""} al mes y cancelas cuando quieras.`;
         boton("Activar seguimiento", "btn btn-primary", function () { accion(this, "suscribir"); });
         enlace("Un escaneo suelto", "/analisis", "btn btn-ghost");
       } else {
@@ -1720,7 +1750,7 @@
         traerProyeccion(o, "hard", av.querySelector(".rp-hard .rp-pend"));
       } else if (o.tier === "soft") {
         const U = C.UPSELL || {};
-        av.innerHTML = `<div class="card rep-lock"><div><p class="label">Plan Completo</p><h3 class="rep-lock-h">La parte de procedimientos</h3><p class="hint">Qué procedimientos se suelen considerar para un rostro con tus proporciones, qué hace cada uno y qué pensar antes de una consulta.</p></div><div class="rep-lock-r"><p class="mono rep-lock-p">${U.was ? `<s>${esc(U.was)}</s> ` : ""}${esc(U.now || "")} MXN</p><button class="btn btn-primary" id="repUp">Agregar a mi reporte</button><div class="msg" id="repUpMsg"></div></div></div>`;
+        av.innerHTML = `<div class="card rep-lock"><div><p class="label">Plan Completo</p><h3 class="rep-lock-h">La parte de procedimientos</h3><p class="hint">Qué procedimientos se suelen considerar para un rostro con tus proporciones, qué hace cada uno y qué pensar antes de una consulta.</p></div><div class="rep-lock-r"><p class="mono rep-lock-p">${U.was ? `<s>${esc(U.was)}</s> ` : ""}${esc(U.now || "")}${SUFIJO ? " " + SUFIJO : ""}</p><button class="btn btn-primary" id="repUp">Agregar a mi reporte</button><div class="msg" id="repUpMsg"></div></div></div>`;
         $("#repUp").onclick = async () => {
           const b = $("#repUp"), m = $("#repUpMsg"); clearMsg(m); b.disabled = true; b.textContent = "Procesando…";
           try {
