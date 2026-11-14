@@ -8,7 +8,7 @@ create table if not exists public.afiliados (
   pago_metodo text check (pago_metodo in ('paypal','transferencia','otro')),
   pago_datos text check (char_length(pago_datos) <= 200),
   comision_pct numeric not null default 50,
-  descuento_pct numeric not null default 10,
+  descuento_pct numeric not null default 0,
   activo boolean not null default true,
   clics integer not null default 0,
   created_at timestamptz not null default now()
