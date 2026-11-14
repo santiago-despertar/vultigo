@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
 
   // 2) send whatever is due
   const { data: activos } = await admin.from("secuencia_inscritos").select("*").is("salio_at", null).limit(2000);
-  const { data: hechos } = await admin.from("secuencia_envios").select("user_id,secuencia,paso");
+  const { data: hechos } = await admin.from("secuencia_envios").select("user_id,secuencia,paso").eq("ok", true);
   const enviados = new Set((hechos ?? []).map((e: Obj) => `${e.user_id}|${e.secuencia}|${e.paso}`));
   let cuenta = 0;
   for (const ins of activos ?? []) {
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
     if (!sig) { await admin.from("secuencia_inscritos").update({ salio_at: new Date().toISOString(), motivo: "terminó" }).eq("user_id", ins.user_id); continue; }
     if (ahora < new Date(ins.desde).getTime() + Number(sig.dias) * 864e5) continue;
     // never two emails on the same day
-    const { data: ult } = await admin.from("secuencia_envios").select("enviado_at").eq("user_id", ins.user_id).order("enviado_at", { ascending: false }).limit(1);
+    const { data: ult } = await admin.from("secuencia_envios").select("enviado_at").eq("user_id", ins.user_id).eq("ok", true).order("enviado_at", { ascending: false }).limit(1);
     if (ult?.[0] && ahora - new Date(ult[0].enviado_at).getTime() < 20 * 3600e3) continue;
 
     const { data: o } = await admin.from("orders").select("answers").eq("id", ins.order_id).maybeSingle();
@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
     const baja = `${Deno.env.get("SUPABASE_URL")}/functions/v1/secuencias?baja=${encodeURIComponent(ins.email)}&t=${await firma(ins.email)}`;
     const asunto = String(sig.asunto).replace(/\{(nombre|objetivo)\}/g, (_: string, k: string) => String((vars as Obj)[k] ?? ""));
     const ok = await enviar(key, ins.email, asunto, plantilla(render(sig.cuerpo, vars, banderas(a), enlace), baja), nombre);
-    await admin.from("secuencia_envios").insert({ user_id: ins.user_id, email: ins.email, secuencia: ins.secuencia, paso: sig.paso, ok });
+    await admin.from("secuencia_envios").upsert({ user_id: ins.user_id, email: ins.email, secuencia: ins.secuencia, paso: sig.paso, ok, enviado_at: new Date().toISOString() }, { onConflict: "user_id,secuencia,paso" });
     cuenta++; ok ? resumen.enviados++ : resumen.fallidos++;
     if (!ok) break; // Sender is refusing (limit or account issue): try again next hour
   }
