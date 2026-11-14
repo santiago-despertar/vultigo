@@ -18,7 +18,7 @@
         </div>
         <div class="su-step" data-s="2">
           <h2 class="su-h">Mucho gusto, <span data-su-name></span>. ¿Cuál es tu correo?</h2>
-          <div class="field"><label for="su-email">Correo</label><input id="su-email" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="tu@correo.com"><span class="hint">Ahí te llega tu reporte. Al continuar aceptas los <a href="/terminos.html">términos</a> y el <a href="/privacidad.html">aviso de privacidad</a>.</span></div>
+          <div class="field"><label for="su-email">Correo</label><input id="su-email" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="tu@correo.com"><span class="hint">Ahí te llega tu reporte. Al continuar aceptas los <a href="/terminos">términos</a> y el <a href="/privacidad">aviso de privacidad</a>.</span></div>
         </div>
         <div class="msg" id="signupMsg"></div>
         <div class="su-nav">
@@ -35,6 +35,15 @@
         <div class="msg" id="loginMsg"></div>
         <button class="btn btn-primary btn-block" type="submit">Entrar</button>
         <p class="hint" style="text-align:center;margin-top:16px"><a href="#" id="forgot">¿Olvidaste tu contraseña?</a></p>
+      </form>
+      <form id="newPassForm" data-pane="nueva" hidden novalidate>
+        <h1 class="onb-title">Crea tu<br><span>nueva contraseña</span></h1>
+        <p class="onb-sub">Escríbela dos veces y la guardamos. Con ella entras a tu reporte desde cualquier dispositivo.</p>
+        <div class="field"><label for="np-pass">Nueva contraseña</label><input id="np-pass" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Mínimo 8 caracteres"></div>
+        <div class="field"><label for="np-pass2">Repítela</label><input id="np-pass2" name="password2" type="password" autocomplete="new-password" minlength="8" required placeholder="Otra vez"></div>
+        <label class="check np-ver"><input type="checkbox" id="np-ver"> <span>Mostrar contraseña</span></label>
+        <div class="msg" id="newPassMsg"></div>
+        <button class="btn btn-primary btn-block" type="submit">Guardar mi contraseña</button>
       </form>
       <div id="googleBox">
       <div class="or"><span>o</span></div>
