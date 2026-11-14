@@ -71,6 +71,7 @@ FOOTER = """<footer class="site-footer">
         <a href="/#preguntas">Preguntas frecuentes</a>
         <a href="/blog">Blog</a>
         <a href="/cuenta">Entrar</a>
+        <a href="https://afiliados.resalta.co">Programa de afiliados</a>
       </div>
       <div>
         <p class="label" style="margin-bottom:10px">Síguenos</p>
@@ -112,7 +113,6 @@ PAGES = [
     ("reporte.html", "Tu reporte · Resalta", "Tu análisis facial para leer y descargar.", '<script src="/assets/js/reporte.js?v=__V__"></script>'),
     ("visor.html", "Tu cara, medida · Resalta", "Vista previa del visor de medidas de Resalta.", ""),
     ("404.html", "Página no encontrada · Resalta", "Esta página no existe.", ""),
-    ("afiliados.html", "Programa de afiliados · Resalta", "Gana 30% por cada análisis de Resalta que recomiendes con tu link.", ""),
     ("blog.html", "Blog · Resalta", "Simetría, proporciones, mandíbula y procedimientos: lo que hay que saber de tu cara, explicado claro y con medidas.", ""),
 ]
 
@@ -168,3 +168,57 @@ for fname, title, desc, extra in PAGES:
     html = html.replace("__V__", str(int(time.time())))
     (ROOT / fname).write_text(html, encoding="utf-8")
     print("built", fname)
+
+
+# ---------- Affiliate portal (afiliados.resalta.co) ----------
+# Built here so it shares the site's styles and code, then published from its own repo with CNAME afiliados.resalta.co.
+# Assets load from resalta.co; its sign-in session is separate because it lives on another subdomain.
+V = str(int(time.time()))
+P_HEADER = """<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="Resalta afiliados, inicio"><img src="https://resalta.co/assets/img/mark-ink.svg" alt=""><span>resalta</span><span class="hint" style="margin-left:8px;font-size:13px">afiliados</span></a>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://resalta.co">Ir a resalta.co</a>
+      <button class="btn btn-ghost" type="button" id="afSalir" hidden>Salir</button>
+    </div>
+  </div>
+</header>
+"""
+P_FOOTER = """<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div style="max-width:320px">
+        <a class="brand" href="/"><img src="https://resalta.co/assets/img/mark-ink.svg" alt=""><span>resalta</span></a>
+        <p class="hint" style="margin-top:14px">Programa de afiliados de Resalta.</p>
+      </div>
+      <div>
+        <p class="label" style="margin-bottom:10px">Resalta</p>
+        <a href="https://resalta.co">Sitio principal</a>
+        <a href="https://resalta.co/blog">Blog</a>
+      </div>
+      <div>
+        <p class="label" style="margin-bottom:10px">Legal</p>
+        <a href="https://resalta.co/privacidad">Aviso de privacidad</a>
+        <a href="https://resalta.co/terminos">Términos y condiciones</a>
+        <a href="mailto:contacto@resalta.co">contacto@resalta.co</a>
+      </div>
+    </div>
+    <p class="copy">© <span id="year"></span> Resalta.</p>
+  </div>
+</footer>
+"""
+head = HEAD.format(title="Programa de afiliados · Resalta", desc="Gana 30% por cada análisis de Resalta que recomiendes con tu link.", path="", page="portal", extra_head="")
+head = head.replace('href="https://resalta.co/"', 'href="https://afiliados.resalta.co/"').replace('content="https://resalta.co/"', 'content="https://afiliados.resalta.co/"')
+head = head.replace('href="/assets/', 'href="https://resalta.co/assets/')
+head = _re.sub(r'<script>try\{\{if\(localStorage.*?</script>\n', '', head)
+head = head.replace('{{', '{').replace('}}', '}') if '{{' in head else head
+scripts = SCRIPTS.format(extra_scripts="").replace('src="/assets/', 'src="https://resalta.co/assets/')
+portal = head + P_HEADER + (SRC / "afiliados.html").read_text(encoding="utf-8") + P_FOOTER + scripts
+portal = portal.replace("__V__", V)
+out = ROOT.parent / "afiliados-site"; out.mkdir(exist_ok=True)
+(out / "index.html").write_text(portal, encoding="utf-8")
+(out / "404.html").write_text(portal, encoding="utf-8")
+(out / "CNAME").write_text("afiliados.resalta.co\n", encoding="utf-8")
+print("built portal", out)
+# The old page on resalta.co now forwards to the portal (keeps any ?ref= or other query).
+(ROOT / "afiliados.html").write_text('<!doctype html><html lang="es-MX"><head><meta charset="utf-8"><title>Programa de afiliados · Resalta</title><meta name="robots" content="noindex"><link rel="canonical" href="https://afiliados.resalta.co/"><meta http-equiv="refresh" content="0;url=https://afiliados.resalta.co/"><script>location.replace("https://afiliados.resalta.co/"+location.search)</script></head><body><a href="https://afiliados.resalta.co/">Programa de afiliados</a></body></html>\n', encoding="utf-8")
