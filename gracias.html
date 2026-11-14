@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css?v=1794659548">
+<link rel="stylesheet" href="/assets/css/site.css?v=1794660717">
 <script>try{var _p=location.pathname;if(/\.html$/.test(_p))history.replaceState(null,"",((/\/index\.html$/.test(_p)?_p.slice(0,-10):_p.slice(0,-5))||"/")+location.search+location.hash)}catch(e){}</script>
 <script>try{var _d=document.documentElement;if(document.fonts&&document.fonts.load){_d.classList.add("fload");var _ok=function(){_d.classList.remove("fload")};Promise.all([document.fonts.load("300 40px Inter"),document.fonts.load("400 16px Inter"),document.fonts.load("600 16px Inter")]).then(_ok,_ok);setTimeout(_ok,900)}}catch(e){}</script>
 <script>try{if(localStorage.getItem("sb-jxluabbugwdonqchbaxm-auth-token"))document.documentElement.classList.add("authed")}catch(e){}</script>
@@ -52,15 +52,15 @@
       <img src="/assets/img/mark-ink.svg" alt="" style="height:56px;margin:0 auto 20px">
       <h1 style="font-size:40px;margin-bottom:12px">Recibimos tu pago</h1>
       <p class="lead" style="margin-bottom:28px">Ya estamos trabajando en tu análisis. En unos minutos lo vas a ver en tu cuenta.</p>
-      <p class="hint" style="margin-bottom:24px">¿Pagaste en OXXO? Tu análisis empieza en cuanto OXXO confirme el pago, normalmente en unas horas.</p>
+      <p class="hint" style="margin-bottom:24px" data-solo-mx>¿Pagaste en OXXO? Tu análisis empieza en cuanto OXXO confirme el pago, normalmente en unas horas.</p>
       <div class="acceso card" id="acceso" hidden></div>
       <div class="upsell" id="upsell" hidden>
         <span class="label">Antes de irte</span>
         <h2 style="font-size:26px;margin:10px 0 8px">Agrega el análisis avanzado con descuento</h2>
-        <p class="upsell-price"><s data-upsell-was>$1,500</s> <b class="mono"><span data-upsell-now>$999</span> MXN</b></p>
+        <p class="upsell-price"><s data-upsell-was>$1,500</s> <b class="mono"><span data-upsell-now>$999</span> <span data-moneda>MXN</span></b></p>
         <p class="hint">Suma a tu reporte las opciones de procedimientos y cirugía que aplican a tu caso y qué esperar de cada una. Es información general para revisar con un médico certificado. Este precio solo aparece aquí, después de tu compra.</p>
         <div class="msg" id="upsellMsg"></div>
-        <button class="btn btn-primary" id="upsellYes"><span>Sí, agregarlo por <span data-upsell-now>$999</span> MXN</span></button>
+        <button class="btn btn-primary" id="upsellYes"><span>Sí, agregarlo por <span data-upsell-now>$999</span> <span data-moneda>MXN</span></span></button>
         <p class="hint" style="margin-top:12px">Se cobra a la tarjeta que acabas de usar. Si tu banco pide confirmarlo, te llevamos a la página de pago.</p>
         <button class="upsell-no" id="upsellNo" type="button">No, gracias</button>
       </div>
@@ -68,7 +68,7 @@
         <span class="label">Para que veas tu avance</span>
         <h2 style="font-size:26px;margin:10px 0 8px">¿Agregamos tu seguimiento mensual?</h2>
         <p class="upsell-price"><b>Tu primer mes ya está cubierto</b></p>
-        <p class="hint">Después <b class="mono"><span data-sub-price>$349</span> MXN</b> al mes, a partir del <span data-sub-fecha></span>, en la misma tarjeta. Cancelas cuando quieras desde tu cuenta, sin llamadas.</p>
+        <p class="hint">Después <b class="mono"><span data-sub-price>$349</span> <span data-moneda>MXN</span></b> al mes, a partir del <span data-sub-fecha></span>, en la misma tarjeta. Cancelas cuando quieras desde tu cuenta, sin llamadas.</p>
         <ul class="checks" style="text-align:left;max-width:420px;margin:14px auto 18px">
           <li>Un escaneo completo cada mes, con reporte nuevo</li>
           <li>Tu línea de progreso y el antes y después lado a lado</li>
@@ -117,8 +117,8 @@
   </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/assets/js/config.js?v=1794659548"></script>
-<script src="/assets/js/app.js?v=1794659548"></script>
+<script src="/assets/js/config.js?v=1794660717"></script>
+<script src="/assets/js/app.js?v=1794660717"></script>
 
 </body>
 </html>
