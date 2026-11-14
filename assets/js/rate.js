@@ -208,6 +208,7 @@ function bloquear(m) {
   resultado = m;
   $("#rScore").textContent = String(Math.max(10, m.score)).replace(/\d/g, "8");
   $("#rRows").innerHTML = m.parts.map(p => `<div class="report-row"><span>${p.k}</span><b class="mono cal-borroso">88</b></div>`).join("");
+  try { if (window.resaltaTrack) window.resaltaTrack("calificacion_resultado", { score: m.score }); } catch (e) {}
   ir("bloqueado");
 }
 
@@ -233,6 +234,7 @@ $("#leadForm").addEventListener("submit", async (ev) => {
       }),
     });
     if (!r.ok) throw new Error(String(r.status));
+    try { if (window.resaltaTrack) window.resaltaTrack("generate_lead", { method: "calificacion_gratis", score: m.score }); } catch (e) {}
     try { if (window.gtag) window.gtag("event", "generate_lead", { method: "calificacion_gratis" }); } catch (e) {}
     try { if (window.fbq) window.fbq("track", "Lead", { content_name: "calificacion_gratis" }); } catch (e) {}
     try { sessionStorage.setItem("resalta_lead", JSON.stringify({ nombre, email })); } catch (e) {}

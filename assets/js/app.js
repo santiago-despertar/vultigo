@@ -258,6 +258,7 @@
     } catch (e) {}
   };
   if (!/^(admin|visor)$/.test(page || "")) registrar("page_view");
+  window.resaltaTrack = registrar; // other scripts (rate.js) log funnel steps through this
   const track = (nombre, datos) => {
     datos = datos || {};
     registrar(nombre, datos);
