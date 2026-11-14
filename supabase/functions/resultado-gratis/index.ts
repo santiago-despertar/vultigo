@@ -19,10 +19,19 @@ type Parte = { k: string; v: number; tip?: string };
 
 function correo(nombre: string, score: number, partes: Parte[], fuerte: string, debil: { k: string; tip?: string } | null, site: string) {
   const nivel = score >= 80 ? "Tienes una cara muy armónica. Tu margen está en los detalles finos." : score >= 65 ? "Tienes una buena base y varias mejoras claras a tu alcance." : "Tienes mucho potencial. Los cambios correctos se van a notar bastante.";
-  const filas = partes.map(p => `
+  // The two best proportions are shown; the rest stay locked. Knowing why the score is what it is, is
+  // what the full analysis sells, so the email gives just enough to want the rest.
+  const orden = [...partes].sort((x, y) => y.v - x.v);
+  const visibles = new Set(orden.slice(0, 2).map(p => p.k));
+  const fila = (p: Parte) => visibles.has(p.k) ? `
       <tr><td style="padding:10px 0;border-bottom:1px solid #E3E7EA;font-size:15px;color:#16191D">${esc(p.k)}</td>
       <td style="padding:10px 0;border-bottom:1px solid #E3E7EA;width:140px"><div style="background:#E3E7EA;border-radius:4px;height:6px"><div style="background:#4A5866;border-radius:4px;height:6px;width:${Math.max(4, Math.min(100, p.v))}%"></div></div></td>
-      <td style="padding:10px 0 10px 12px;border-bottom:1px solid #E3E7EA;text-align:right;font-family:monospace;font-size:15px;color:#16191D">${Math.round(p.v)}</td></tr>`).join("");
+      <td style="padding:10px 0 10px 12px;border-bottom:1px solid #E3E7EA;text-align:right;font-family:monospace;font-size:15px;color:#16191D">${Math.round(p.v)}</td></tr>` : `
+      <tr><td style="padding:10px 0;border-bottom:1px solid #E3E7EA;font-size:15px;color:#16191D">${esc(p.k)}</td>
+      <td style="padding:10px 0;border-bottom:1px solid #E3E7EA;width:140px"><div style="background:#EEF0F2;border-radius:4px;height:6px"></div></td>
+      <td style="padding:10px 0 10px 12px;border-bottom:1px solid #E3E7EA;text-align:right;font-family:monospace;font-size:15px;color:#C9CED3;letter-spacing:1px">&#9632;&#9632;</td></tr>`;
+  const filas = partes.map(fila).join("");
+  const ocultos = partes.length - visibles.size;
   const url = `${site}/cuenta?next=/analisis&utm_source=email&utm_medium=resultado&utm_campaign=calificacion`;
   return `<!doctype html><html><body style="margin:0;background:#F3F1EC;font-family:Helvetica,Arial,sans-serif;color:#16191D">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F3F1EC"><tr><td align="center" style="padding:28px 14px">
@@ -36,11 +45,15 @@ function correo(nombre: string, score: number, partes: Parte[], fuerte: string, 
     <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#5B6470">${esc(nivel)}</p>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">${filas}</table>
     <p style="margin:20px 0 0;font-size:15px;line-height:1.5">Tu punto más fuerte: <b>${esc((fuerte || "").toLowerCase())}</b>.</p>
-    ${debil ? `<div style="margin:18px 0 0;padding:16px 18px;background:#F3F1EC;border-radius:12px"><p style="margin:0 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#5B6470">Lo que puedes mejorar primero</p><p style="margin:0;font-size:15px;line-height:1.5"><b>${esc(debil.k)}.</b> ${esc(debil.tip)}</p></div>` : ""}
+    ${ocultos > 0 ? `<div style="margin:18px 0 0;padding:18px;background:#F3F1EC;border-radius:12px">
+      <p style="margin:0 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#5B6470">${ocultos} puntajes bloqueados</p>
+      <p style="margin:0;font-size:15px;line-height:1.55">${debil ? `Hay una zona que está bajando tu puntaje más que las demás, y es <b>${esc(debil.k.toLowerCase())}</b>. ` : ""}Los demás puntajes, por qué te dimos este resultado y qué hacer para subirlo vienen en tu análisis completo.</p>
+    </div>` : ""}
   </td></tr>
   <tr><td style="padding:24px 30px 30px">
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.55">Este puntaje mide 6 proporciones de tu cara de frente. El análisis completo revisa más de 110 rasgos con tus fotos de frente, sonriendo y de perfil, y te dice qué cambiar primero, qué no vale la pena y cómo te verías con tu plan.</p>
-    <a href="${url}" style="display:inline-block;background:#4A5866;color:#FFFFFF;text-decoration:none;padding:14px 26px;border-radius:999px;font-size:15px">Quiero mi análisis completo</a>
+    <p style="margin:0 0 6px;font-size:19px;line-height:1.35">¿Quieres saber por qué te dimos ${Math.round(score)}?</p>
+    <p style="margin:0 0 18px;font-size:15px;line-height:1.55;color:#5B6470">Este puntaje mide 6 proporciones de tu cara de frente. El análisis completo revisa más de 110 rasgos con tus fotos de frente, sonriendo y de perfil, y te dice qué cambiar primero, qué no vale la pena y cómo te verías con tu plan.</p>
+    <a href="${url}" style="display:inline-block;background:#4A5866;color:#FFFFFF;text-decoration:none;padding:14px 26px;border-radius:999px;font-size:15px">Ver mi análisis completo</a>
   </td></tr>
   </table>
   <p style="max-width:560px;margin:16px auto 0;font-size:12px;line-height:1.5;color:#5B6470">Puntaje estético y educativo basado en proporciones medidas en una foto. No es un juicio sobre tu valor ni un diagnóstico. Nunca guardamos tu foto.</p>
