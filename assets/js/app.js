@@ -448,7 +448,7 @@
     if (/^\/afiliados/.test(new URLSearchParams(location.search).get("next") || "")) {
       const t = $("#signupForm .onb-title"), sub = $("#signupForm .onb-sub");
       if (t) t.innerHTML = "Crea tu link<br><span>de afiliado</span>";
-      if (sub) sub.textContent = "Gana 30% por cada análisis que recomiendes. Primero, ¿cómo te llamas?";
+      if (sub) sub.textContent = "Gana 50% por cada análisis que recomiendes. Primero, ¿cómo te llamas?";
     }
     const params = new URLSearchParams(location.search);
     const next = safePath(params.get("next"), "/panel");
@@ -1148,8 +1148,9 @@
     // Same, for the big numbers: the currency code goes small so it never wraps on a phone.
     const locG = (n, enPesos = true) => e(loc(n, enPesos)).replace(/ (MXN|COP|CLP)$/, '<small style="font-size:.42em;letter-spacing:.04em;margin-left:4px">$1</small>');
     const fecha = d => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
-    // what an affiliate earns per plan, from the prices shown on the site (10% buyer discount, 30% commission)
-    $$("[data-af-gana]").forEach(b => { const p = precio(b.dataset.afGana); if (!p) return; if (b.closest(".stat")) b.innerHTML = locG(p * 0.9 * 0.3, false); else b.textContent = loc(p * 0.9 * 0.3, false); });
+    // what an affiliate earns per plan, from the prices shown on the site (10% buyer discount, AF_PCT commission)
+    const AFP = (C.AF_PCT || 50) / 100;
+    $$("[data-af-gana]").forEach(b => { const p = precio(b.dataset.afGana); if (!p) return; if (b.closest(".stat")) b.innerHTML = locG(p * 0.9 * AFP, false); else b.textContent = loc(p * 0.9 * AFP, false); });
     const ESTADOS = { pendiente: ["Por liberar", ""], aprobada: ["Por pagar", "paid"], pagada: ["Pagada", "ready"], cancelada: ["Cancelada", ""] };
     const slug = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 16);
     const pagoCampos = a => `

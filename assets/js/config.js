@@ -7,6 +7,8 @@ window.RESALTA = {
   PRICES: { soft: "$1,499", hard: "$2,999" },
   // Offer on the thank-you page for people who skipped the upgrade. "now" must match UPGRADE_PRICE_MXN in Supabase.
   UPSELL: { was: "$1,500", now: "$999" },
+  // Affiliate commission, % of what the buyer paid. Must match afiliados.comision_pct in Supabase.
+  AF_PCT: 50,
   PLAN_NAMES: { soft: "Plan Esencial", hard: "Plan Completo" },
   // Monthly follow-up plan. Must match the Stripe price in STRIPE_PRICE_SUB.
   SUB_PRICE: "$349",
