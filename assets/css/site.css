@@ -2258,3 +2258,18 @@ body[data-page=index] .notes{padding-bottom:32px}
 .cu-nums{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .cu-nums .stat{display:flex;flex-direction:column;min-width:110px}
 @media (max-width:760px){.cu-nums{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 10px}.cu-nums .stat{min-width:0}.cu-nums b{font-size:26px}}
+
+/* offer step: their own measured photo and what we already found */
+.tuyo{display:grid;grid-template-columns:1fr;gap:18px;margin:20px 0 6px}
+.tuyo-foto{margin:0;max-width:340px;width:100%;justify-self:center}
+.tuyo-foto img{display:block;width:100%;height:auto}
+.tuyo-rows{margin-top:8px}
+.tuyo-rows div{border-top-color:rgba(255,255,255,.16)}
+.tuyo-rows .lock{display:inline-flex;align-items:center;gap:6px}
+.tuyo-rows .lock i{filter:blur(5px);font-style:normal;user-select:none}
+.tuyo-nota{margin:12px 0 0;font-size:14px;line-height:1.5}
+.tuyo-foco{margin:22px 0 0}
+.tuyo-foco .checks{margin:10px 0 0}
+.tuyo-foco .checks li{font-size:15px;color:#fff;border-top-color:rgba(255,255,255,.16)}
+.tuyo-foco .checks li::before{color:#34e07a}
+@media (min-width:700px){.tuyo{grid-template-columns:minmax(0,300px) minmax(0,1fr);align-items:center}}
