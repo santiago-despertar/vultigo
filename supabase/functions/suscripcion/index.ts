@@ -17,6 +17,22 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
 const ACTIVAS = ["active", "trialing"];
 const PRUEBA_DIAS = 30;
 
+// Local prices, in the smallest unit Stripe uses for each currency (CLP has no cents). Keep in sync with MONEDAS in assets/js/config.js.
+const PRECIOS: Record<string, { soft: number; hard: number; up: number; sub: number }> = {
+  MXN: { soft: 149900, hard: 299900, up: 99900, sub: 34900 },
+  USD: { soft: 7900, hard: 15900, up: 4900, sub: 1900 },
+  EUR: { soft: 6900, hard: 13900, up: 4500, sub: 1600 },
+  COP: { soft: 25900000, hard: 51900000, up: 16900000, sub: 5900000 },
+  CLP: { soft: 79990, hard: 159990, up: 49990, sub: 18990 },
+  PEN: { soft: 27900, hard: 55900, up: 18900, sub: 6500 },
+};
+const monedaDe = (m: unknown) => { const c = String(m ?? "").toUpperCase(); return PRECIOS[c] ? c : "MXN"; };
+// Any charged amount expressed in pesos, using the same ratio as the price table. Commissions are always in pesos.
+const aPesos = (amount: number | null | undefined, currency: string | null | undefined) => {
+  const c = monedaDe(currency); if (!amount) return 0;
+  return c === "MXN" ? Math.round(amount / 100) : Math.round(amount * 1499 / PRECIOS[c].soft);
+};
+
 async function guardarFila(userId: string, sub: Stripe.Subscription) {
   const customer = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
   await admin.from("suscripciones").upsert({
@@ -59,6 +75,13 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "No autorizado" }, 401);
     const body = await req.json().catch(() => ({}));
     const accion = body.accion ?? "estado";
+    // Pesos use the Stripe price; other currencies a monthly price in that currency on the same product.
+    const moneda = monedaDe(body.moneda);
+    let item: { price: string } | { price_data: { currency: string; product: string; unit_amount: number; recurring: { interval: "month" } } } = { price: Deno.env.get("STRIPE_PRICE_SUB")! };
+    if (moneda !== "MXN" && ["activar", "suscribir"].includes(accion)) {
+      const p = await stripe.prices.retrieve(Deno.env.get("STRIPE_PRICE_SUB")!);
+      item = { price_data: { currency: moneda.toLowerCase(), product: typeof p.product === "string" ? p.product : p.product.id, unit_amount: PRECIOS[moneda].sub, recurring: { interval: "month" } } };
+    }
     const site = Deno.env.get("SITE_URL") ?? "https://resalta.co";
 
     // One click right after paying for an analysis: subscribe on the card saved at that checkout,
@@ -82,7 +105,7 @@ Deno.serve(async (req) => {
         try {
           const nueva = await stripe.subscriptions.create({
             customer,
-            items: [{ price: Deno.env.get("STRIPE_PRICE_SUB")! }],
+            items: [item],
             default_payment_method: pm,
             ...(nuevo ? { trial_period_days: PRUEBA_DIAS } : {}),
             metadata: { user_id: user.id, origen: "upsell" },
@@ -98,7 +121,7 @@ Deno.serve(async (req) => {
       }
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
-        line_items: [{ price: Deno.env.get("STRIPE_PRICE_SUB")!, quantity: 1 }],
+        line_items: [{ ...item, quantity: 1 }],
         ...(row?.stripe_customer ? { customer: row.stripe_customer } : customer ? { customer } : { customer_email: user.email }),
         client_reference_id: user.id,
         metadata: { user_id: user.id, tipo: "suscripcion" },
@@ -116,7 +139,7 @@ Deno.serve(async (req) => {
       const nuevo = !row?.stripe_subscription;
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
-        line_items: [{ price: Deno.env.get("STRIPE_PRICE_SUB")!, quantity: 1 }],
+        line_items: [{ ...item, quantity: 1 }],
         ...(row?.stripe_customer ? { customer: row.stripe_customer } : { customer_email: user.email }),
         client_reference_id: user.id,
         metadata: { user_id: user.id, tipo: "suscripcion" },
