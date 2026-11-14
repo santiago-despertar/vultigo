@@ -155,6 +155,7 @@ Deno.serve(async (req) => {
         embudo: [
           { paso: "Visitantes", n: vids.size },
           { paso: "Vieron la calificación gratis", n: visitasA(/^\/calificacion/) },
+          { paso: "Vieron su resultado", n: unicos("calificacion_resultado") },
           { paso: "Dejaron su correo (lead)", n: unicos("generate_lead") },
           { paso: "Vieron la oferta", n: visitasA(/^\/(analisis|cuenta)/) },
           { paso: "Iniciaron pago", n: unicos("begin_checkout") },
@@ -167,6 +168,45 @@ Deno.serve(async (req) => {
         dispositivos: cuenta(entradas, (e) => e.dispositivo),
         paises: cuenta(entradas, (e) => paisDe(e.tz)).slice(0, 15),
       });
+    }
+
+    if (accion === "enlaces") {
+      // Per tagged link (source + medium + campaign): who arrived through it and what they did afterwards.
+      // A visitor is credited to the first tagged link they used in the period (first touch, same device).
+      const dias = Math.min(365, Math.max(1, Number(b.dias) || 30));
+      const desde = new Date(hoy0().getTime() - (dias - 1) * DIA);
+      const [ev, ord] = await Promise.all([
+        eventosDesde(desde, "ts,nombre,vid,sid,user_id,utm_source,utm_medium,utm_campaign,utm_content,datos"),
+        admin.from("orders").select("id,amount_mxn,status,tier").then((r) => r.data ?? []),
+      ]);
+      const monto = new Map(ord.map((o: Obj) => [o.id, o]));
+      const llave = (e: Obj) => [e.utm_source || "", e.utm_medium || "", e.utm_campaign || "", e.utm_content || ""].join("|");
+      const origen = new Map<string, string>();
+      for (const e of ev) if (e.vid && e.utm_source && !origen.has(e.vid)) origen.set(e.vid, llave(e));
+      const filas: Record<string, Obj> = {};
+      const fila = (k: string) => filas[k] ??= { clics: 0, visitantes: new Set(), calificaciones: new Set(), leads: new Set(), registros: new Set(), pagos: new Set(), compras: 0, ingresos_mxn: 0, completo: 0 };
+      for (const e of ev) {
+        if (e.nombre === "page_view" && e.utm_source) fila(llave(e)).clics++;
+        const k = e.vid ? origen.get(e.vid) : undefined;
+        if (!k) continue;
+        const f = fila(k);
+        if (e.nombre === "page_view") f.visitantes.add(e.vid);
+        else if (e.nombre === "calificacion_resultado") f.calificaciones.add(e.vid);
+        else if (e.nombre === "generate_lead") f.leads.add(e.vid);
+        else if (e.nombre === "sign_up") f.registros.add(e.vid);
+        else if (e.nombre === "begin_checkout") f.pagos.add(e.vid);
+        else if (e.nombre === "purchase") {
+          f.compras++;
+          const o = monto.get(e.datos?.transaction_id);
+          if (o) { f.ingresos_mxn += o.amount_mxn ?? 0; if (o.tier === "hard") f.completo++; }
+        }
+      }
+      const out = Object.entries(filas).map(([k, f]) => {
+        const [fuente, medio, campana, contenido] = k.split("|");
+        return { fuente, medio, campana, contenido, clics: f.clics, visitantes: f.visitantes.size, calificaciones: f.calificaciones.size, leads: f.leads.size,
+          registros: f.registros.size, pagos: f.pagos.size, compras: f.compras, completo: f.completo, ingresos_mxn: f.ingresos_mxn };
+      }).sort((a, b2) => b2.ingresos_mxn - a.ingresos_mxn || b2.visitantes - a.visitantes);
+      return json({ ok: true, dias, enlaces: out });
     }
 
     if (accion === "usuarios") {
