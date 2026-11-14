@@ -2273,3 +2273,36 @@ body[data-page=index] .notes{padding-bottom:32px}
 .tuyo-foco .checks li{font-size:15px;color:#fff;border-top-color:rgba(255,255,255,.16)}
 .tuyo-foco .checks li::before{color:#34e07a}
 @media (min-width:700px){.tuyo{grid-template-columns:minmax(0,300px) minmax(0,1fr);align-items:center}}
+
+/* Creators landing (/creadores): looping explainer inside the how-video frame, and the earnings calculator */
+.cr-ex{background:linear-gradient(135deg,#2b333b,#16191d)}
+.cr-ex::after{content:none}
+.cr-sc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;opacity:0;animation:crSc 16s infinite}
+.cr-s2{animation-delay:4s}.cr-s3{animation-delay:8s}.cr-s4{animation-delay:12s}
+@keyframes crSc{0%{opacity:0;transform:translateY(10px)}3%,22%{opacity:1;transform:none}25%,100%{opacity:0;transform:translateY(-6px)}}
+.cr-cap{margin:0;font-size:17px;text-align:center;max-width:460px;color:#fff}
+.cr-cap i{display:block;font-style:normal;font-size:12px;color:var(--sand);margin-bottom:6px;letter-spacing:.08em}
+.cr-phone,.cr-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:18px 22px;min-width:250px;display:flex;flex-direction:column;align-items:center;gap:4px;backdrop-filter:blur(6px)}
+.cr-av{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--slate),var(--sand));margin-bottom:6px}
+.cr-phone small,.cr-card small{color:rgba(255,255,255,.7);font-size:13px}
+.cr-bio{margin-top:10px;padding:7px 12px;border-radius:999px;background:#fff;color:var(--ink);font-size:13px;overflow:hidden;white-space:nowrap;max-width:0;animation:crType 16s infinite}
+.cr-bio em{font-style:normal;color:var(--slate-deep);font-weight:600}
+@keyframes crType{0%,4%{max-width:0}14%,100%{max-width:260px}}
+.cr-card b{font-size:34px;font-weight:400;color:#fff}.cr-card b em{font-style:normal;font-size:14px;color:rgba(255,255,255,.7)}
+.cr-was{color:rgba(255,255,255,.55);text-decoration:line-through;font-size:15px}
+.cr-up{color:#34e07a!important}
+.cr-pill{margin-top:8px;padding:5px 12px;border-radius:999px;background:var(--sand);color:var(--ink);font-size:12.5px}
+.cr-bars{position:absolute;left:20px;right:20px;bottom:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cr-bars i{height:3px;border-radius:2px;background:rgba(255,255,255,.2);overflow:hidden;position:relative}
+.cr-bars i::after{content:"";position:absolute;inset:0;background:#fff;transform-origin:left;transform:scaleX(0);animation:crBar 16s linear infinite}
+.cr-bars i:nth-child(2)::after{animation-delay:4s}.cr-bars i:nth-child(3)::after{animation-delay:8s}.cr-bars i:nth-child(4)::after{animation-delay:12s}
+@keyframes crBar{0%{transform:scaleX(0)}25%{transform:scaleX(1)}25.01%,100%{transform:scaleX(0)}}
+.cr-top{min-height:0}.cr-top .inner{padding:150px 24px 56px}
+.cr-calc{max-width:640px;margin:0 auto;padding:0 24px 56px}
+.cr-calc input[type=range]{width:100%;margin:14px 0 22px;accent-color:var(--slate-deep)}
+.cr-res{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cr-res div{background:var(--surface-raised);border:1px solid var(--line);border-radius:14px;padding:18px}
+.cr-res small{display:block;color:var(--ink-muted);font-size:13px;margin-bottom:6px}
+.cr-res b{font-size:28px;font-weight:400}
+@media (max-width:640px){.cr-cap{font-size:15px}.cr-card b{font-size:28px}.cr-phone,.cr-card{min-width:0;width:100%;max-width:280px;padding:14px 16px}.cr-sc{gap:14px;padding:16px 16px 34px}.cr-res{grid-template-columns:1fr}.cr-ex{aspect-ratio:4/5}.cr-top .inner{padding:120px 20px 36px;align-self:auto}}
+@media (prefers-reduced-motion:reduce){.cr-sc{animation:none;opacity:0}.cr-s1{opacity:1}.cr-bio{animation:none;max-width:260px}.cr-bars{display:none}}
