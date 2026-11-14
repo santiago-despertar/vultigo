@@ -28,6 +28,40 @@
     }, { threshold: 0.35 }).observe(fx.querySelector(".fx-screen"));
     else { visible = true; fx.classList.add("fx-run"); ir(0); }
   })();
+  // ---------- homepage: run the scan and the pillars only while they are on screen; draggable before/after ----------
+  (function () {
+    const vis = (el, cls, once) => {
+      if (!el) return;
+      if (!("IntersectionObserver" in window)) { el.classList.add(cls); return; }
+      const io = new IntersectionObserver(es => {
+        const v = es[0].isIntersecting; el.classList.toggle(cls, v || (once && el.classList.contains(cls)));
+        if (v && once) io.disconnect();
+      }, { threshold: 0.3 });
+      io.observe(el);
+    };
+    vis(document.querySelector(".dz-face"), "dz-run", false);
+    vis(document.querySelector(".pl"), "pl-run", true);
+
+    const bx = document.querySelector("[data-bax]"); if (!bx) return;
+    const fr = bx.querySelector(".bax-frame"), h = bx.querySelector(".bax-h"), after = bx.querySelector(".bax-after img"), name = bx.querySelector(".bax-name");
+    let x = 50, drag = false, hinted = false;
+    const poner = (v) => { x = Math.max(0, Math.min(100, v)); fr.style.setProperty("--x", x + "%"); h.setAttribute("aria-valuenow", Math.round(x)); };
+    const desde = (e) => { const r = fr.getBoundingClientRect(); poner((e.clientX - r.left) / r.width * 100); };
+    fr.addEventListener("pointerdown", e => { drag = true; fr.classList.remove("hint"); fr.setPointerCapture(e.pointerId); desde(e); });
+    fr.addEventListener("pointermove", e => { if (drag) desde(e); });
+    const fin = () => { drag = false; };
+    fr.addEventListener("pointerup", fin); fr.addEventListener("pointercancel", fin);
+    h.addEventListener("keydown", e => { if (e.key === "ArrowLeft") { poner(x - 5); e.preventDefault(); } if (e.key === "ArrowRight") { poner(x + 5); e.preventDefault(); } });
+    bx.querySelectorAll(".bax-tabs button").forEach(b => b.addEventListener("click", () => {
+      bx.querySelectorAll(".bax-tabs button").forEach(o => o.classList.toggle("on", o === b));
+      after.src = b.dataset.src; name.textContent = b.dataset.lbl; poner(50);
+    }));
+    // a short nudge the first time it is seen, so people know it moves
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver(es => { if (es[0].isIntersecting && !hinted) { hinted = true; fr.classList.add("hint"); setTimeout(() => fr.classList.remove("hint"), 2600); io.disconnect(); } }, { threshold: 0.6 });
+      io.observe(fr);
+    }
+  })();
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
