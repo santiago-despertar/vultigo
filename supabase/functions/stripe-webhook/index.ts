@@ -1,5 +1,5 @@
 // Marks an order as paid when Stripe confirms the payment (card right away, OXXO when the voucher is paid).
-// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET. Deploy with --no-verify-jwt.
+// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SENDER_API_KEY, META_CAPI_TOKEN. Deploy with --no-verify-jwt.
 import Stripe from "npm:stripe@16.12.0";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
@@ -53,6 +53,36 @@ async function capi(nombre: string, id: string, s: Stripe.Checkout.Session, user
     });
     if (!r.ok) console.error("capi", r.status, (await r.text()).slice(0, 300));
   } catch (e) { console.error("capi", e); }
+}
+
+// Sender: a buyer leaves the sales sequence (group "Leads calificación gratis") and joins "Clientes",
+// which is the automation's exit condition too. Both the checkout email and the account email, if they differ.
+// Secret: SENDER_API_KEY (without it nothing is sent).
+const GRUPO_LEADS = Deno.env.get("SENDER_GROUP_ID") ?? "aM2mX5";
+const GRUPO_CLIENTES = Deno.env.get("SENDER_CLIENTES_ID") ?? "b2oAXN";
+async function aClientes(s: Stripe.Checkout.Session, userId?: string | null) {
+  const key = Deno.env.get("SENDER_API_KEY");
+  if (!key) return;
+  try {
+    const correos = new Set<string>();
+    const e1 = s.customer_details?.email ?? s.customer_email;
+    if (e1) correos.add(e1.trim().toLowerCase());
+    if (userId) {
+      const { data } = await admin.auth.admin.getUserById(userId);
+      if (data?.user?.email) correos.add(data.user.email.trim().toLowerCase());
+    }
+    if (!correos.size) return;
+    const h = { Authorization: `Bearer ${key}`, "Content-Type": "application/json", Accept: "application/json" };
+    const nombre = s.customer_details?.name?.split(/\s+/)[0] ?? "";
+    for (const email of correos) {
+      await fetch("https://api.sender.net/v2/subscribers", { method: "POST", headers: h,
+        body: JSON.stringify({ email, ...(nombre ? { firstname: nombre } : {}), groups: [GRUPO_CLIENTES], trigger_automation: false }) });
+    }
+    const lista = [...correos];
+    await fetch(`https://api.sender.net/v2/subscribers/groups/${GRUPO_CLIENTES}`, { method: "POST", headers: h, body: JSON.stringify({ subscribers: lista, trigger_automation: false }) });
+    const r = await fetch(`https://api.sender.net/v2/subscribers/groups/${GRUPO_LEADS}`, { method: "DELETE", headers: h, body: JSON.stringify({ subscribers: lista, trigger_automation: false }) });
+    if (!r.ok) console.error("sender leads", r.status, (await r.text()).slice(0, 200));
+  } catch (e) { console.error("sender", e); }
 }
 
 async function comision(orderId: string, concepto: string, ventaMxn: number) {
@@ -118,6 +148,8 @@ Deno.serve(async (req) => {
       if (cambiado && cambiado.length) {
         await comision(s.client_reference_id, "venta", aPesos(s.amount_total, s.currency));
         await capi("Purchase", "compra-" + s.client_reference_id, s, s.metadata?.user_id);
+        const { data: ord } = await admin.from("orders").select("user_id").eq("id", s.client_reference_id).single();
+        await aClientes(s, s.metadata?.user_id || ord?.user_id);
       }
     }
   }
