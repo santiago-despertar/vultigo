@@ -2,12 +2,17 @@
 // Uses SUPABASE_SERVICE_ROLE_KEY server-side only. Deploy with JWT verification off (clicks come from visitors).
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const cors = {
-  "Access-Control-Allow-Origin": Deno.env.get("SITE_URL") ?? "https://resalta.co",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+// The main site and the affiliate portal (its own subdomain) both call this function.
+const ORIGENES = [Deno.env.get("SITE_URL") ?? "https://resalta.co", "https://afiliados.resalta.co"];
+const corsDe = (req: Request) => {
+  const o = req.headers.get("Origin") ?? "";
+  return {
+    "Access-Control-Allow-Origin": ORIGENES.includes(o) ? o : ORIGENES[0],
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
 };
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const limpiarCodigo = (c: unknown) => String(c ?? "").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 24);
 const RESERVADOS = ["resalta", "admin", "soporte", "oficial", "descuento", "gratis", "test"];
@@ -34,6 +39,8 @@ async function resumen(afiliadoId: string) {
 }
 
 Deno.serve(async (req) => {
+  const cors = corsDe(req);
+  const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
     const body = await req.json().catch(() => ({}));
