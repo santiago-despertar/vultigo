@@ -231,8 +231,36 @@
   // Meta pixel names for our events; purchase carries the order id so Meta never counts it twice.
   const META = { sign_up: "CompleteRegistration", begin_checkout: "InitiateCheckout", purchase: "Purchase", generate_lead: "Lead" };
   const galleta = n => { const m = document.cookie.match(new RegExp("(?:^|; )" + n + "=([^;]*)")); return m ? decodeURIComponent(m[1]) : ""; };
+  // First-party analytics (table eventos, read only from the admin panel): visitor, session, campaign and device.
+  const ident = (store, k) => { try { let v = store.getItem(k); if (!v) { v = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2)); store.setItem(k, v); } return v.slice(0, 40); } catch (e) { return null; } };
+  const VID = ident(localStorage, "rs_vid"), SID = ident(sessionStorage, "rs_sid");
+  const UTM = (() => {
+    const q = new URLSearchParams(location.search), o = {};
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(k => { if (q.get(k)) o[k] = q.get(k).slice(0, 80); });
+    if (!o.utm_source && q.get("fbclid")) { o.utm_source = "facebook"; o.utm_medium = o.utm_medium || "paid"; }
+    if (!o.utm_source && q.get("gclid")) { o.utm_source = "google"; o.utm_medium = o.utm_medium || "cpc"; }
+    if (!o.utm_source && q.get("ttclid")) { o.utm_source = "tiktok"; o.utm_medium = o.utm_medium || "paid"; }
+    try { if (Object.keys(o).length) sessionStorage.setItem("rs_utm", JSON.stringify(o)); else return JSON.parse(sessionStorage.getItem("rs_utm") || "{}"); } catch (e) {}
+    return o;
+  })();
+  const registrar = (nombre, datos) => {
+    if (!sb) return;
+    try {
+      datos = datos || {};
+      let tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+      const extra = {}; ["transaction_id", "method", "tier", "paso", "score", "error"].forEach(k => { if (datos[k] != null) extra[k] = String(datos[k]).slice(0, 80); });
+      if (datos.items && datos.items[0]) extra.item = String(datos.items[0].item_id || "").slice(0, 40);
+      sb.from("eventos").insert({
+        nombre: String(nombre).slice(0, 40), path: location.pathname.slice(0, 200), ref: (document.referrer || "").slice(0, 300) || null,
+        vid: VID, sid: SID, ...UTM, dispositivo: /Mobi|Android|iPhone/i.test(navigator.userAgent) ? "movil" : "escritorio",
+        tz: tz.slice(0, 60), moneda, valor: typeof datos.value === "number" ? datos.value : null, datos: Object.keys(extra).length ? extra : null,
+      }).then(() => {}, () => {});
+    } catch (e) {}
+  };
+  if (!/^(admin|visor)$/.test(page || "")) registrar("page_view");
   const track = (nombre, datos) => {
     datos = datos || {};
+    registrar(nombre, datos);
     try { if (window.gtag) window.gtag("event", nombre, datos); } catch (e) {}
     try {
       if (window.fbq && META[nombre]) {
