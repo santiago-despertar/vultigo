@@ -2179,27 +2179,3 @@ body[data-page=index] .notes{padding-bottom:32px}
 .cmp-t tbody th,.cmp-t thead th:first-child{position:sticky;left:0;background:#fff;z-index:1}
 @media (max-width:900px){.cmp-t tbody th{min-width:118px;box-shadow:6px 0 8px -6px rgba(0,0,0,.12)}.pl-lbl text{font-size:20px}.pl-gen{padding:6px 10px}.pl-gen b{font-size:24px}}
 
-/* v43 creators page (reuses the affiliates layout: af-hero, af-strip, af-steps, faq2, field) */
-.cr-list{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
-.cr-list>div{display:flex;gap:16px;padding:20px 20px 20px 0;border-bottom:1px solid var(--line)}
-.cr-list b{font-weight:400;font-size:12px;color:var(--ink-muted);padding-top:3px}
-.cr-list p{font-size:16px;color:var(--ink)}
-.cr-calc{max-width:640px}
-.cr-calc .field input{max-width:220px}
-.cr-out{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
-.cr-out>div{display:flex;flex-direction:column;gap:4px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#F8F9FA}
-.cr-out b{font-family:var(--font-display);font-weight:300;font-size:30px;letter-spacing:-.02em}
-.cr-out>div:last-child b{color:var(--ink)}
-.cr-steps{grid-template-columns:repeat(4,1fr)}
-.cr-form{max-width:760px}
-.cr-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
-.cr-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
-@media (max-width:900px){.cr-steps{grid-template-columns:1fr 1fr}}
-@media (max-width:760px){
-  .cr-list{grid-template-columns:1fr}
-  .cr-list>div{padding-right:0}
-  .cr-out{grid-template-columns:1fr}
-  .cr-out b{font-size:26px}
-  .cr-steps{grid-template-columns:1fr}
-  .cr-grid{grid-template-columns:1fr}
-}
