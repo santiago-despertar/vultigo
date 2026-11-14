@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return json({ error: "No autorizado" }, 401);
 
-    const { order_id, tier: wanted, ref, moneda: m } = await req.json();
+    const { order_id, tier: wanted, ref, moneda: m, fbp, fbc } = await req.json();
     const moneda = monedaDe(m);
     const { data: order } = await supabase.from("orders").select("id,status,tier,photos_consent_at,afiliado_id").eq("id", order_id).single();
     if (!order || order.status !== "borrador") return json({ error: "Pedido no válido" }, 400);
@@ -88,7 +88,9 @@ Deno.serve(async (req) => {
       customer_creation: "always" as const,
       customer_email: user.email,
       client_reference_id: order.id,
-      metadata: { order_id: order.id, user_id: user.id, tier, moneda, afiliado_id: afiliado ? afiliado.id : "" },
+      metadata: { order_id: order.id, user_id: user.id, tier, moneda, afiliado_id: afiliado ? afiliado.id : "",
+        // Meta browser ids, so the server-side purchase matches the visitor
+        fbp: String(fbp ?? "").slice(0, 200), fbc: String(fbc ?? "").slice(0, 400) },
       ...(discounts ? { discounts } : {}),
       locale: "es-419" as const,
       success_url: `${site}/gracias?pedido=${order.id}`,
