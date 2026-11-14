@@ -24,6 +24,28 @@
     COP: n => `$${n.toLocaleString("es-CO")} COP`, CLP: n => `$${n.toLocaleString("es-CL")} CLP`, PEN: n => `S/ ${n.toLocaleString("en-US")}` };
   const PASO = { COP: 100, CLP: 10 }[moneda] || 1;
   const dinero = v => (FMT[moneda] || FMT.MXN)(Math.round((v || 0) / PASO) * PASO);
+  // A price string from config ("$349", "45 €") with the currency code where "$" is ambiguous, and as a number.
+  const conCodigo = t => t + (SUFIJO ? " " + SUFIJO : "");
+  const numero = t => Number(String(t || "").replace(/[^0-9]/g, "")) || 0;
+  // What the monthly follow-up includes, with what each part would cost on its own (pesos turned into local money, rounded).
+  const VALOR_SUB = [
+    ["Un escaneo facial completo cada mes, con reporte nuevo", null],
+    ["Plan de nutrición hecho para ti, para definir tu cara", 1200],
+    ["Plan de ejercicio para gimnasio o casa", 900],
+    ["Seguimiento de tu cara y tu físico con fotos, lado a lado", 400],
+    ["Tu plan se ajusta cada mes según tu avance", 500],
+  ];
+  const redondo = v => { if (v < 100) return Math.round(v); const p = 10 ** (Math.floor(Math.log10(v)) - 1); return Math.round(v / p) * p; };
+  function valorSub() {
+    const f = LOCAL && LOCAL.n && MONEDAS.MXN ? LOCAL.n.soft / MONEDAS.MXN.n.soft : 1;
+    const items = VALOR_SUB.map(([t, mxn]) => [t, mxn == null ? (precio("soft") || 0) : (moneda === "MXN" ? mxn : redondo(mxn * f))]);
+    return { items, total: items.reduce((x, i) => x + i[1], 0) };
+  }
+  function listaValor(ul, totalEl, cobro) {
+    const v = valorSub();
+    ul.innerHTML = v.items.map(([t, n]) => `<li><span>${t}</span><i class="mono">${dinero(n)}</i></li>`).join("");
+    if (totalEl) totalEl.innerHTML = `Todo esto costaría <s class="mono">${dinero(v.total)}</s> al mes. Con tu seguimiento pagas ${cobro}.`;
+  }
   if (LOCAL) { C.PRICES = { soft: LOCAL.soft, hard: LOCAL.hard }; C.UPSELL = { was: LOCAL.was, now: LOCAL.now }; C.SUB_PRICE = LOCAL.sub; }
   // Code after a price only where "$" is ambiguous.
   const SUFIJO = { MXN: "MXN", COP: "COP", CLP: "CLP" }[moneda] || "";
@@ -936,11 +958,11 @@
   // ---------- panel ----------
   if (page === "gracias") {
     (async () => {
-      const q = new URLSearchParams(location.search), id = q.get("pedido"), box = $("#upsell"), done = $("#upsellDone"), sub = $("#upsellSub");
-      const U = C.UPSELL || {};
+      const q = new URLSearchParams(location.search), id = q.get("pedido"), box = $("#oferta"), done = $("#upsellDone");
+      const U = C.UPSELL || {}, SUB = C.SUB_PRICE || "$349";
       if (U.was) $$("[data-upsell-was]").forEach(e => { e.textContent = U.was; });
-      if (U.now) $$("[data-upsell-now]").forEach(e => { e.textContent = U.now; });
-      if (C.SUB_PRICE) $$("[data-sub-price]").forEach(e => { e.textContent = C.SUB_PRICE; });
+      if (U.now) $$("[data-upsell-now]").forEach(e => { e.textContent = conCodigo(U.now); });
+      $$("[data-sub-price]").forEach(e => { e.textContent = conCodigo(SUB); });
       tarjetaAcceso($("#acceso"));
       if (!sb || !id || !(await getUser())) return;
 
@@ -956,34 +978,24 @@
         }
       } catch (e) {}
 
-      // Second offer: the monthly follow-up, only for people who do not have it yet.
-      async function ofrecerSeguimiento() {
-        if (!sub) return;
-        let st = {}; try { st = await fnCall("suscripcion", { accion: "estado" }); } catch (e) { return; }
-        if (st.activa) return;
-        const fecha = d => d.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
-        const en30 = new Date(Date.now() + 30 * 864e5);
-        $$("[data-sub-fecha]").forEach(e => { e.textContent = fecha(en30); });
-        if (st.nuevo === false) { // already had a subscription before: no free month again
-          sub.querySelector(".upsell-price").innerHTML = `<b class="mono">${C.SUB_PRICE || "$349"}</b>${SUFIJO ? " " + SUFIJO : ""} al mes`;
-          sub.querySelector(".hint").textContent = "Se cobra a la tarjeta que acabas de usar. Cancelas cuando quieras desde tu cuenta.";
-        }
-        sub.hidden = false;
-        $("#subNo").onclick = () => { sub.hidden = true; };
-        $("#subYes").onclick = async () => {
-          const b = $("#subYes"), m = $("#subMsgG"); clearMsg(m);
-          b.disabled = true; b.textContent = "Activando…";
+      const fecha = d => d.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+      const listoSub = r => r && r.prueba && r.primer_cobro
+        ? `Tu seguimiento está activo. Tu primer cobro será el ${fecha(new Date(r.primer_cobro))} y lo puedes cancelar antes desde tu cuenta. En tu cuenta, en la sección Cuerpo, llena tus datos para recibir tu plan de nutrición y ejercicio.`
+        : "Tu seguimiento está activo. En tu cuenta, en la sección Cuerpo, llena tus datos para recibir tu plan de nutrición y ejercicio.";
+
+      // Coming back from the upgrade checkout: if they also picked the follow-up, finish it now.
+      if (q.get("mejora") === "1") {
+        msg(done, "Listo. Tu análisis ahora incluye el Plan Completo.", "ok");
+        if (q.get("sub") === "1") {
           try {
             const r = await fnCall("suscripcion", { accion: "activar", order_id: id, moneda });
             if (r.url) { location.href = r.url; return; }
-            sub.hidden = true;
-            const pc = r.primer_cobro ? fecha(new Date(r.primer_cobro)) : "";
-            msg(done, r.prueba ? `Listo. Tu seguimiento está activo. Tu primer cobro será el ${pc} y lo puedes cancelar antes desde tu cuenta.` : "Listo. Tu seguimiento está activo.", "ok");
-          } catch (e) { b.disabled = false; b.textContent = "Sí, agregar mi seguimiento"; msg(m, "No pudimos activarlo. Inténtalo de nuevo en un momento."); }
-        };
+            msg(done, "Listo. Tu análisis ahora incluye el Plan Completo. " + listoSub(r), "ok");
+          } catch (e) { msg(done, "Tu análisis ya incluye el Plan Completo, pero no pudimos activar tu seguimiento. Puedes activarlo desde tu cuenta."); }
+          return;
+        }
       }
 
-      if (q.get("mejora") === "1") { msg(done, "Listo. Tu análisis ahora incluye la parte avanzada.", "ok"); return ofrecerSeguimiento(); }
       // The payment confirmation can take a few seconds to arrive, so check a few times.
       let o = null;
       for (let i = 0; i < 6; i++) {
@@ -992,28 +1004,59 @@
         if (!o || o.status !== "borrador") break;
         await new Promise(r => setTimeout(r, 2000));
       }
-      if (!o || o.status === "borrador") return;
-      if (o.origen === "suscripcion") return;
-      if (o.tier !== "soft" || !box) return ofrecerSeguimiento();
-      // First offer: the advanced part at a discount, one click on the same card.
+      if (!o || o.status === "borrador" || o.origen === "suscripcion" || !box) return;
+      let st = {}; try { st = await fnCall("suscripcion", { accion: "estado" }); } catch (e) {}
+      const conUp = o.tier === "soft" && q.get("mejora") !== "1", conSub = !st.activa;
+      if (!conUp && !conSub) return;
+
+      // One offer with both things ticked: the upgrade and the monthly follow-up. Untick what you don't want.
+      const up = $("#ofUp"), sub = $("#ofSub"), cUp = up.querySelector("input"), cSub = sub.querySelector("input");
+      up.hidden = !conUp; cUp.checked = conUp;
+      sub.hidden = !conSub; cSub.checked = conSub;
+      const gratis = st.nuevo !== false;
+      $$("[data-sub-fecha]").forEach(e => { e.textContent = fecha(new Date(Date.now() + 30 * 864e5)); });
+      if (!gratis) { $("#ofSubPrecio").textContent = conCodigo(SUB) + " al mes"; $("#ofSubNota").textContent = "Se cobra hoy y cada mes en la misma tarjeta. Cancelas cuando quieras desde tu cuenta."; }
+      listaValor($("#ofValor"), $("#ofTotal"), `<b class="mono">${conCodigo(SUB)}</b> al mes` + (gratis ? ", y el primer mes es gratis" : ""));
+      const yes = $("#ofYes");
+      const pintar = () => {
+        const hoy = (cUp.checked ? numero(U.now) : 0) + (cSub.checked && !gratis ? numero(SUB) : 0);
+        $("#ofHoy").textContent = dinero(hoy);
+        yes.textContent = !cUp.checked && !cSub.checked ? "Continuar sin agregar"
+          : cUp.checked && cSub.checked ? "Agregar los dos"
+          : cUp.checked ? `Agregar Plan Completo por ${conCodigo(U.now)}`
+          : gratis ? "Activar mi mes gratis" : `Activar por ${conCodigo(SUB)} al mes`;
+      };
+      cUp.addEventListener("change", pintar); cSub.addEventListener("change", pintar); pintar();
       box.hidden = false;
-      $("#upsellNo").addEventListener("click", () => { box.hidden = true; ofrecerSeguimiento(); });
-      $("#upsellYes").addEventListener("click", async () => {
-        const b = $("#upsellYes"), m = $("#upsellMsg"), label = b.innerHTML; clearMsg(m);
-        b.disabled = true; b.textContent = "Procesando…";
-        try {
-          const r = await fnCall("upgrade-order", { order_id: id });
-          if (r.url) { location.href = r.url; return; }
-          box.hidden = true;
-          msg(done, "Listo. Tu análisis ahora incluye la parte avanzada.", "ok");
-          ofrecerSeguimiento();
-        } catch (e) {
-          b.disabled = false; b.innerHTML = label;
-          msg(m, "No pudimos agregarlo. Inténtalo de nuevo en un momento.");
+      $("#ofNo").onclick = () => { box.hidden = true; };
+
+      yes.onclick = async () => {
+        const m = $("#ofMsg"); clearMsg(m);
+        const quiereUp = conUp && cUp.checked, quiereSub = conSub && cSub.checked;
+        if (!quiereUp && !quiereSub) { box.hidden = true; return; }
+        yes.disabled = true; yes.textContent = "Procesando…";
+        const hechos = [];
+        let subUrl = null, fallo = false;
+        // The follow-up first: on the saved card its free month needs no charge, so it almost never needs the bank.
+        if (quiereSub) {
+          try { const r = await fnCall("suscripcion", { accion: "activar", order_id: id, moneda }); if (r.url) subUrl = r.url; else hechos.push(listoSub(r)); }
+          catch (e) { fallo = true; }
         }
-      });
+        if (quiereUp) {
+          try {
+            const r = await fnCall("upgrade-order", { order_id: id, luego: subUrl ? "sub" : "" });
+            if (r.url) { location.href = r.url; return; } // the follow-up checkout comes right after, from the return link
+            hechos.unshift("Tu análisis ahora incluye el Plan Completo.");
+          } catch (e) { fallo = true; }
+        }
+        if (subUrl) { location.href = subUrl; return; }
+        box.hidden = !fallo;
+        if (hechos.length) msg(done, "Listo. " + hechos.join(" "), "ok");
+        if (fallo) { yes.disabled = false; pintar(); msg(m, hechos.length ? "Una parte no se pudo completar. Inténtalo de nuevo." : "No pudimos completarlo. Inténtalo de nuevo en un momento."); if (hechos.length) { if (quiereSub && !subUrl && hechos.some(h => h.includes("seguimiento"))) { sub.hidden = true; cSub.checked = false; } if (quiereUp && hechos.some(h => h.includes("Plan Completo"))) { up.hidden = true; cUp.checked = false; } pintar(); } }
+      };
     })();
   }
+
 
   if (page === "portal") {
     const box = $("#afApp");
@@ -1266,6 +1309,7 @@
         history.replaceState(null, "", "/panel");
         setTimeout(() => { irA("progreso"); msg($("#subMsg"), "Listo, tu seguimiento mensual está activo. Ya puedes hacer tu escaneo de este mes.", "ok"); }, 300);
       }
+      avisoCuerpo();
     })();
 
     async function leerReporte(id) {
@@ -1403,6 +1447,7 @@
       if (tab === "simular") abrirSim();
       if (tab === "progreso") progreso();
       if (tab === "chat") abrirChat();
+      if (tab === "cuerpo") cuerpo();
       const ab = $("#dashNav button.active"); if (ab && ab.scrollIntoView && innerWidth <= 900) ab.scrollIntoView({ inline: "nearest", block: "nearest" });
     }
 
@@ -1500,6 +1545,184 @@
       $$("#chatSug button").forEach(b => b.addEventListener("click", () => preguntar(b.textContent)));
     }
 
+    // ---- body: nutrition and training plan, body photos and weight, month by month (subscribers)
+    const PAISES = ["México", "España", "Colombia", "Chile", "Perú", "Argentina", "Ecuador", "Guatemala", "Venezuela", "Estados Unidos", "Otro"];
+    const PAIS_MONEDA = { MXN: "México", EUR: "España", COP: "Colombia", CLP: "Chile", PEN: "Perú" };
+    const FOTOS_CU = [["frente", "De frente", "Cuerpo completo, brazos relajados"], ["perfil", "De lado", "Cuerpo completo, de perfil"], ["espalda", "De espaldas", "Opcional"]];
+    const DIAS_CU = 21; // a new check-in, and a new plan, every three weeks at most
+    let subEstado = null, cuRows = null, cuSondeo = null;
+    async function estadoSub() { if (!subEstado) { try { subEstado = await fnCall("suscripcion", { accion: "estado" }); } catch (e) { subEstado = { activa: false }; } } return subEstado; }
+    async function filasCuerpo() { const { data } = await sb.from("fisico").select("id,created_at,datos,fotos,peso_kg,estado,plan,plan_at").order("created_at", { ascending: false }); return data || []; }
+    async function avisoCuerpo() {
+      const st = await estadoSub(); if (!st.activa) return;
+      cuRows = await filasCuerpo();
+      const av = $("#cuerpoAviso"); if (!av || cuRows.length) return;
+      av.hidden = false;
+      $("#cuerpoIr").onclick = () => { const rb = $("#repBody"); if (rb && rb.hidden) rb.hidden = false; $("#reportArea").hidden = false; irA("cuerpo"); };
+    }
+    async function cuerpo() {
+      const box = $("#cuerpoBox"); if (!box) return;
+      const st = await estadoSub();
+      if (!st.activa) {
+        box.innerHTML = `<div class="card cu-card"><p class="label">Incluido en tu seguimiento mensual</p><h3 class="cu-h">Tu plan de nutrición y ejercicio</h3>
+          <p class="hint">Con tus datos y fotos de físico te armamos un plan para bajar grasa y definir tu cara, y cada mes lo ajustamos con tu avance.</p>
+          <ul class="of-valor" id="cuValor"></ul><span class="of-total" id="cuTotal"></span><div class="msg" id="cuMsg"></div>
+          <button type="button" class="btn btn-primary" id="cuActivar" style="margin-top:16px">${st.nuevo === false ? "Activar mi seguimiento" : "Activar mi mes gratis"}</button></div>`;
+        listaValor($("#cuValor"), $("#cuTotal"), `<b class="mono">${conCodigo(C.SUB_PRICE || "$349")}</b> al mes` + (st.nuevo === false ? "" : ", y el primer mes es gratis"));
+        $("#cuActivar").onclick = async function () {
+          this.disabled = true; this.textContent = "Un momento…";
+          try { const r = await fnCall("suscripcion", { accion: "suscribir", moneda }); if (r.url) { location.href = r.url; return; } subEstado = null; cuerpo(); }
+          catch (e) { this.disabled = false; this.textContent = "Activar"; msg($("#cuMsg"), "No se pudo completar. Inténtalo de nuevo en un momento."); }
+        };
+        return;
+      }
+      cuRows = await filasCuerpo();
+      const ult = cuRows[0];
+      if (!ult) return formCuerpo(box, null);
+      if (ult.estado === "listo" && ult.plan) return verPlan(box, ult);
+      if (ult.estado === "error") {
+        box.innerHTML = `<div class="card cu-card"><h3 class="cu-h">No pudimos armar tu plan</h3><p class="hint">Fue un error de nuestro lado. Inténtalo otra vez.</p><div class="msg" id="cuMsg"></div><button type="button" class="btn btn-primary" id="cuRe" style="margin-top:14px">Intentar de nuevo</button></div>`;
+        $("#cuRe").onclick = async function () { this.disabled = true; try { await fnCall("plan-fisico", {}); } catch (e) {} esperarPlan(box); };
+        return;
+      }
+      esperarPlan(box);
+    }
+    function esperarPlan(box) {
+      box.innerHTML = `<div class="card rep-wait"><div class="rep-spin" aria-hidden="true"></div><div><b>Estamos armando tu plan</b><p class="hint">Tarda uno o dos minutos. Puedes salir y volver, se guarda en tu cuenta.</p></div></div>`;
+      clearTimeout(cuSondeo);
+      let n = 0;
+      const tick = async () => {
+        n++;
+        const filas = await filasCuerpo(), u = filas[0];
+        if (u && u.estado === "nuevo" && n === 1) { try { await fnCall("plan-fisico", {}); } catch (e) {} }
+        if (u && (u.estado === "listo" || u.estado === "error")) return cuerpo();
+        if (n === 40) { try { await fnCall("plan-fisico", {}); } catch (e) {} } // a stuck job restarts after 4 minutes
+        if (n < 80 && $('.dash-tab[data-tab="cuerpo"]').classList.contains("active")) cuSondeo = setTimeout(tick, 5000);
+      };
+      tick();
+    }
+    function formCuerpo(box, previo) {
+      const p = (previo && previo.datos) || {};
+      const sexo = p.sexo || ((todos.find(o => o.answers && o.answers.sexo) || {}).answers || {}).sexo || "";
+      const edad = p.edad || ((todos.find(o => o.answers && o.answers.edad) || {}).answers || {}).edad || "";
+      const pais = p.pais || PAIS_MONEDA[moneda] || "";
+      const op = (v, t, sel) => `<option value="${v}"${String(sel) === String(v) ? " selected" : ""}>${t}</option>`;
+      const sel = (name, ops, val) => `<select id="cu-${name}" name="${name}" required><option value="" disabled${val ? "" : " selected"}>Elige</option>${ops.map(([v, t]) => op(v, t, val)).join("")}</select>`;
+      box.innerHTML = `<form class="card cu-card cu-form" id="cuForm" novalidate>
+        <p class="label">${previo ? "Tu actualización del mes" : "Tus datos"}</p>
+        <h3 class="cu-h">${previo ? "¿Cómo vas este mes?" : "Para armar tu plan"}</h3>
+        <p class="hint" style="margin-bottom:20px">${previo ? "Pon tu peso de hoy y sube fotos nuevas con la misma luz y la misma ropa que la vez pasada." : "Con esto calculamos tus calorías y armamos tus comidas y tu rutina. Solo tú ves tus fotos."}</p>
+        <div class="cu-grid">
+          <div class="field"><label for="cu-sexo">Sexo</label>${sel("sexo", [["hombre", "Hombre"], ["mujer", "Mujer"]], sexo)}</div>
+          <div class="field"><label for="cu-edad">Edad</label><input id="cu-edad" name="edad" type="number" inputmode="numeric" min="18" max="90" value="${edad}" required></div>
+          <div class="field"><label for="cu-estatura_cm">Estatura (cm)</label><input id="cu-estatura_cm" name="estatura_cm" type="number" inputmode="numeric" min="120" max="230" placeholder="170" value="${p.estatura_cm || ""}" required></div>
+          <div class="field"><label for="cu-peso_kg">Peso de hoy (kg)</label><input id="cu-peso_kg" name="peso_kg" type="number" inputmode="decimal" min="30" max="300" step="0.1" placeholder="70" required></div>
+          <div class="field"><label for="cu-objetivo">Tu objetivo</label>${sel("objetivo", [["bajar", "Bajar grasa"], ["recomp", "Bajar grasa y ganar músculo"], ["musculo", "Ganar músculo"], ["mantener", "Mantener y definir"]], p.objetivo)}</div>
+          <div class="field"><label for="cu-actividad">Qué tan activo eres en tu día</label>${sel("actividad", [["sedentario", "Casi todo el día sentado"], ["ligero", "Camino algo, poco ejercicio"], ["moderado", "Ejercicio 3 a 5 veces por semana"], ["muy", "Trabajo físico o entreno diario"]], p.actividad)}</div>
+          <div class="field"><label for="cu-lugar">Dónde vas a entrenar</label>${sel("lugar", [["gym", "En el gimnasio"], ["casa_equipo", "En casa, con mancuernas o ligas"], ["casa", "En casa, sin equipo"]], p.lugar)}</div>
+          <div class="field"><label for="cu-dias">Días por semana</label>${sel("dias", [[2, "2 días"], [3, "3 días"], [4, "4 días"], [5, "5 días"], [6, "6 días"]], p.dias)}</div>
+          <div class="field"><label for="cu-minutos">Tiempo por sesión</label>${sel("minutos", [[30, "30 minutos"], [45, "45 minutos"], [60, "1 hora"], [90, "1 hora y media"]], p.minutos)}</div>
+          <div class="field"><label for="cu-comidas">Comidas al día</label>${sel("comidas", [[2, "2"], [3, "3"], [4, "4"], [5, "5"]], p.comidas)}</div>
+          <div class="field"><label for="cu-dieta">Cómo comes</label>${sel("dieta", [["de todo", "Como de todo"], ["vegetariana", "Vegetariana"], ["vegana", "Vegana"], ["sin cerdo", "Sin cerdo"], ["pescetariana", "Pescado, sin carne roja ni pollo"]], p.dieta)}</div>
+          <div class="field"><label for="cu-pais">País</label>${sel("pais", PAISES.map(x => [x, x]), pais)}</div>
+        </div>
+        <div class="field"><label for="cu-no_come">Lo que no comes o no te gusta <span class="hint">(opcional)</span></label><input id="cu-no_come" name="no_come" maxlength="200" placeholder="Por ejemplo: brócoli, mariscos, lácteos" value="${String(p.no_come || "").replace(/"/g, "&quot;")}"></div>
+        <p class="label" style="margin:10px 0 4px">Fotos de tu físico</p>
+        <p class="hint" style="margin-bottom:12px">Con ropa ajustada o deportiva, buena luz y el celular a la altura del pecho. Sirven para comparar tu avance cada mes.</p>
+        <div class="cu-fotos">${FOTOS_CU.map(([k, t, s]) => `<label class="cu-foto" data-k="${k}"><input type="file" accept="image/*" aria-label="${t}"><b>${t}</b><small>${s}</small></label>`).join("")}</div>
+        <label class="cu-ok"><input type="checkbox" id="cu-salud"> <span>No tengo ninguna condición médica que limite mi alimentación o el ejercicio, o ya lo platiqué con mi médico.</span></label>
+        <div class="msg" id="cuMsg"></div>
+        <button class="btn btn-primary btn-block" type="submit">${previo ? "Actualizar mi plan" : "Armar mi plan"}</button>
+        ${previo ? '<button type="button" class="upsell-no" id="cuCancel">Cancelar</button>' : ""}
+      </form>`;
+      const fotos = {};
+      box.querySelectorAll(".cu-foto").forEach(el => {
+        el.querySelector("input").onchange = async ev => {
+          const f = ev.target.files[0]; if (!f || !/^image\//.test(f.type)) return;
+          const blob = await redimensionar(f).catch(() => null); if (!blob) return msg($("#cuMsg"), "No pudimos leer esa foto. Prueba con otra.");
+          fotos[el.dataset.k] = blob;
+          let img = el.querySelector("img"); if (!img) { img = document.createElement("img"); el.prepend(img); }
+          img.src = URL.createObjectURL(blob); el.classList.add("done");
+        };
+      });
+      if (previo) $("#cuCancel").onclick = () => verPlan(box, previo);
+      $("#cuForm").onsubmit = async ev => {
+        ev.preventDefault();
+        const f = ev.target, m = $("#cuMsg"); clearMsg(m);
+        const d = Object.fromEntries(new FormData(f).entries());
+        for (const k of ["edad", "estatura_cm", "peso_kg", "dias", "minutos", "comidas"]) d[k] = Number(d[k]);
+        if (["sexo", "objetivo", "actividad", "lugar", "dias", "minutos", "comidas", "dieta", "pais"].some(k => !d[k])) return msg(m, "Te falta llenar algún dato.");
+        if (!(d.edad >= 18 && d.edad <= 90)) return msg(m, "Este plan es solo para mayores de 18 años.");
+        if (!(d.estatura_cm >= 120 && d.estatura_cm <= 230)) return msg(m, "Revisa tu estatura, en centímetros. Por ejemplo: 170.");
+        if (!(d.peso_kg >= 30 && d.peso_kg <= 300)) return msg(m, "Revisa tu peso, en kilos. Por ejemplo: 70.");
+        if (!fotos.frente || !fotos.perfil) return msg(m, "Sube al menos tu foto de frente y la de lado.");
+        if (!$("#cu-salud").checked) return msg(m, "Confirma la casilla de salud. Si tienes alguna condición, platícalo antes con tu médico.");
+        d.no_come = String(d.no_come || "").trim().slice(0, 200);
+        const b = f.querySelector('button[type="submit"]'); b.disabled = true; b.textContent = "Subiendo tus fotos…";
+        try {
+          const user = await getUser(), carpeta = `${user.id}/fisico/${Date.now()}`, rutas = [];
+          for (const [k, blob] of Object.entries(fotos)) {
+            const ruta = `${carpeta}/${k}.jpg`;
+            const { error } = await sb.storage.from("fotos").upload(ruta, blob, { upsert: true, contentType: "image/jpeg" });
+            if (error) throw error;
+            rutas.push(ruta);
+          }
+          const { error } = await sb.from("fisico").insert({ user_id: user.id, datos: d, fotos: rutas, peso_kg: d.peso_kg });
+          if (error) throw error;
+          $("#cuerpoAviso").hidden = true;
+          track("generate_lead", { lead_type: "plan_cuerpo" });
+          esperarPlan(box);
+        } catch (e) { console.error(e); b.disabled = false; b.textContent = previo ? "Actualizar mi plan" : "Armar mi plan"; msg(m, "No pudimos guardar tus datos. Revisa tu conexión e inténtalo de nuevo."); }
+      };
+    }
+    async function redimensionar(file) {
+      const img = await createImageBitmap(file);
+      const s = Math.min(1, 1400 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      return new Promise(r => c.toBlob(r, "image/jpeg", 0.88));
+    }
+    async function urlFoto(ruta) { const { data } = await sb.storage.from("fotos").createSignedUrl(ruta, 3600); return data ? data.signedUrl : ""; }
+    async function verPlan(box, fila) {
+      const P = fila.plan, N = P.numeros || {}, lst = a => (Array.isArray(a) ? a : []);
+      const dias = Math.floor((Date.now() - new Date(fila.created_at)) / 864e5), toca = dias >= DIAS_CU;
+      const prox = new Date(+new Date(fila.created_at) + DIAS_CU * 864e5).toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+      box.innerHTML = `
+        <div class="card cu-card cu-top"><div><p class="label">Tu plan de este mes</p><p class="hint">Hecho el ${fecha(fila.plan_at || fila.created_at)} con tu peso de ${esc(fila.peso_kg)} kg.</p></div>
+          ${toca ? '<button type="button" class="btn btn-primary" id="cuNuevo">Actualizar mi plan del mes</button>' : `<p class="hint">Tu siguiente actualización: ${prox}</p>`}</div>
+        <div class="strip af-strip cu-nums">
+          <div class="stat"><b>${esc(N.kcal)}</b><span>calorías al día</span></div>
+          <div class="stat"><b>${esc(N.prot)} g</b><span>proteína</span></div>
+          <div class="stat"><b>${esc(N.carbs)} g</b><span>carbohidratos</span></div>
+          <div class="stat"><b>${esc(N.grasa)} g</b><span>grasa</span></div>
+          <div class="stat"><b>${esc(N.agua)} L</b><span>agua</span></div>
+        </div>
+        <p class="rep-lead">${esc(P.resumen)}</p>
+        <div class="card"><p class="label">Cómo se va a notar en tu cara</p><p class="hint" style="margin-top:6px">${esc(P.en_tu_cara)}</p>${N.ritmo ? `<p class="hint" style="margin-top:8px">Ritmo esperado: ${esc(N.ritmo)}.</p>` : ""}</div>
+        <h3 class="rep-h">Tus comidas</h3><p class="hint rep-sub">Un día tipo. En cada comida elige cualquiera de las opciones, todas dan más o menos lo mismo.</p>
+        <div class="cu-comidas">${lst(P.comidas).map(c => `<div class="card"><p class="label">${esc(c.momento)}</p><ul class="cu-ops">${lst(c.opciones).map(o => `<li>${esc(o)}</li>`).join("")}</ul></div>`).join("")}</div>
+        <h3 class="rep-h">Tu entrenamiento</h3>
+        <div class="cu-dias">${lst((P.entreno || {}).dias).map(d => `<div class="card"><p class="label">${esc(d.dia)}</p><h4 class="cu-dh">${esc(d.enfoque)}</h4><ul class="cu-ej">${lst(d.ejercicios).map(e => `<li><span><b>${esc(e.nombre)}</b>${e.nota ? `<small>${esc(e.nota)}</small>` : ""}</span><i class="mono">${esc(e.series)} × ${esc(e.reps)}</i></li>`).join("")}</ul></div>`).join("")}</div>
+        <div class="rep-two"><div class="card"><p class="label">Cardio y pasos</p><p class="hint" style="margin-top:6px">${esc((P.entreno || {}).cardio)}</p></div><div class="card"><p class="label">Cómo ir subiendo</p><p class="hint" style="margin-top:6px">${esc((P.entreno || {}).progresion)}</p></div></div>
+        <div class="card"><p class="label">Hábitos que más se notan en tu cara</p><ul class="checks" style="margin:10px 0 0">${lst(P.habitos).map(h => `<li>${esc(h)}</li>`).join("")}</ul></div>
+        <details class="card cu-super"><summary><span class="label">Lista del súper de la semana</span></summary><ul class="cu-ops">${lst(P.lista_super).map(h => `<li>${esc(h)}</li>`).join("")}</ul></details>
+        <h3 class="rep-h">Tu avance de físico</h3>
+        <div class="card" id="cuAvance"><p class="hint">Cargando tus fotos…</p></div>
+        <p class="hint cu-nota">Es una guía general de alimentación y ejercicio, no un tratamiento médico. Si tienes alguna condición de salud, platícalo con tu médico antes de empezar.</p>`;
+      if (toca) $("#cuNuevo").onclick = () => formCuerpo(box, fila);
+      // weight over time and first vs latest photos
+      const filas = (cuRows || []).filter(x => x.peso_kg).slice().reverse();
+      const prim = filas[0], ulti = filas[filas.length - 1];
+      const pesos = filas.map(x => `<div class="cu-peso"><span>${new Date(x.created_at).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}</span><b class="mono">${esc(x.peso_kg)} kg</b></div>`).join("");
+      const dif = prim && ulti && prim !== ulti ? Math.round((ulti.peso_kg - prim.peso_kg) * 10) / 10 : null;
+      const par = async x => Promise.all(FOTOS_CU.slice(0, 2).map(([k]) => { const r = (x.fotos || []).find(f => f.endsWith("/" + k + ".jpg")); return r ? urlFoto(r) : ""; }));
+      const [fa, fb] = await Promise.all([par(prim || fila), prim && ulti && prim !== ulti ? par(ulti) : Promise.resolve(null)]);
+      const fig = (urls, t) => `<figure><div class="cu-par">${urls.map(u => u ? `<img src="${u}" alt="${t}">` : "").join("")}</div><figcaption class="hint">${t}</figcaption></figure>`;
+      $("#cuAvance").innerHTML = `<div class="cu-pesos">${pesos}${dif != null ? `<div class="cu-peso cu-dif"><span>Cambio total</span><b class="mono">${dif > 0 ? "+" : ""}${dif} kg</b></div>` : ""}</div>
+        <div class="cu-cmp">${fig(fa, fb ? "Al empezar" : "Tus fotos de este mes")}${fb ? fig(fb, "Este mes") : ""}</div>
+        ${fb ? "" : '<p class="hint" style="margin-top:10px">En tu siguiente actualización vas a ver aquí tus fotos lado a lado.</p>'}`;
+    }
+
     let subCargando = false;
     async function suscripcionUI(forzar) {
       if (subCargando && !forzar) return; subCargando = true;
@@ -1519,7 +1742,7 @@
       };
       if (!st.activa) {
         $("#subL").textContent = "Seguimiento mensual"; $("#subT").textContent = "Mide tu avance cada mes";
-        $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu línea de progreso y la comparación entre fotos. ${st.nuevo === false ? "" : "El primer mes es gratis, después "}<b class="mono">${esc(precio)}</b>${SUFIJO ? " " + SUFIJO : ""} al mes y cancelas cuando quieras.`;
+        $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu plan de nutrición y ejercicio, y tu progreso de cara y físico. ${st.nuevo === false ? "" : "El primer mes es gratis, después "}<b class="mono">${esc(precio)}</b>${SUFIJO ? " " + SUFIJO : ""} al mes y cancelas cuando quieras.`;
         boton("Activar seguimiento", "btn btn-primary", function () { accion(this, "suscribir"); });
         enlace("Un escaneo suelto", "/analisis", "btn btn-ghost");
       } else {
