@@ -222,4 +222,13 @@ out = ROOT.parent / "afiliados-site"; out.mkdir(exist_ok=True)
 (out / "CNAME").write_text("afiliados.resalta.co\n", encoding="utf-8")
 print("built portal", out)
 # The old page on resalta.co now forwards to the portal (keeps any ?ref= or other query).
+# Short links for bios and descriptions: resalta.co/ig, /tt, ... send people to the home page with
+# campaign tags, so the admin panel can tell which link brought each visit, lead and sale.
+CORTOS = {
+    "ig": ("instagram", "bio", "perfil"), "tt": ("tiktok", "bio", "perfil"), "yt": ("youtube", "descripcion", "canal"),
+    "fb": ("facebook", "bio", "perfil"), "x": ("x", "bio", "perfil"), "wa": ("whatsapp", "mensaje", "compartido"),
+}
+for _k, (_s, _m, _c) in CORTOS.items():
+    _dest = f"/?utm_source={_s}&utm_medium={_m}&utm_campaign={_c}"
+    (ROOT / f"{_k}.html").write_text(f'<!doctype html><html lang="es-MX"><head><meta charset="utf-8"><title>Resalta</title><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0;url={_dest}"><script>location.replace("{_dest}")</script></head><body><a href="{_dest}">Resalta</a></body></html>\n', encoding="utf-8")
 (ROOT / "afiliados.html").write_text('<!doctype html><html lang="es-MX"><head><meta charset="utf-8"><title>Programa de afiliados · Resalta</title><meta name="robots" content="noindex"><link rel="canonical" href="https://afiliados.resalta.co/"><meta http-equiv="refresh" content="0;url=https://afiliados.resalta.co/"><script>location.replace("https://afiliados.resalta.co/"+location.search)</script></head><body><a href="https://afiliados.resalta.co/">Programa de afiliados</a></body></html>\n', encoding="utf-8")
