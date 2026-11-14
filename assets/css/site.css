@@ -2179,3 +2179,82 @@ body[data-page=index] .notes{padding-bottom:32px}
 .cmp-t tbody th,.cmp-t thead th:first-child{position:sticky;left:0;background:#fff;z-index:1}
 @media (max-width:900px){.cmp-t tbody th{min-width:118px;box-shadow:6px 0 8px -6px rgba(0,0,0,.12)}.pl-lbl text{font-size:20px}.pl-gen{padding:6px 10px}.pl-gen b{font-size:24px}}
 
+
+/* v44 combined offer after paying (reuses .upsell and .plan-opt) */
+.oferta .of-opt{margin-bottom:12px}
+.oferta .of-opt[hidden]{display:none}
+.of-opt .plan-in{position:relative;padding-left:54px}
+.of-opt .plan-in::before{content:"";position:absolute;left:18px;top:22px;width:22px;height:22px;border:1.5px solid var(--line);border-radius:6px;background:var(--surface)}
+.of-opt input:checked+.plan-in::before{background:var(--ink);border-color:var(--ink)}
+.of-opt input:checked+.plan-in::after{content:"";position:absolute;left:25px;top:26px;width:7px;height:12px;border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.of-opt .plan-top em s{color:var(--ink-muted);margin-right:6px}
+.of-valor{list-style:none;padding:0;margin:12px 0 0}
+.of-valor li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.of-valor li i{font-style:normal;color:var(--ink-muted);white-space:nowrap}
+.of-total{display:block;margin-top:10px;font-size:14px}
+.of-total s{color:var(--ink-muted)}
+.of-hoy{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 0;padding:14px 2px 0;border-top:1px solid var(--line)}
+.of-hoy b{font-size:22px}
+@media (max-width:760px){.of-opt .plan-in{padding-left:48px}.of-opt .plan-in::before{left:14px}.of-opt input:checked+.plan-in::after{left:21px}.of-opt .plan-top{flex-direction:column;gap:2px}}
+
+/* v45 body plan for subscribers (panel > Cuerpo), reuses card, field, strip, checks, rep-* */
+.cu-aviso{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.cu-card{margin-bottom:16px}
+.cu-h{font-size:24px;font-weight:400;margin:6px 0 8px}
+.cu-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 14px}
+.cu-fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.cu-foto{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;aspect-ratio:3/4;padding:12px;border:1px dashed var(--line);border-radius:var(--r-md);background:#F8F9FA;cursor:pointer;overflow:hidden}
+.cu-foto input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.cu-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cu-foto b,.cu-foto small{position:relative;z-index:1}
+.cu-foto small{color:var(--ink-muted);font-size:13px}
+.cu-foto.done{border-style:solid;border-color:var(--ink)}
+.cu-foto.done b,.cu-foto.done small{background:rgba(255,255,255,.88);padding:2px 6px;border-radius:6px;width:max-content}
+.cu-ok{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:4px 0 14px;cursor:pointer}
+.cu-ok input{margin-top:3px;width:18px;height:18px;flex-shrink:0}
+.cu-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.cu-nums{margin:4px 0 18px}
+.cu-comidas,.cu-dias{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px}
+.cu-ops{list-style:none;padding:0;margin:8px 0 0}
+.cu-ops li{padding:9px 0;border-top:1px solid var(--line);font-size:15px}
+.cu-ops li:first-child{border-top:0}
+.cu-dh{font-size:19px;font-weight:400;margin:4px 0 6px}
+.cu-ej{list-style:none;padding:0;margin:0}
+.cu-ej li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:15px}
+.cu-ej li span{display:flex;flex-direction:column;gap:2px}
+.cu-ej li b{font-weight:500}
+.cu-ej small{color:var(--ink-muted);font-size:13px}
+.cu-ej i{font-style:normal;white-space:nowrap;color:var(--ink-muted)}
+.cu-super{margin:16px 0}
+.cu-super summary{cursor:pointer;list-style:none}
+.cu-pesos{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.cu-peso{display:flex;flex-direction:column;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#F8F9FA;font-size:13px;color:var(--ink-muted)}
+.cu-peso b{font-size:18px;color:var(--ink)}
+.cu-dif{border-color:var(--ink)}
+.cu-cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cu-cmp figure{margin:0}
+.cu-par{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cu-par img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;background:#F1F3F5}
+.cu-nota{margin-top:16px}
+@media (max-width:900px){.cu-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){
+  .cu-grid{grid-template-columns:1fr}
+  .cu-fotos{gap:8px}
+  .cu-foto{padding:8px}
+  .cu-foto small{display:none}
+  .cu-comidas,.cu-dias,.cu-cmp{grid-template-columns:1fr}
+  .cu-aviso .btn{width:100%}
+}
+#cuerpoBox .rep-two{margin:0 0 16px}
+@media (max-width:760px){
+  .oferta{padding:18px 14px;margin-left:-8px;margin-right:-8px}
+  .of-opt .plan-in{padding:16px 14px 16px 46px}
+  .of-opt .plan-in::before{left:13px;top:18px}
+  .of-opt input:checked+.plan-in::after{left:20px;top:22px}
+  .of-valor,.of-opt .of-total{margin-left:-32px}
+  .of-valor li{font-size:13.5px}
+}
+@media (max-width:760px){body[data-page="gracias"] .panel{padding:26px 16px}}
+.cu-nums{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.cu-nums .stat{display:flex;flex-direction:column;min-width:110px}
+@media (max-width:760px){.cu-nums{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 10px}.cu-nums .stat{min-width:0}.cu-nums b{font-size:26px}}
