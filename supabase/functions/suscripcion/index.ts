@@ -1,7 +1,7 @@
 // Monthly follow-up plan: one full rescan per billing period, progress and compare.
 // Actions: estado, activar (one click after a purchase, on the card just used), suscribir (checkout),
 // usar (spend this month's rescan on a draft order), cancelar, reactivar.
-// The first month is free: the analysis they just bought covers it, so billing starts 30 days later.
+// No free month: the first month is charged when they subscribe.
 // Secrets: STRIPE_SECRET_KEY, STRIPE_PRICE_SUB, SITE_URL
 import Stripe from "npm:stripe@16.12.0";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
@@ -15,7 +15,6 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!);
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const ACTIVAS = ["active", "trialing"];
-const PRUEBA_DIAS = 30;
 
 // Local prices, in the smallest unit Stripe uses for each currency (CLP has no cents). Keep in sync with MONEDAS in assets/js/config.js.
 const PRECIOS: Record<string, { soft: number; hard: number; up: number; sub: number }> = {
@@ -89,7 +88,6 @@ Deno.serve(async (req) => {
     if (accion === "activar") {
       const { row, sub } = await leer(user.id);
       if (sub && ACTIVAS.includes(sub.status)) return json({ ya: true });
-      const nuevo = !row?.stripe_subscription;
       const { data: order } = await supabase.from("orders").select("id,status,stripe_session_id").eq("id", body.order_id).single();
       let customer: string | undefined, pm: string | undefined;
       if (order?.stripe_session_id) {
@@ -107,14 +105,13 @@ Deno.serve(async (req) => {
             customer,
             items: [item],
             default_payment_method: pm,
-            ...(nuevo ? { trial_period_days: PRUEBA_DIAS } : {}),
             metadata: { user_id: user.id, origen: "upsell" },
-            // free month: nothing to charge now. Returning subscribers are charged right away on the saved card.
-            ...(nuevo ? { payment_behavior: "default_incomplete" as const } : { payment_behavior: "error_if_incomplete" as const, off_session: true }),
+            // no free month: the first month is charged right away on the saved card
+            payment_behavior: "error_if_incomplete" as const, off_session: true,
           }, { idempotencyKey: `sub-${user.id}-${order!.id}` });
           if (ACTIVAS.includes(nueva.status)) {
             await guardarFila(user.id, nueva);
-            return json({ ok: true, prueba: nuevo, primer_cobro: new Date(nueva.current_period_end * 1000).toISOString() });
+            return json({ ok: true, prueba: false, siguiente_cobro: new Date(nueva.current_period_end * 1000).toISOString() });
           }
           await stripe.subscriptions.cancel(nueva.id).catch(() => {});
         } catch (e) { console.error("one-click subscription failed, sending to checkout", e); }
@@ -125,7 +122,7 @@ Deno.serve(async (req) => {
         ...(row?.stripe_customer ? { customer: row.stripe_customer } : customer ? { customer } : { customer_email: user.email }),
         client_reference_id: user.id,
         metadata: { user_id: user.id, tipo: "suscripcion" },
-        subscription_data: { metadata: { user_id: user.id }, ...(nuevo ? { trial_period_days: PRUEBA_DIAS } : {}) },
+        subscription_data: { metadata: { user_id: user.id } },
         locale: "es-419",
         success_url: `${site}/panel?suscripcion=ok`,
         cancel_url: `${site}/gracias?pedido=${body.order_id ?? ""}`,
@@ -136,14 +133,13 @@ Deno.serve(async (req) => {
     if (accion === "suscribir") {
       const { row, sub } = await leer(user.id);
       if (sub && ACTIVAS.includes(sub.status)) return json({ ya: true });
-      const nuevo = !row?.stripe_subscription;
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         line_items: [{ ...item, quantity: 1 }],
         ...(row?.stripe_customer ? { customer: row.stripe_customer } : { customer_email: user.email }),
         client_reference_id: user.id,
         metadata: { user_id: user.id, tipo: "suscripcion" },
-        subscription_data: { metadata: { user_id: user.id }, ...(nuevo ? { trial_period_days: PRUEBA_DIAS } : {}) },
+        subscription_data: { metadata: { user_id: user.id } },
         locale: "es-419",
         success_url: `${site}/panel?suscripcion=ok`,
         cancel_url: `${site}/panel`,
