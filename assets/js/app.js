@@ -979,9 +979,7 @@
       } catch (e) {}
 
       const fecha = d => d.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
-      const listoSub = r => r && r.prueba && r.primer_cobro
-        ? `Tu seguimiento está activo. Tu primer cobro será el ${fecha(new Date(r.primer_cobro))} y lo puedes cancelar antes desde tu cuenta. En tu cuenta, en la sección Cuerpo, llena tus datos para recibir tu plan de nutrición y ejercicio.`
-        : "Tu seguimiento está activo. En tu cuenta, en la sección Cuerpo, llena tus datos para recibir tu plan de nutrición y ejercicio.";
+      const listoSub = () => "Tu seguimiento está activo. En tu cuenta, en la sección Cuerpo, llena tus datos para recibir tu plan de nutrición y ejercicio.";
 
       // Coming back from the upgrade checkout: if they also picked the follow-up, finish it now.
       if (q.get("mejora") === "1") {
@@ -1013,18 +1011,16 @@
       const up = $("#ofUp"), sub = $("#ofSub"), cUp = up.querySelector("input"), cSub = sub.querySelector("input");
       up.hidden = !conUp; cUp.checked = conUp;
       sub.hidden = !conSub; cSub.checked = conSub;
-      const gratis = st.nuevo !== false;
-      $$("[data-sub-fecha]").forEach(e => { e.textContent = fecha(new Date(Date.now() + 30 * 864e5)); });
-      if (!gratis) { $("#ofSubPrecio").textContent = conCodigo(SUB) + " al mes"; $("#ofSubNota").textContent = "Se cobra hoy y cada mes en la misma tarjeta. Cancelas cuando quieras desde tu cuenta."; }
-      listaValor($("#ofValor"), $("#ofTotal"), `<b class="mono">${conCodigo(SUB)}</b> al mes` + (gratis ? ", y el primer mes es gratis" : ""));
+      $("#ofSubPrecio").textContent = conCodigo(SUB) + " al mes";
+      listaValor($("#ofValor"), $("#ofTotal"), `<b class="mono">${conCodigo(SUB)}</b> al mes`);
       const yes = $("#ofYes");
       const pintar = () => {
-        const hoy = (cUp.checked ? numero(U.now) : 0) + (cSub.checked && !gratis ? numero(SUB) : 0);
+        const hoy = (cUp.checked ? numero(U.now) : 0) + (cSub.checked ? numero(SUB) : 0);
         $("#ofHoy").textContent = dinero(hoy);
         yes.textContent = !cUp.checked && !cSub.checked ? "Continuar sin agregar"
           : cUp.checked && cSub.checked ? "Agregar los dos"
           : cUp.checked ? `Agregar Plan Completo por ${conCodigo(U.now)}`
-          : gratis ? "Activar mi mes gratis" : `Activar por ${conCodigo(SUB)} al mes`;
+          : `Activar por ${conCodigo(SUB)} al mes`;
       };
       cUp.addEventListener("change", pintar); cSub.addEventListener("change", pintar); pintar();
       box.hidden = false;
@@ -1554,9 +1550,17 @@
     async function estadoSub() { if (!subEstado) { try { subEstado = await fnCall("suscripcion", { accion: "estado" }); } catch (e) { subEstado = { activa: false }; } } return subEstado; }
     async function filasCuerpo() { const { data } = await sb.from("fisico").select("id,created_at,datos,fotos,peso_kg,estado,plan,plan_at").order("created_at", { ascending: false }); return data || []; }
     async function avisoCuerpo() {
-      const st = await estadoSub(); if (!st.activa) return;
-      cuRows = await filasCuerpo();
-      const av = $("#cuerpoAviso"); if (!av || cuRows.length) return;
+      const st = await estadoSub(), av = $("#cuerpoAviso"); if (!av) return;
+      if (!st.activa) {
+        // not subscribed yet: a visible way in to the monthly follow-up, also on a phone where the tab bar scrolls
+        if (!todos.some(o => o.status === "pagado" || o.status === "listo")) return;
+        av.querySelector(".label").textContent = "Seguimiento mensual";
+        av.querySelector(".hint").innerHTML = `Un escaneo completo cada mes, tu plan de nutrición y ejercicio, y tu progreso de cara y físico por <b class="mono">${esc(conCodigo(C.SUB_PRICE || "$349"))}</b> al mes.`;
+        $("#cuerpoIr").textContent = "Ver qué incluye";
+      } else {
+        cuRows = await filasCuerpo();
+        if (cuRows.length) return;
+      }
       av.hidden = false;
       $("#cuerpoIr").onclick = () => { const rb = $("#repBody"); if (rb && rb.hidden) rb.hidden = false; $("#reportArea").hidden = false; irA("cuerpo"); };
     }
@@ -1567,8 +1571,8 @@
         box.innerHTML = `<div class="card cu-card"><p class="label">Incluido en tu seguimiento mensual</p><h3 class="cu-h">Tu plan de nutrición y ejercicio</h3>
           <p class="hint">Con tus datos y fotos de físico te armamos un plan para bajar grasa y definir tu cara, y cada mes lo ajustamos con tu avance.</p>
           <ul class="of-valor" id="cuValor"></ul><span class="of-total" id="cuTotal"></span><div class="msg" id="cuMsg"></div>
-          <button type="button" class="btn btn-primary" id="cuActivar" style="margin-top:16px">${st.nuevo === false ? "Activar mi seguimiento" : "Activar mi mes gratis"}</button></div>`;
-        listaValor($("#cuValor"), $("#cuTotal"), `<b class="mono">${conCodigo(C.SUB_PRICE || "$349")}</b> al mes` + (st.nuevo === false ? "" : ", y el primer mes es gratis"));
+          <button type="button" class="btn btn-primary" id="cuActivar" style="margin-top:16px">Activar mi seguimiento</button></div>`;
+        listaValor($("#cuValor"), $("#cuTotal"), `<b class="mono">${conCodigo(C.SUB_PRICE || "$349")}</b> al mes`);
         $("#cuActivar").onclick = async function () {
           this.disabled = true; this.textContent = "Un momento…";
           try { const r = await fnCall("suscripcion", { accion: "suscribir", moneda }); if (r.url) { location.href = r.url; return; } subEstado = null; cuerpo(); }
@@ -1742,7 +1746,7 @@
       };
       if (!st.activa) {
         $("#subL").textContent = "Seguimiento mensual"; $("#subT").textContent = "Mide tu avance cada mes";
-        $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu plan de nutrición y ejercicio, y tu progreso de cara y físico. ${st.nuevo === false ? "" : "El primer mes es gratis, después "}<b class="mono">${esc(precio)}</b>${SUFIJO ? " " + SUFIJO : ""} al mes y cancelas cuando quieras.`;
+        $("#subX").innerHTML = `Un escaneo completo cada mes con reporte nuevo, tu plan de nutrición y ejercicio, y tu progreso de cara y físico. <b class="mono">${esc(precio)}</b>${SUFIJO ? " " + SUFIJO : ""} al mes y cancelas cuando quieras.`;
         boton("Activar seguimiento", "btn btn-primary", function () { accion(this, "suscribir"); });
         enlace("Un escaneo suelto", "/analisis", "btn btn-ghost");
       } else {
