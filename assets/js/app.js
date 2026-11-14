@@ -1015,39 +1015,6 @@
     })();
   }
 
-  // ---------- creators program ----------
-  if (page === "creadores") {
-    const ventas = $("#crVentas"), tot = $("#crTotal"), tuyo = $("#crTuyo");
-    const calc = () => {
-      const n = Math.max(0, Math.min(100000, Math.round(Number(ventas.value) || 0)));
-      const total = n * (precio("soft") || 0);
-      tot.textContent = dinero(total); tuyo.textContent = dinero(total * 0.1);
-    };
-    if (ventas) { ventas.addEventListener("input", calc); calc(); }
-    const f = $("#crForm"), m = $("#crMsg");
-    if (f) f.addEventListener("submit", async ev => {
-      ev.preventDefault(); clearMsg(m);
-      const d = Object.fromEntries(new FormData(f).entries());
-      if (d.web) return; // filled by bots only
-      for (const k of ["nombre", "whatsapp", "email", "pais", "instagram", "tiktok"]) d[k] = String(d[k] || "").trim();
-      const digitos = d.whatsapp.replace(/\D/g, "");
-      if (!d.nombre || !d.pais) return msg(m, "Revisa tus datos: falta tu nombre o tu país.");
-      if (digitos.length < 10 || digitos.length > 15) return msg(m, "Revisa tu WhatsApp. Escríbelo con lada, por ejemplo +52 55 1234 5678.");
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return msg(m, "Revisa tu correo.");
-      if (!d.instagram && !d.tiktok) return msg(m, "Déjanos tu Instagram o tu TikTok para ver tus videos.");
-      if (!sb) return notReady(m);
-      const b = f.querySelector("button[type=submit]"); b.disabled = true;
-      const { error } = await sb.from("creadores").insert({
-        nombre: d.nombre, whatsapp: d.whatsapp, email: d.email.toLowerCase(), pais: d.pais,
-        instagram: d.instagram || null, tiktok: d.tiktok || null, moneda, ref: (typeof getRef === "function" ? getRef() : null) || null,
-      });
-      b.disabled = false;
-      if (error) { console.error(error); return msg(m, "No pudimos enviar tu solicitud. Inténtalo de nuevo en un momento."); }
-      f.hidden = true; $("#crOk").hidden = false;
-      track("generate_lead", { lead_type: "creador" });
-    });
-  }
-
   if (page === "portal") {
     const box = $("#afApp");
     const e = v => String(v ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
