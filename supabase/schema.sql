@@ -127,7 +127,7 @@ create table if not exists public.afiliados (
   redes text check (char_length(redes) <= 300),
   pago_metodo text check (pago_metodo in ('paypal','transferencia','otro')),
   pago_datos text check (char_length(pago_datos) <= 200),
-  comision_pct numeric not null default 30,
+  comision_pct numeric not null default 50,
   descuento_pct numeric not null default 10,
   activo boolean not null default true,
   clics integer not null default 0,
