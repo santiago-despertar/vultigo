@@ -23,6 +23,38 @@ const aPesos = (amount: number | null | undefined, currency: string | null | und
   return c === "MXN" ? Math.round(amount / 100) : Math.round(amount * 1499 / PRECIOS[c].soft);
 };
 
+// Meta Conversions API: the same purchase the browser pixel reports, sent from the server so it is not lost
+// to ad blockers or iPhone tracking limits. Same event_id as the pixel, so Meta counts it once.
+// Secret: META_CAPI_TOKEN (without it nothing is sent). Pixel: META_PIXEL_ID (default Resalta's).
+async function sha256(t: string) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+async function capi(nombre: string, id: string, s: Stripe.Checkout.Session, userId?: string | null) {
+  const token = Deno.env.get("META_CAPI_TOKEN");
+  if (!token || !s.amount_total) return;
+  try {
+    const moneda = (s.currency ?? "mxn").toUpperCase();
+    const valor = moneda === "CLP" ? s.amount_total : s.amount_total / 100;
+    const email = s.customer_details?.email ?? s.customer_email ?? "";
+    const user_data: Record<string, unknown> = {};
+    if (email) user_data.em = [await sha256(email.trim().toLowerCase())];
+    if (userId) user_data.external_id = [await sha256(userId)];
+    if (s.metadata?.fbp) user_data.fbp = s.metadata.fbp;
+    if (s.metadata?.fbc) user_data.fbc = s.metadata.fbc;
+    const pixel = Deno.env.get("META_PIXEL_ID") ?? "3159447567559166";
+    const r = await fetch(`https://graph.facebook.com/v21.0/${pixel}/events?access_token=${encodeURIComponent(token)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: [{
+        event_name: nombre, event_time: Math.floor(Date.now() / 1000), event_id: id, action_source: "website",
+        event_source_url: `${Deno.env.get("SITE_URL") ?? "https://resalta.co"}/gracias`, user_data,
+        custom_data: { value: valor, currency: moneda },
+      }] }),
+    });
+    if (!r.ok) console.error("capi", r.status, (await r.text()).slice(0, 300));
+  } catch (e) { console.error("capi", e); }
+}
+
 async function comision(orderId: string, concepto: string, ventaMxn: number) {
   if (!ventaMxn) return;
   const { data: o } = await admin.from("orders").select("afiliado_id,user_id").eq("id", orderId).single();
@@ -63,6 +95,7 @@ Deno.serve(async (req) => {
           cancela: sub.cancel_at_period_end,
           actualizado: new Date().toISOString(),
         });
+        await capi("Subscribe", `sub-${sub.id}`, s, userId);
       }
     } else if (s.payment_status === "paid" && s.client_reference_id && s.metadata?.upgrade === "true") {
       // Upgrade paid through a separate checkout (fallback when the one-click charge was not possible).
@@ -82,7 +115,10 @@ Deno.serve(async (req) => {
         amount_mxn: s.amount_total ? aPesos(s.amount_total, s.currency) : null,
         paid_at: new Date().toISOString(),
       }).eq("id", s.client_reference_id).eq("status", "borrador").select("id");
-      if (cambiado && cambiado.length) await comision(s.client_reference_id, "venta", aPesos(s.amount_total, s.currency));
+      if (cambiado && cambiado.length) {
+        await comision(s.client_reference_id, "venta", aPesos(s.amount_total, s.currency));
+        await capi("Purchase", "compra-" + s.client_reference_id, s, s.metadata?.user_id);
+      }
     }
   }
   if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
