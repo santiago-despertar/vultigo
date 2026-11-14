@@ -2251,7 +2251,7 @@ body[data-page=index] .notes{padding-bottom:32px}
   .of-opt .plan-in{padding:16px 14px 16px 46px}
   .of-opt .plan-in::before{left:13px;top:18px}
   .of-opt input:checked+.plan-in::after{left:20px;top:22px}
-  .of-valor,.of-opt .of-total{margin-left:-32px}
+  .of-opt .of-valor,.of-opt .of-total{margin-left:-32px}
   .of-valor li{font-size:13.5px}
 }
 @media (max-width:760px){body[data-page="gracias"] .panel{padding:26px 16px}}
