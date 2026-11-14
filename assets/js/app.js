@@ -598,7 +598,11 @@
     let user, order;
     const uploaded = new Set();
 
+    // each step and question is logged once per visit, so the admin panel shows where people leave the onboarding
+    const unaVez = (nombre, paso) => { try { const k = "rs_ob_" + nombre + "_" + paso; if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, "1"); } catch (e) {} registrar(nombre, { paso }); };
+    const PASOS = { 1: "preguntas", 2: "fotos", 2.5: "midiendo", 3: "oferta" };
     function go(n) {
+      if (PASOS[n]) unaVez("onboarding_paso", PASOS[n]);
       $$(".wstep").forEach(s => s.classList.toggle("active", s.dataset.step == n));
       $$(".progress i").forEach((b, i) => b.classList.toggle("on", i < n));
       scrollTo({ top: 0, behavior: "smooth" });
@@ -653,6 +657,7 @@
       function mostrar(n, sinFoco) {
         i = Math.max(0, Math.min(qs.length - 1, n));
         qs.forEach((q, k) => q.classList.toggle("on", k === i));
+        const campo = qs[i].querySelector("[name]"); if (campo) unaVez("onboarding_pregunta", campo.name);
         pintar(qs[i]); clearMsg(qm);
         const vis = qs.filter(aplica); if (bar) bar.style.width = Math.round((vis.indexOf(qs[i]) + 1) / vis.length * 100) + "%";
         bAtras.style.visibility = i === 0 ? "hidden" : "";
