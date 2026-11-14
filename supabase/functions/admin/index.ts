@@ -209,6 +209,173 @@ Deno.serve(async (req) => {
       return json({ ok: true, dias, enlaces: out });
     }
 
+    if (accion === "secuencias") {
+      const [{ data: correos }, { data: ins }, { data: env }, ev] = await Promise.all([
+        admin.from("secuencia_correos").select("*").order("secuencia").order("paso"),
+        admin.from("secuencia_inscritos").select("secuencia,salio_at,motivo,desde"),
+        admin.from("secuencia_envios").select("secuencia,paso,ok"),
+        eventosDesde(new Date(Date.now() - 90 * DIA), "nombre,vid,utm_medium,utm_campaign"),
+      ]);
+      const clics: Record<string, Set<string>> = {}, compras: Record<string, Set<string>> = {};
+      const viaCorreo = new Map<string, string>();
+      for (const e of ev) if (e.utm_medium === "abandono" && e.utm_campaign && e.nombre === "page_view") { (clics[e.utm_campaign] ??= new Set()).add(e.vid); viaCorreo.set(e.vid, e.utm_campaign); }
+      for (const e of ev) if (e.nombre === "purchase" && viaCorreo.has(e.vid)) (compras[viaCorreo.get(e.vid)!] ??= new Set()).add(e.vid);
+      const stats: Obj = {};
+      for (const i of ins ?? []) { const x = (stats[i.secuencia] ??= { inscritos: 0, activos: 0, compraron: 0, bajas: 0, terminaron: 0 }); x.inscritos++; if (!i.salio_at) x.activos++; else if (i.motivo === "compra") x.compraron++; else if (i.motivo === "baja") x.bajas++; else if (i.motivo === "terminó") x.terminaron++; }
+      return json({ ok: true, stats, correos: (correos ?? []).map((c: Obj) => ({ ...c,
+        enviados: (env ?? []).filter((e: Obj) => e.secuencia === c.secuencia && e.paso === c.paso && e.ok).length,
+        fallidos: (env ?? []).filter((e: Obj) => e.secuencia === c.secuencia && e.paso === c.paso && !e.ok).length,
+        clics: clics[`${c.secuencia}-${c.paso}`]?.size ?? 0, compras: compras[`${c.secuencia}-${c.paso}`]?.size ?? 0 })) });
+    }
+
+    if (accion === "guardar_correo") {
+      const id = Number(b.id);
+      const asunto = String(b.asunto ?? "").trim().slice(0, 200), cuerpo = String(b.cuerpo ?? "").slice(0, 8000);
+      const dias = Math.max(0, Math.min(90, Number(b.dias)));
+      if (!id || !asunto || cuerpo.trim().length < 20 || !Number.isFinite(dias)) return json({ error: "Revisa el asunto, el texto y los días" }, 400);
+      const abiertos = (cuerpo.match(/\[\[(\w+)\]\]/g) ?? []).length, cerrados = (cuerpo.match(/\[\[\/(\w+)\]\]/g) ?? []).length;
+      if (abiertos !== cerrados) return json({ error: "Hay un bloque [[...]] sin cerrar" }, 400);
+      const { error } = await admin.from("secuencia_correos").update({ asunto, cuerpo, dias, activo: b.activo !== false, actualizado: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+      return json({ ok: true });
+    }
+
+    if (accion === "insights") {
+      const dias = Math.min(365, Math.max(1, Number(b.dias) || 30));
+      const desde = new Date(hoy0().getTime() - (dias - 1) * DIA);
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      const stripe = async (path: string) => {
+        if (!stripeKey) return null;
+        const r = await fetch(`https://api.stripe.com/v1/${path}`, { headers: { Authorization: `Bearer ${stripeKey}` } });
+        return r.ok ? r.json() : null;
+      };
+      const [ord, rep, usuarios, leads, ev, envFall, subsSt, disputas, facturas] = await Promise.all([
+        admin.from("orders").select("id,user_id,status,tier,amount_mxn,paid_at,delivered_at,created_at,answers").then((r) => r.data ?? []),
+        admin.from("reports").select("order_id,data->uso,data->>estado,data->>desde,data->>generado,data->>motivo").then((r) => r.data ?? []),
+        todosLosUsuarios(),
+        admin.from("leads").select("email,created_at,enviado_at,source").then((r) => r.data ?? []),
+        eventosDesde(desde, "ts,nombre,vid,user_id,datos"),
+        admin.from("secuencia_envios").select("email,secuencia,paso,enviado_at").eq("ok", false).gte("enviado_at", new Date(Date.now() - 3 * DIA).toISOString()).then((r) => r.data ?? []),
+        stripe("subscriptions?status=all&limit=100&expand[]=data.items.data.price"),
+        stripe("disputes?limit=20"),
+        stripe(`invoices?status=open&limit=50&created[gte]=${Math.floor((Date.now() - 30 * DIA) / 1000)}`),
+      ]);
+      const pagada = (o: Obj) => o.status === "pagado" || o.status === "listo";
+
+      // 1) onboarding drop-off, question by question
+      const ORDEN = ["nombre", "edad", "sexo", "pais", "estatura", "peso", "objetivo", "piel", "rutina", "lentes", "procedimientos", "presupuesto_procedimientos", "presupuesto", "tiempo", "notas", "mayor"];
+      const ETQ: Obj = { nombre: "Nombre", edad: "Edad", sexo: "Sexo", pais: "País", estatura: "Estatura", peso: "Peso", objetivo: "Qué quiere mejorar", piel: "Tipo de piel", rutina: "Rutina", lentes: "Lentes", procedimientos: "Procedimientos", presupuesto_procedimientos: "Presupuesto para procedimientos", presupuesto: "Presupuesto", tiempo: "Tiempo al día", notas: "Notas", mayor: "Confirma que es mayor de edad" };
+      const unicos = (pred: (e: Obj) => boolean) => new Set(ev.filter(pred).map((e) => e.vid)).size;
+      const onboarding = [
+        ...ORDEN.map((k) => ({ paso: ETQ[k], n: unicos((e) => e.nombre === "onboarding_pregunta" && e.datos?.paso === k) })).filter((x, i) => x.n > 0 || i < 7),
+        { paso: "Subir fotos", n: unicos((e) => e.nombre === "onboarding_paso" && e.datos?.paso === "fotos") },
+        { paso: "Midiendo su cara", n: unicos((e) => e.nombre === "onboarding_paso" && e.datos?.paso === "midiendo") },
+        { paso: "Vio la oferta", n: unicos((e) => e.nombre === "onboarding_paso" && e.datos?.paso === "oferta") },
+        { paso: "Inició el pago", n: unicos((e) => e.nombre === "begin_checkout") },
+        { paso: "Compró", n: unicos((e) => e.nombre === "purchase") },
+      ];
+
+      // 2) answers and how each one converts (everyone who answered, any date)
+      const conResp = ord.filter((o: Obj) => o.answers && Object.keys(o.answers).length > 2);
+      const porUsuario = new Map<string, Obj>();
+      for (const o of conResp) { const p = porUsuario.get(o.user_id); if (!p || pagada(o) || (!pagada(p) && o.created_at > p.created_at)) porUsuario.set(o.user_id, o); }
+      const personas = [...porUsuario.values()];
+      const compraUser = new Set(ord.filter(pagada).map((o: Obj) => o.user_id));
+      const tramoEdad = (e: unknown) => { const n = Number(e); return !n ? null : n < 25 ? "18 a 24" : n < 35 ? "25 a 34" : n < 45 ? "35 a 44" : n < 55 ? "45 a 54" : "55 o más"; };
+      const dim = (titulo: string, val: (a: Obj) => string[] | string | null) => {
+        const m: Record<string, { n: number; compras: number }> = {};
+        for (const o of personas) {
+          let v = val(o.answers ?? {}); if (v == null || v === "") continue;
+          for (const x of (Array.isArray(v) ? v : [v])) { const r = (m[x] ??= { n: 0, compras: 0 }); r.n++; if (compraUser.has(o.user_id)) r.compras++; }
+        }
+        return { titulo, filas: Object.entries(m).map(([valor, r]) => ({ valor, ...r })).sort((a, c) => c.n - a.n) };
+      };
+      const respuestas = [
+        dim("Qué quiere mejorar", (a) => String(a.objetivo ?? "").split(", ").filter(Boolean)),
+        dim("Sexo", (a) => a.sexo), dim("Edad", (a) => tramoEdad(a.edad)), dim("País", (a) => a.pais),
+        dim("Procedimientos", (a) => a.procedimientos), dim("Presupuesto", (a) => a.presupuesto),
+        dim("Tiempo al día", (a) => a.tiempo), dim("Tipo de piel", (a) => a.piel), dim("Rutina actual", (a) => a.rutina),
+      ];
+
+      // 3) margin per paid order: price minus AI cost (Opus 5.5 rates) minus estimated Stripe fee
+      const USD_MXN = Number(Deno.env.get("USD_MXN") ?? "18");
+      const costoIA = (uso: unknown) => {
+        let usd = 0;
+        for (const u of (Array.isArray(uso) ? uso : []) as Obj[]) {
+          if (!u) continue;
+          usd += ((u.input_tokens ?? 0) * 4 + (u.output_tokens ?? 0) * 20 + (u.cache_creation_input_tokens ?? 0) * 5 + (u.cache_read_input_tokens ?? 0) * 0.4) / 1e6;
+        }
+        return usd * USD_MXN;
+      };
+      const repPor = new Map(rep.map((r: Obj) => [r.order_id, r]));
+      const pagadas = ord.filter(pagada);
+      const filasMargen = pagadas.map((o: Obj) => {
+        const ingreso = o.amount_mxn ?? 0, ia = costoIA(repPor.get(o.id)?.uso), comision = ingreso ? (ingreso * 0.036 + 3) * 1.16 : 0;
+        return { id: o.id, tier: o.tier, ingreso, ia: Math.round(ia * 100) / 100, comision: Math.round(comision * 100) / 100, margen: Math.round((ingreso - ia - comision) * 100) / 100 };
+      });
+      const sum = (xs: Obj[], k: string) => xs.reduce((t, x) => t + (x[k] ?? 0), 0);
+      const porPlan = (t: string) => { const xs = filasMargen.filter((x) => x.tier === t); return { pedidos: xs.length, ingreso: sum(xs, "ingreso"), ia: sum(xs, "ia"), comision: sum(xs, "comision"), margen: sum(xs, "margen") }; };
+      const margen = { tipo_cambio: USD_MXN, total: { pedidos: filasMargen.length, ingreso: sum(filasMargen, "ingreso"), ia: sum(filasMargen, "ia"), comision: sum(filasMargen, "comision"), margen: sum(filasMargen, "margen") }, esencial: porPlan("soft"), completo: porPlan("hard"), pedidos: filasMargen.slice(0, 50) };
+
+      // 4) time to purchase
+      const usuarioPor = new Map(usuarios.map((u) => [u.id, u]));
+      const mediana = (xs: number[]) => { if (!xs.length) return null; const a = [...xs].sort((x, y) => x - y); const m = Math.floor(a.length / 2); return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+      const horas = (a: string, b2: string) => (new Date(b2).getTime() - new Date(a).getTime()) / 3600e3;
+      const deCuenta: number[] = [], deLead: number[] = [], deOnb: number[] = [];
+      for (const o of pagadas) {
+        if (!o.paid_at) continue;
+        const u = usuarioPor.get(o.user_id);
+        if (u?.created_at) deCuenta.push(horas(u.created_at, o.paid_at));
+        deOnb.push(horas(o.created_at, o.paid_at));
+        const em = (u?.email ?? "").toLowerCase(), l = leads.filter((x: Obj) => x.email === em && x.created_at < o.paid_at).sort((a: Obj, c: Obj) => a.created_at < c.created_at ? -1 : 1)[0];
+        if (l) deLead.push(horas(l.created_at, o.paid_at));
+      }
+      const tiempos = { compras: pagadas.length, desde_cuenta_h: mediana(deCuenta), desde_onboarding_h: mediana(deOnb), desde_lead_h: mediana(deLead), con_lead: deLead.length,
+        mismo_dia: deCuenta.filter((h) => h < 24).length, semana: deCuenta.filter((h) => h >= 24 && h < 168).length, mas: deCuenta.filter((h) => h >= 168).length };
+
+      // 6) subscriptions straight from Stripe (real amounts in each currency)
+      const SUB_MXN: Obj = { mxn: 1, usd: 349 / 19, eur: 349 / 16, cop: 349 / 59000, clp: 349 / 18990, pen: 349 / 65 };
+      let suscripciones: Obj | null = null;
+      if (subsSt?.data) {
+        const subs = subsSt.data as Obj[];
+        const activas = subs.filter((x) => x.status === "active" || x.status === "trialing" || x.status === "past_due");
+        const mrrMon: Obj = {};
+        for (const x of activas) for (const it of x.items?.data ?? []) {
+          const pr = it.price ?? {}, cur = String(pr.currency ?? "mxn");
+          const meses = pr.recurring?.interval === "year" ? 12 : pr.recurring?.interval === "week" ? 0.23 : (pr.recurring?.interval_count ?? 1);
+          mrrMon[cur] = (mrrMon[cur] ?? 0) + (pr.unit_amount ?? 0) * (it.quantity ?? 1) / (cur === "clp" ? 1 : 100) / meses;
+        }
+        const mrr_mxn = Object.entries(mrrMon).reduce((t, [c, v]) => t + (v as number) * (SUB_MXN[c] ?? 1), 0);
+        const canceladas = subs.filter((x) => x.canceled_at);
+        const vida = canceladas.map((x) => (x.canceled_at - x.start_date) / 86400);
+        const porMes: Obj = {};
+        for (const x of subs) { const m = new Date(x.start_date * 1000).toISOString().slice(0, 7); (porMes[m] ??= { altas: 0, bajas: 0 }).altas++; }
+        for (const x of canceladas) { const m = new Date(x.canceled_at * 1000).toISOString().slice(0, 7); (porMes[m] ??= { altas: 0, bajas: 0 }).bajas++; }
+        suscripciones = { activas: activas.length, morosas: subs.filter((x) => x.status === "past_due" || x.status === "unpaid").length, cancelan_al_final: activas.filter((x) => x.cancel_at_period_end).length,
+          mrr_por_moneda: mrrMon, mrr_mxn: Math.round(mrr_mxn), vida_promedio_dias: vida.length ? Math.round(vida.reduce((a, c) => a + c, 0) / vida.length) : null,
+          por_mes: Object.entries(porMes).sort().map(([mes, v]) => ({ mes, ...(v as Obj) })) };
+      }
+
+      // 7) alerts: things that need a human
+      const ahora = Date.now(), alertas: Obj[] = [];
+      for (const r of rep) {
+        if (r.estado === "error") alertas.push({ nivel: "alta", tipo: "Reporte con error", detalle: `Pedido ${String(r.order_id).slice(0, 8)}: ${r.motivo ?? "sin detalle"}`, order_id: r.order_id });
+        else if (r.estado === "generando" && r.desde && ahora - new Date(r.desde).getTime() > 10 * 60e3) alertas.push({ nivel: "alta", tipo: "Reporte atorado", detalle: `Pedido ${String(r.order_id).slice(0, 8)} lleva más de 10 minutos generándose` , order_id: r.order_id });
+      }
+      for (const o of ord) if (o.status === "pagado" && o.paid_at && ahora - new Date(o.paid_at).getTime() > 2 * 3600e3 && !repPor.get(o.id)?.generado)
+        alertas.push({ nivel: "media", tipo: "Pagó y no tiene reporte", detalle: `Pedido ${String(o.id).slice(0, 8)}, pagado ${new Date(o.paid_at).toLocaleString("es-MX", { timeZone: "America/Mexico_City" })}. Puede que no haya subido sus fotos.`, user_id: o.user_id });
+      const sinEnviar = leads.filter((l: Obj) => l.source === "calificacion" && !l.enviado_at && ahora - new Date(l.created_at).getTime() > 3600e3 && ahora - new Date(l.created_at).getTime() < 7 * DIA);
+      if (sinEnviar.length) alertas.push({ nivel: "media", tipo: "Resultados gratis sin enviar", detalle: `${sinEnviar.length} personas no han recibido su resultado por correo. Revisa Sender.` });
+      if (envFall.length) alertas.push({ nivel: "media", tipo: "Correos de secuencia rechazados", detalle: `${envFall.length} en los últimos 3 días. Revisa la cuenta de Sender.` });
+      for (const d of (disputas?.data ?? []) as Obj[]) if (!["won", "lost", "warning_closed"].includes(d.status))
+        alertas.push({ nivel: "alta", tipo: "Contracargo en Stripe", detalle: `${(d.amount / 100).toFixed(2)} ${String(d.currency).toUpperCase()}, motivo: ${d.reason}. Responde en Stripe antes de la fecha límite.` });
+      const fallidas = ((facturas?.data ?? []) as Obj[]).filter((f) => f.attempt_count > 0);
+      if (fallidas.length) alertas.push({ nivel: "media", tipo: "Cobros de suscripción fallidos", detalle: `${fallidas.length} facturas abiertas con cobro rechazado en los últimos 30 días.` });
+      if (!stripeKey) alertas.push({ nivel: "baja", tipo: "Sin conexión a Stripe", detalle: "No se pudo leer Stripe desde el panel." });
+
+      return json({ ok: true, dias, onboarding, respuestas, personas: personas.length, margen, tiempos, suscripciones, alertas });
+    }
+
     if (accion === "usuarios") {
       const [usuarios, ord, subs, leads] = await Promise.all([
         todosLosUsuarios(),
