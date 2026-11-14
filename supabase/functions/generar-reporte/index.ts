@@ -162,6 +162,38 @@ Cómo escribir:
 - Sé concreto y breve: cada texto de dos a cuatro frases, cada acción en una frase. No pienses en voz alta ni expliques tu proceso.`;
 }
 
+// "Your analysis is ready" email, through Sender. Secret: SENDER_API_KEY (without it nothing is sent).
+async function avisarListo(email: string, nombre: string, general: unknown) {
+  const key = Deno.env.get("SENDER_API_KEY");
+  if (!key) return;
+  const site = Deno.env.get("SITE_URL") ?? "https://resalta.co";
+  const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+  const primero = nombre.trim().split(/\s+/)[0] || "";
+  const nota = typeof general === "number" ? `<p style="margin:0;font-size:15px;color:#5B6470">Calificación general</p>
+    <p style="margin:4px 0 22px;font-family:monospace;font-size:56px;line-height:1">${general.toFixed(1)}<span style="font-size:18px;color:#5B6470"> / 10</span></p>` : "";
+  const html = `<!doctype html><html lang="es"><body style="margin:0;background:#F3F1EC;font-family:Helvetica,Arial,sans-serif;color:#16191D">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F3F1EC"><tr><td align="center" style="padding:28px 14px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#FFFFFF;border-radius:16px;border:1px solid #D3D8DD">
+<tr><td style="padding:32px 30px 30px">
+<p style="margin:0 0 26px;font-size:20px;letter-spacing:-.01em">resalta</p>
+<h1 style="margin:0 0 14px;font-size:24px;font-weight:400;line-height:1.25">${primero ? esc(primero) + ", tu" : "Tu"} análisis está listo</h1>
+<p style="margin:0 0 22px;font-size:15px;line-height:1.55;color:#5B6470">Ya revisamos tus fotos y tus medidas. En tu panel tienes tus puntajes por zona, lo que más te conviene cambiar primero y tu plan paso a paso.</p>
+${nota}
+<a href="${site}/panel?utm_source=email&utm_medium=reporte&utm_campaign=listo" style="display:inline-block;background:#4A5866;color:#FFFFFF;text-decoration:none;padding:14px 26px;border-radius:999px;font-size:15px">Ver mi análisis</a>
+<p style="margin:26px 0 0;font-size:13px;line-height:1.5;color:#5B6470">Entra con el mismo correo con el que compraste. Tu análisis se queda guardado en tu cuenta.</p>
+</td></tr></table>
+<p style="max-width:520px;margin:16px auto 0;font-size:12px;line-height:1.5;color:#5B6470">Resalta · resalta.co<br>Si tienes dudas, responde a este correo.</p>
+</td></tr></table></body></html>`;
+  try {
+    const r = await fetch("https://api.sender.net/v2/message/send", {
+      method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ from: { name: "Resalta", email: Deno.env.get("SENDER_FROM") ?? "contacto@resalta.co" }, to: { email, name: primero || email },
+        subject: primero ? `${primero}, tu análisis facial está listo` : "Tu análisis facial está listo", html }),
+    });
+    if (!r.ok) console.error("sender listo", r.status, (await r.text()).slice(0, 200));
+  } catch (e) { console.error("sender listo", e); }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -318,7 +350,9 @@ En dimorfismo, califica qué tanto ese rasgo se acerca a lo que se percibe como 
           v: VERSION, tier: order.tier, modelo: MODELO, generado: new Date().toISOString(), uso: [ev?.usage, pr.usage, zo?.usage, es?.usage], segundos: Math.round((Date.now() - inicio) / 1000) };
         if (order.tier !== "hard") { delete data.avanzado; if (data.potencial) delete data.potencial.general_hard; }
         await admin.from("reports").update({ data }).eq("order_id", order.id);
-        await admin.from("orders").update({ status: "listo", delivered_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pagado");
+        const { data: entregado } = await admin.from("orders").update({ status: "listo", delivered_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pagado").select("id");
+        // first delivery only: let them know by email, in case they closed the page while it was being written
+        if (entregado?.length && user.email) await avisarListo(user.email, String((order.answers ?? {}).nombre || user.user_metadata?.full_name || ""), puntajes.general);
       } catch (e) {
         console.error(e);
         await fallar("excepcion");
